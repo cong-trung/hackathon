@@ -12,7 +12,8 @@ import AddEntryForm from './AddEntryForm';
 function AddButton() {
     const [open, setOpen] = useState(false);
 
-    function handleSubmit() {
+    function handleSubmit(data) {
+        console.log('New entry:', data);
         setOpen(false);
     }
 
@@ -23,7 +24,7 @@ function AddButton() {
                 Add
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Add New Entry</DialogTitle>
                     </DialogHeader>

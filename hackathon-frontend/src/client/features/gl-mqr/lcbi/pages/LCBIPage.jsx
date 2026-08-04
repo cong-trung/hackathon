@@ -8,26 +8,26 @@ import PageWithDataTableLayout from '@/shared/layout/PageWithDataTableLayout';
 
 import { getColumns } from '../components/data-table/columns';
 
-import { useGetTISTHIQuery } from '@/app/api/tiApi';
+import { useGetSolutionsQuery } from '@/app/api/solutionApi';
 
-function STHIPage() {
+function LCBIPage() {
     const {
-        data: sthiData = [],
-        isLoading: isLoadingSTHI,
-        isError: isErrorSTHI,
-    } = useGetTISTHIQuery();
+        data: lcbiData = [],
+        isLoading: isLoadingLCBI,
+        isError: isErrorLCBI,
+    } = useGetSolutionsQuery('lcbi');
 
     const columns = useMemo(() => getColumns(), []);
 
     return (
         <PageWithDataTableLayout
-            isLoading={isLoadingSTHI}
-            isError={isErrorSTHI}
+            isLoading={isLoadingLCBI}
+            isError={isErrorLCBI}
         >
             <>
                 <MemoizedDataTable
                     columns={columns}
-                    data={sthiData.items || []}
+                    data={lcbiData.items || []}
                     TableToolbar={DataTableToolbar}
                     containerClassName=""
                     paginationPageSize={10}
@@ -38,4 +38,4 @@ function STHIPage() {
     );
 }
 
-export default memo(STHIPage);
+export default memo(LCBIPage);

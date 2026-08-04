@@ -7,9 +7,15 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/shared/components/ui/dialog';
+import AddEntryForm from './AddEntryForm';
 
 function AddButton() {
     const [open, setOpen] = useState(false);
+
+    function handleSubmit(data) {
+        console.log('New entry:', data);
+        setOpen(false);
+    }
 
     return (
         <>
@@ -18,11 +24,14 @@ function AddButton() {
                 Add
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Add New Entry</DialogTitle>
                     </DialogHeader>
-                    {/* Add your form or content here */}
+                    <AddEntryForm
+                        onSubmit={handleSubmit}
+                        onCancel={() => setOpen(false)}
+                    />
                 </DialogContent>
             </Dialog>
         </>

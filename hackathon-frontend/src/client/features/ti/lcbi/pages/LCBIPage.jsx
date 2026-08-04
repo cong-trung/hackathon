@@ -8,14 +8,14 @@ import PageWithDataTableLayout from '@/shared/layout/PageWithDataTableLayout';
 
 import { getColumns } from '../components/data-table/columns';
 
-import { useGetLCBIQuery } from '@/app/api/tiApi';
+import { useGetTILCBIQuery } from '@/app/api/tiApi';
 
 function LCBIPage() {
     const {
         data: lcbiData = [],
         isLoading: isLoadingLCBI,
         isError: isErrorLCBI,
-    } = useGetLCBIQuery();
+    } = useGetTILCBIQuery();
 
     const columns = useMemo(() => getColumns(), []);
 

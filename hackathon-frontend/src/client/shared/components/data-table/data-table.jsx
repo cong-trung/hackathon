@@ -79,7 +79,7 @@ function DataTable({
 
     return (
         <div
-            className={`space-y-4 w-full flex flex-col flex-1 max-w-[calc(100vw)] max-h-[calc(100vh-20%)] ${containerClassName}`}
+            className={`space-y-4 w-full flex flex-col flex-1 max-w-[calc(100vw)] max-h-[calc(84vh)] ${containerClassName}`}
         >
             {TableToolbar && <TableToolbar table={table} />}
             <div className={scrollbarClassName}>

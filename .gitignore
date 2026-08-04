@@ -9,3 +9,5 @@ env/
 
 # Node dependencies
 node_modules/
+
+intel-ca.crt

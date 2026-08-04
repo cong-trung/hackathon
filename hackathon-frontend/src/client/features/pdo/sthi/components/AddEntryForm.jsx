@@ -17,6 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/shared/components/ui/select';
+import { Textarea } from '@/shared/components/ui/textarea';
 import { scrollbarClassName } from '@/shared/utils/scrollbar';
 
 import {
@@ -54,21 +55,39 @@ function AddEntryForm({ onSubmit, onCancel }) {
 
     const form = useForm({ defaultValues: { prodgroup3: '' } });
     const [solutionStatuses, setSolutionStatuses] = useState({});
+    const [solutionComments, setSolutionComments] = useState({});
 
     const prodgroup3 = form.watch('prodgroup3');
+
+    const isSaveDisabled = useMemo(() => {
+        if (!prodgroup3) return true;
+        for (const sol of solutions) {
+            const status = solutionStatuses[sol.id];
+            const comment = solutionComments[sol.id];
+            if (
+                (status === 'N-reviewed' || status === 'On hold') &&
+                !comment?.trim()
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }, [prodgroup3, solutionStatuses, solutionComments, solutions]);
 
     const handleSubmit = (data) => {
         const pdid = data.prodgroup3;
         const solutionList = solutions.map((sol) => ({
             solutionid: sol.id,
             status: solutionStatuses[sol.id] ?? 'N/A',
+            comment: solutionComments[sol.id] ?? '',
         }));
         updatePdSolution({
             module: 'sthi',
-            data: solutionList.map(({ solutionid, status }) => ({
+            data: solutionList.map(({ solutionid, status, comment }) => ({
                 pdid,
                 solutionid,
                 status,
+                note: comment,
             })),
         });
         onSubmit(data);
@@ -114,44 +133,76 @@ function AddEntryForm({ onSubmit, onCancel }) {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Solution</TableHead>
+                                <TableHead className="w-40">Solution</TableHead>
                                 <TableHead className="w-40">Status</TableHead>
+                                <TableHead>Comment</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {solutions.map((sol) => (
-                                <TableRow key={sol.id}>
-                                    <TableCell>{sol.solution}</TableCell>
-                                    <TableCell>
-                                        <Select
-                                            value={
-                                                solutionStatuses[sol.id] ??
-                                                'N/A'
-                                            }
-                                            onValueChange={(val) =>
-                                                setSolutionStatuses((prev) => ({
-                                                    ...prev,
-                                                    [sol.id]: val,
-                                                }))
-                                            }
-                                        >
-                                            <SelectTrigger className="w-36">
-                                                <SelectValue placeholder="Select" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {STATUS_OPTIONS.map((opt) => (
-                                                    <SelectItem
-                                                        key={opt}
-                                                        value={opt}
-                                                    >
-                                                        {opt}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                            {solutions.map((sol) => {
+                                const status =
+                                    solutionStatuses[sol.id] ?? 'N/A';
+                                const isCommentRequired =
+                                    status === 'N-reviewed' ||
+                                    status === 'On hold';
+                                return (
+                                    <TableRow key={sol.id}>
+                                        <TableCell>{sol.solution}</TableCell>
+                                        <TableCell>
+                                            <Select
+                                                value={status}
+                                                onValueChange={(val) =>
+                                                    setSolutionStatuses(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            [sol.id]: val,
+                                                        }),
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger className="w-36">
+                                                    <SelectValue placeholder="Select" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {STATUS_OPTIONS.map(
+                                                        (opt) => (
+                                                            <SelectItem
+                                                                key={opt}
+                                                                value={opt}
+                                                            >
+                                                                {opt}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Textarea
+                                                value={
+                                                    solutionComments[sol.id] ??
+                                                    ''
+                                                }
+                                                onChange={(e) =>
+                                                    setSolutionComments(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            [sol.id]:
+                                                                e.target.value,
+                                                        }),
+                                                    )
+                                                }
+                                                disabled={!isCommentRequired}
+                                                placeholder={
+                                                    isCommentRequired
+                                                        ? 'Comment required'
+                                                        : ''
+                                                }
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 </div>
@@ -160,7 +211,7 @@ function AddEntryForm({ onSubmit, onCancel }) {
                     <Button type="button" variant="outline" onClick={onCancel}>
                         Cancel
                     </Button>
-                    <Button type="submit" disabled={!prodgroup3}>
+                    <Button type="submit" disabled={isSaveDisabled}>
                         Save
                     </Button>
                 </div>

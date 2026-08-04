@@ -78,12 +78,40 @@ export const routes = [
             },
         ],
     },
-    // {
-    //     route_name: routesConfig.gl_mqr_page,
-    //     key: 'gl_mqr_page',
-    //     title: 'GL - MQR',
-    //     icon: Table2Icon,
-    //     breadcrumb: ['GL - MQR'],
-    //     component: lazy(() => import('@/features/gl-mqr/pages/HomePage')),
-    // },
+    {
+        title: 'GL-MQR',
+        key: 'gl_mqr_page',
+        icon: FileSpreadsheetIcon,
+        breadcrumb: ['GL-MQR'],
+        children: [
+            {
+                route_name: routesConfig.gl_mqr_page.sthi,
+                key: 'gl-mqr-sthi',
+                title: 'STHI',
+                icon: ComputerIcon,
+                breadcrumb: ['GL-MQR', 'STHI'],
+                component: lazy(
+                    () => import('@/features/gl-mqr/sthi/pages/STHIPage'),
+                ),
+            },
+            {
+                route_name: routesConfig.gl_mqr_page.lcbi,
+                key: 'gl-mqr-lcbi',
+                title: 'LCBI',
+                icon: MonitorCloudIcon,
+                breadcrumb: ['GL-MQR', 'LCBI'],
+                component: lazy(
+                    () => import('@/features/gl-mqr/lcbi/pages/LCBIPage'),
+                ),
+            },
+        ],
+    },
+    {
+        route_name: routesConfig.chat_page,
+        key: 'chat_page',
+        title: 'Chat',
+        icon: MessageCircleQuestionMarkIcon,
+        breadcrumb: ['Chat'],
+        component: lazy(() => import('@/features/chatbot/pages/ChatBotPage')),
+    },
 ];

@@ -2,13 +2,13 @@ import { apiSlice } from './apiSlice';
 
 export const tiApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        getSTHI: builder.query({
+        getTISTHI: builder.query({
             query: () => ({
                 url: '/ti/sthi',
                 method: 'get',
             }),
         }),
-        getLCBI: builder.query({
+        getTILCBI: builder.query({
             query: () => ({
                 url: '/ti/lcbi',
                 method: 'get',
@@ -17,4 +17,4 @@ export const tiApi = apiSlice.injectEndpoints({
     }),
 });
 
-export const { useGetSTHIQuery, useGetLCBIQuery } = tiApi;
+export const { useGetTISTHIQuery, useGetTILCBIQuery } = tiApi;

@@ -10,20 +10,6 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
-
-def load_env_file(path: Path) -> None:
-    if not path.exists():
-        return
-    for line in path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        key, value = stripped.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip())
-
-
-load_env_file(Path(__file__).with_name(".env.production"))
-
 DATA_DIR = Path(os.getenv("QUALITY_MATRIX_DATA_DIR", "data"))
 ALLOWED_ORIGINS = [
     x.strip()
@@ -180,34 +166,30 @@ FIELD_LABELS = {
 MODULE_SOLUTION_CONFIG = {
     "STHI": {
         "file": "ProductSolutionMatrix_STHI.csv",
-        "fields": ["pdid", "solutionid", "status", "note"],
+        "fields": ["pdid", "solutionid", "status"],
         "original_to_fe": {
             "PdID": "pdid",
             "SolutionID": "solutionid",
             "Status": "status",
-            "Note": "note",
         },
         "fe_to_original": {
             "pdid": "PdID",
             "solutionid": "SolutionID",
             "status": "Status",
-            "note": "Note",
         },
     },
     "LCBI": {
         "file": "ProductSolutionMatrix_LCBI.csv",
-        "fields": ["pdid", "solutionid", "status", "note"],
+        "fields": ["pdid", "solutionid", "status"],
         "original_to_fe": {
             "PdID": "pdid",
             "SolutionID": "solutionid",
             "Status": "status",
-            "Note": "note",
         },
         "fe_to_original": {
             "pdid": "PdID",
             "solutionid": "SolutionID",
             "status": "Status",
-            "note": "Note",
         },
     },
 }
@@ -457,7 +439,6 @@ class PdSolutionItem(BaseModel):
     pdid: str = Field(..., min_length=1)
     solutionid: str = Field(..., min_length=1)
     status: str = ""
-    note: str = ""
 
 
 @app.get("/health")
@@ -599,6 +580,15 @@ def list_solutions(
     }
 
 
+@app.get("/solutions/{solution_id}")
+def get_solution(solution_id: str):
+    _headers, rows = read_data(SOLUTION_CONFIG)
+    idx = find_by_key(rows, "id", solution_id)
+    if idx < 0:
+        raise HTTPException(status_code=404, detail="Solution not found")
+    return rows[idx]
+
+
 @app.post("/solutions")
 def create_solution(payload: SolutionPayload):
     headers, rows = read_data(SOLUTION_CONFIG)
@@ -656,7 +646,6 @@ def list_pdsolutions(module: str, q: str | None = None):
                 "solutionid": sid,
                 "solution": sol_map.get(sid, ""),
                 "status": row.get("status", ""),
-                "note": row.get("note", ""),
             }
         )
 
@@ -686,14 +675,12 @@ def update_pdsolutions(module: str, payload: list[PdSolutionItem]):
         )
         if idx >= 0:
             rows[idx]["status"] = item.status
-            rows[idx]["note"] = item.note
         else:
             rows.append(
                 {
                     "pdid": item.pdid,
                     "solutionid": item.solutionid,
                     "status": item.status,
-                    "note": item.note,
                 }
             )
     write_data(config, rows, headers)
@@ -721,21 +708,21 @@ NYRA_CHAT_MODEL = os.getenv("NYRA_CHAT_MODEL", "gpt-5.4-mini")
 
 def get_nyra_client():
     api_key = os.getenv("NYRA_API_KEY")
+
     if not api_key:
         raise HTTPException(
             status_code=500,
             detail="NYRA_API_KEY is not configured on backend.",
         )
+
     try:
         from nyra_services import NyraGateway
-    except ImportError as exc:
+    except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=(
-                "Cannot import nyra_services. Please install nyra-services. "
-                f"Original error: {exc}"
-            ),
+            detail=f"Cannot import nyra_services. Please install nyra-services. Original error: {exc}",
         )
+
     return NyraGateway(api_key=api_key)
 
 
@@ -767,6 +754,7 @@ def chat_with_ai(req: AIChatRequest):
     for item in req.history[-10:]:
         role = item.get("role", "")
         content = item.get("content", "")
+
         if role in {"user", "assistant"} and content:
             messages.append({"role": role, "content": content})
 
@@ -777,7 +765,7 @@ def chat_with_ai(req: AIChatRequest):
             model=NYRA_CHAT_MODEL,
             messages=messages,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise HTTPException(
             status_code=500,
             detail=f"NYRA chat request failed: {exc}",

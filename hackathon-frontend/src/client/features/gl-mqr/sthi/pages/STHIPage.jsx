@@ -8,17 +8,28 @@ import PageWithDataTableLayout from '@/shared/layout/PageWithDataTableLayout';
 
 import { getColumns } from '../components/data-table/columns';
 
-function HomePage() {
+import { useGetSolutionsQuery } from '@/app/api/solutionApi';
+
+function STHIPage() {
+    const {
+        data: sthiData = [],
+        isLoading: isLoadingSTHI,
+        isError: isErrorSTHI,
+    } = useGetSolutionsQuery('sthi');
+
     const columns = useMemo(() => getColumns(), []);
 
     return (
-        <PageWithDataTableLayout>
+        <PageWithDataTableLayout
+            isLoading={isLoadingSTHI}
+            isError={isErrorSTHI}
+        >
             <>
-                <DataTableToolbar />
                 <MemoizedDataTable
                     columns={columns}
-                    data={[]}
-                    containerClassName="max-h-[calc(100vh-8.2rem)]"
+                    data={sthiData.items || []}
+                    TableToolbar={DataTableToolbar}
+                    containerClassName=""
                     paginationPageSize={10}
                     paginationArray={[10, 20, 100]}
                 />
@@ -27,4 +38,4 @@ function HomePage() {
     );
 }
 
-export default memo(HomePage);
+export default memo(STHIPage);
