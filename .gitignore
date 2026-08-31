@@ -1,0 +1,18 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv
+venv/
+env/
+
+# Node dependencies
+node_modules/
+
+# Secrets / environment files (never commit real credentials)
+.env
+.env.*
+!.env.example
+
+intel-ca.crt

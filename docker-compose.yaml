@@ -1,0 +1,71 @@
+services:
+  hackathon-frontend:
+    build:
+      context: ./hackathon-frontend
+      dockerfile: Dockerfile
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        FTP_PROXY: ${FTP_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        ftp_proxy: ${ftp_proxy:-}
+        no_proxy: ${no_proxy:-}
+    env_file:
+      - .env.production
+    container_name: hackathon-frontend
+    image: hackathon-frontend:latest
+    ports:
+      - "8005:8005"
+    environment:
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      FTP_PROXY: ${FTP_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      http_proxy: ${http_proxy:-}
+      https_proxy: ${https_proxy:-}
+      ftp_proxy: ${ftp_proxy:-}
+      no_proxy: ${no_proxy:-}
+    restart: always
+
+  hackathon-backend:
+    build:
+      context: ./hackathon-backend
+      dockerfile: Dockerfile
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        FTP_PROXY: ${FTP_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        ftp_proxy: ${ftp_proxy:-}
+        no_proxy: ${no_proxy:-}
+    env_file:
+      - .env.production
+    container_name: hackathon-backend
+    image: hackathon-backend:latest
+    ports:
+      - "8004:8004"
+    environment:
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      FTP_PROXY: ${FTP_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      http_proxy: ${http_proxy:-}
+      https_proxy: ${https_proxy:-}
+      ftp_proxy: ${ftp_proxy:-}
+      no_proxy: ${no_proxy:-}
+    volumes:
+      - /mnt/x/Quality:/app/data
+    restart: always
+
+  # celery-beat:
+  #   build: .
+  #   command: celery -A backend beat --loglevel=info
+  #   volumes:
+  #     - .:/code
+  #   depends_on:
+  #     - redis
+  #     - hackathon-backend
