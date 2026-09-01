@@ -107,6 +107,16 @@ export const routes = [
         ],
     },
     {
+        route_name: routesConfig.pypcs_page,
+        key: 'pypcs_page',
+        title: 'PYPCS Matrix',
+        icon: TablePropertiesIcon,
+        breadcrumb: ['PYPCS Matrix'],
+        component: lazy(
+            () => import('@/features/pypcs/components/PYPCSMatrixTab'),
+        ),
+    },
+    {
         route_name: routesConfig.chat_page,
         key: 'chat_page',
         title: 'Chat',
