@@ -1,0 +1,19 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Secrets / environment files (never commit real credentials)
+.env
+.env.*
+!.env.example
+
+# Business/product data - do not commit
+data/
+
+# Corporate CA cert used only for Docker build context
+intel-ca.crt

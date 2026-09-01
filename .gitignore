@@ -10,4 +10,9 @@ env/
 # Node dependencies
 node_modules/
 
+# Secrets / environment files (never commit real credentials)
+.env
+.env.*
+!.env.example
+
 intel-ca.crt

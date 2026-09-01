@@ -24,6 +24,11 @@ babi.py
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets / environment files (never commit real credentials)
+.env
+.env.*
+!.env.example
 env.production
 Dockerfile
 docker-compose.yaml
