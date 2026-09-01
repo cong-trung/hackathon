@@ -1,0 +1,3 @@
+﻿submission_id,created_at,updated_at,submitted_by,role,selected_modules,product_name,prodgroup3,operation,answer_count,status
+a0317059-302f-45dc-8706-43732d49a0d7,2026-08-19T01:49:29Z,"",current_user,TI,LCBI|HDMX_AHMT|HDMX_CLASS|STHI,Demo,DEMO123,6379,15,""
+98f0058f-0815-454c-adc2-9cb1e9da8bde,2026-08-25T10:14:55Z,2026-08-25T10:40:50Z,current_user,"",LCBI,Hello,aa,aa,14,final

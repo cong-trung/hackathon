@@ -1,0 +1,103 @@
+EE_wwid,EE_name,mgr_wwid,idsid,mgr_name,parent_dept_name
+11304115,"Nguyen, Minh Chau",10490312,mnguy10,Jess Payong,VNAT Factory 2
+11337583,"Truong, Viet Tri",10490312,vtruon2,Jess Payong,VNAT Factory 2
+11350332,"Doan, Quoc Minh",11337583,qdoan2,Truong Viet Tri,VNAT Test Engineering 2
+11578117,"Duong, Ngoc Huy",11337583,nduong,Truong Viet Tri,VNAT Test Engineering 2
+11740534,"Ngo, Van Hai",11337583,hngovan,Truong Viet Tri,VNAT Test Engineering 2
+11828825,"Nguyen, Vu Hung Anh",11337583,vuhungan,Truong Viet Tri,VNAT Test Engineering 2
+11829050,"Pham, Thai Ha",11337583,tpham,Truong Viet Tri,VNAT Test Engineering 2
+11946843,"Truong, Thi Nhu Quynh",11337583,thinhuq2,Truong Viet Tri,VNAT Test Engineering 2
+11954485,"Truong, Ly",11337583,thilytru,Truong Viet Tri,VNAT Test Engineering 2
+11954955,"Trinh, Minh Thai",11337583,trinhmin,Truong Viet Tri,VNAT Test Engineering 2
+12039764,"Huynh, Loan Thao",11337583,loanthao,Truong Viet Tri,VNAT Test Engineering 2
+12087106,"Dao, Ngoc Phuong Thanh",11337583,daongocp,Truong Viet Tri,VNAT Test Engineering 2
+12102604,"Ho, Trong Thanh Vinh",11337583,hotrongt,Truong Viet Tri,VNAT Test Engineering 2
+12136965,"Lai, Thi Hue",11337583,thihuela,Truong Viet Tri,VNAT Test Engineering 2
+12170030,"Nguyen, Hong Y Nhi",11337583,hongynhi,Truong Viet Tri,VNAT Test Engineering 2
+12325709,"Huynh, Thu Thao",11337583,thuthaoh,Truong Viet Tri,VNAT Test Engineering 2
+12336907,"Tran, Thi Hoang Nhu",11337583,thihoang,Truong Viet Tri,VNAT Test Engineering 2
+12350447,"Nguyen, Thi Linh Giang",11337583,thilinhg,Truong Viet Tri,VNAT Test Engineering 2
+12355567,"Le, Gia Kiet",11337583,giakietl,Truong Viet Tri,VNAT Test Engineering 2
+11341202,"Doan, Viet Hy",10490312,vdoan2,Jess Payong,VNAT Factory 2
+11411259,"Vo, Van Han",11341202,vanhanvo,Doan Viet Hy,VNAT Test Engineering 2
+11411270,"Tran, Van Tuan",11341202,vantuant,Doan Viet Hy,VNAT Test Engineering 2
+11631891,"Bui, Duc Thinh",11341202,buid,Doan Viet Hy,VNAT Test Engineering 2
+11872827,"Nguyen, Dang Vinh",11341202,dangvinh,Doan Viet Hy,VNAT Test Engineering 2
+11888655,"Ngo, Thi Xuan Thanh",11341202,ngothixu,Doan Viet Hy,VNAT Test Engineering 2
+11940747,"Pham, Thanh Vinh",11341202,phamtha2,Doan Viet Hy,VNAT Test Engineering 2
+11942333,"Dang, Hoang Viet",11341202,dangh1,Doan Viet Hy,VNAT Test Engineering 2
+11946240,"Tran, Luu Phuc Hoa",11341202,luuphuch,Doan Viet Hy,VNAT Test Engineering 2
+11954868,"Tran, Duy Phung",11341202,duyphung,Doan Viet Hy,VNAT Test Engineering 2
+12024181,"Pham, Aries",11341202,thiducnh,Doan Viet Hy,VNAT Test Engineering 2
+12024554,"Nguyen, Thanh Tuan",11341202,thanhtu6,Doan Viet Hy,VNAT Test Engineering 2
+12257892,"Nguyen, Ngoc Chi",11341202,ngocchin,Doan Viet Hy,VNAT Test Engineering 2
+12325802,"Nguyen, Cong Trung",11341202,congtrun,Doan Viet Hy,VNAT Test Engineering 2
+12330053,"Chau, Phuoc Nhat",11341202,pchau,Doan Viet Hy,VNAT Test Engineering 2
+12339602,"Nguyen, Ba An",11341202,baannguy,Doan Viet Hy,VNAT Test Engineering 2
+12356224,"Dinh, Thien An",11341202,thienand,Doan Viet Hy,VNAT Test Engineering 2
+11489262,"Nguyen, Huynh Phuong Ngan",10490312,huynhphu,Jess Payong,VNAT Factory 2
+11411266,"Duong, Thi Cam Nhung",11489262,duongthi,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+11772095,"Do, Phu Thinh",11489262,dophuth,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+11872832,"Pham, Thuy Le",11489262,thuyleph,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+11898434,"Pham, Thi Thanh Dung",11489262,phamt4,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+11902410,"Dam, Kien Thong",11489262,kdam,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+11936806,"Tran, Ngoc Duc",11489262,ngocduct,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+11942069,"Vo, Ngoc Tien",11489262,vongocti,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+12246742,"Hien, LeX Vinh",11942069,lhienx,Vo Ngoc Tien,A/T MFG
+12246745,"Hieu, TranX Duc",11942069,thieux,Vo Ngoc Tien,A/T MFG
+11943191,"Vo, Tony",11489262,mvo1,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+12087204,"Le, Tuan Khoi",11489262,tuankhoi,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+12093979,"Phan, Nguyen Quynh Ngan",11489262,phann,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+12326079,"Nguyen, Ngoc1 Khoa",11489262,ngockho1,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+12333041,"Nguyen, Thi1 Thuy Linh",11489262,thithuyl,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+12340213,"Nguyen, Minh Duc",11489262,nguyenm,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+12342121,"Truong, Tuan Kiet",11489262,truongtu,Nguyen Huynh Phuong Ngan,VNAT Test Engineering 2
+11530024,"Dang, Minh Nhat",10490312,dangminh,Jess Payong,VNAT Factory 2
+11530036,"Huynh, Pham Ngoc Tram",10490312,phamngoc,Jess Payong,VNAT Factory 2
+11636989,"Phan, Thi Thanh Binh",10490312,phant,Jess Payong,VNAT Factory 2
+11637053,"Le, Huy Binh",10490312,huybinhl,Jess Payong,VNAT Factory 2
+11530035,"Uong, Dinh An",11637053,duong,Le Huy Binh,VNAT Test Engineering 2
+11630616,"Tu, Thuy Tuoc",11637053,thuytuoc,Le Huy Binh,VNAT Test Engineering 2
+11766821,"Nguyen, Tan Dat",11637053,tandatng,Le Huy Binh,VNAT Test Engineering 2
+11767590,"Bui, Anh Tuan",11637053,anhtuanb,Le Huy Binh,VNAT Test Engineering 2
+11784762,"Ho, Duc Loi",11637053,ducloiho,Le Huy Binh,VNAT Test Engineering 2
+11829366,"Le, Phuoc Loc",11637053,phuocloc,Le Huy Binh,VNAT Test Engineering 2
+11920929,"Nguyen, Thanh Trung1",11637053,thanhtr3,Le Huy Binh,VNAT Test Engineering 2
+11937853,"Nguyen, Van Dong Hau",11637053,vandongh,Le Huy Binh,VNAT Test Engineering 2
+11939905,"Ly, Anh Hao",11637053,anhhaoly,Le Huy Binh,VNAT Test Engineering 2
+12050390,"Nguyen, Thi Diem Phuong",11637053,thidiem2,Le Huy Binh,VNAT Test Engineering 2
+12325708,"Phan, Anh Minh",11637053,anhminhp,Le Huy Binh,VNAT Test Engineering 2
+12333069,"Pham, Tran Yen Quyen",11637053,tranyenq,Le Huy Binh,VNAT Test Engineering 2
+11715219,"Le, Minh Tan",10490312,minhtanl,Jess Payong,VNAT Factory 2
+11760805,"Nguyen, Dang Khoa1",11715219,dangkho1,Le Minh Tan,VNAT Test Engineering 2
+11872606,"Phan, Nguyen Duc",11715219,nguyend2,Le Minh Tan,VNAT Test Engineering 2
+12060883,"Nguyen, Huy An",11715219,huyanngu,Le Minh Tan,VNAT Test Engineering 2
+12061425,"Pham, Ngoc1 Tuan",11715219,ngoctua1,Le Minh Tan,VNAT Test Engineering 2
+12061434,"Vu, Trong Minh",11715219,trongmin,Le Minh Tan,VNAT Test Engineering 2
+12112842,"Nguyen, Ngoc Truc Anh",11715219,ngoctruc,Le Minh Tan,VNAT Test Engineering 2
+12150821,"Truyen, Thanh Thao Quyen",11715219,ttruyen,Le Minh Tan,VNAT Test Engineering 2
+12267464,"Nguyen, Minh Thu",11715219,minhthun,Le Minh Tan,VNAT Test Engineering 2
+12330630,"Huynh, Huu Duoc",11715219,huuduoch,Le Minh Tan,VNAT Test Engineering 2
+12341675,"Dinh, Nguyen Gia Bao",11715219,ndinh,Le Minh Tan,VNAT Test Engineering 2
+11784925,"Nguyen, Vu Cau",10490312,vucaungu,Jess Payong,VNAT Factory 2
+11407266,"Tran, Thi Mien",11784925,ttran60,Nguyen Vu Cau,VNAT Test Engineering 2
+11411247,"Huynh, Van Niem",11784925,vanniemh,Nguyen Vu Cau,VNAT Test Engineering 2
+11568255,"Tran, Thanh Luan",11784925,thanhlua,Nguyen Vu Cau,VNAT Test Engineering 2
+11766827,"Tran, Thi Kim Yen",11784925,thikimye,Nguyen Vu Cau,VNAT Test Engineering 2
+11769338,"Nguyen, Chi Trong Chinh",11784925,chitrong,Nguyen Vu Cau,VNAT Test Engineering 2
+11784923,"Duong, Thanh Hieu",11784925,thanhhi1,Nguyen Vu Cau,VNAT Test Engineering 2
+11827745,"Dang, Tran Lam",11784925,tranlamd,Nguyen Vu Cau,VNAT Test Engineering 2
+11517834,,11827745,nvhaix,Dang Tran Lam,A/T MFG
+11662651,"Nguyen, NhuX Tai Nguyen",11827745,nhutainx,Dang Tran Lam,A/T MFG
+11741790,"Duong, Nhut TruongX",11827745,duongnhx,Dang Tran Lam,A/T MFG
+12005959,"Tran, VanX Nghiem",11827745,vanng18x,Dang Tran Lam,A/T MFG
+11940511,"Nguyen, Minh Hoang",11784925,minhhoa2,Nguyen Vu Cau,VNAT Test Engineering 2
+11943369,"Nguyen, Minh Tien2",11784925,minhtie2,Nguyen Vu Cau,VNAT Test Engineering 2
+11954956,"Nguyen, Huu Tai",11784925,huutaing,Nguyen Vu Cau,VNAT Test Engineering 2
+12010297,"Nguyen, Thanh Tu",11784925,thanhtu5,Nguyen Vu Cau,VNAT Test Engineering 2
+12051087,"Pham, Thanh Son",11784925,thanhso3,Nguyen Vu Cau,VNAT Test Engineering 2
+12088939,"Dang, Duc Vinh",11784925,ddang,Nguyen Vu Cau,VNAT Test Engineering 2
+12141679,"Khuong, Binh Giang",11784925,bkhuong,Nguyen Vu Cau,VNAT Test Engineering 2
+12325845,"Bui, Van Dang",11784925,vandangb,Nguyen Vu Cau,VNAT Test Engineering 2
+12339330,"Dinh, Hoang The Lam",11784925,hdinh,Nguyen Vu Cau,VNAT Test Engineering 2
+11811075,"Tran, Ngoc Yen Phuong",10490312,ngocyenp,Jess Payong,VNAT Factory 2

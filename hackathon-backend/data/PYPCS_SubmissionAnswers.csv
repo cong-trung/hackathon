@@ -1,0 +1,16 @@
+﻿submission_id,question_id,answer,display_label,role,required,applies_to,field_type,created_at
+a0317059-302f-45dc-8706-43732d49a0d7,product_name,Demo,Product Name,TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,text,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,prodgroup3,DEMO123,Product group3,TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,text,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,operation,6379,Operation,TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,text,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,process_step,Backend Test Process Step,Process step,TI,Y,HDMx_AHMT|HDMx_Class,text,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,backend_test_process_flow,1_step_FACT,Backend Test process flow,TI,Y,HDMx_AHMT|HDMx_Class,select,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,nsb,N,NSB (Non-Synergy-Build),TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,select,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,mcp,N,MCP? (Y/N),TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,select,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,package,BGA,Package (BGA/LGA),TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,select,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,bare_die_lid,Bare die,Bare die or Lid product?,TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,select,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,foveros,Non-Foveros,Foveros or Non-Foveros,TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,select,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,implementation_stage,QS,Implementation stage - QS timeline,TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,text,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,segment,Client,Segment,TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,text,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,xvi_tool_type,DVI,xVI tool type,TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,select,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,fab_technology,Intel7,Fab Technology,TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,text,2026-08-19T01:49:29Z
+a0317059-302f-45dc-8706-43732d49a0d7,lts_ball,N,LTS ball product? (Y/N),TI,Y,LCBI|HDMx_AHMT|HDMx_Class|STHI,select,2026-08-19T01:49:29Z

@@ -1,0 +1,11 @@
+module_id,module_key,module_label,enabled_default,allowed_roles,sort_order,notes
+1,LCBI,"LCBI (include REBI and Klot)",Y,TI,1,"From Cong Trung matrix module column 1"
+2,HDBI,"HDBI (include REBI and Klot)",Y,TI,2,"From Cong Trung matrix module column 2"
+3,HDMx_AHMT,"HDMx_AHMT",Y,TI,3,"From Cong Trung matrix module column 3"
+4,HDMx_Class,"HDMx_Class",Y,TI,4,"From Cong Trung matrix module column 4"
+5,HDMx_Cfuse,"HDMx_Cfuse",Y,TI,5,"From Cong Trung matrix module column 5"
+6,HDMx_EQA,"HDMx_EQA",Y,TI,6,"From Cong Trung matrix module column 6"
+7,V8,"V8",Y,TI,7,"From Cong Trung matrix module column 7"
+8,OLB,"OLB",Y,TI,8,"From Cong Trung matrix module column 8"
+9,STHI,"STHI",Y,TI,9,"From Cong Trung matrix module column 9"
+10,HSX,"HSX",N,TI,10,"From Cong Trung matrix module column 10; placeholder/TBD"

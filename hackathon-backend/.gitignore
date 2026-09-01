@@ -12,8 +12,5 @@ env/
 .env.*
 !.env.example
 
-# Business/product data - do not commit
-data/
-
 # Corporate CA cert used only for Docker build context
 intel-ca.crt

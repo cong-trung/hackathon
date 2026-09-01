@@ -1,0 +1,237 @@
+﻿ID,Module,Solution,Key Summary,Excursion Releated
+1,LCBI,Follow up with TP owner to release new TP version to re-bin 9982 to high-risk bin 9991 for auto kill...,,
+2,LCBI,Develop a script & set up trigger threshold rules to early trigger bin 9982,,
+3,LCBI,Update Lot disposition RFC for LCB3.0 RIC hang at LCBI module Revision 5 to L2 spec,,
+4,LCBI,Assess SBL limit in LCBI NPI,,
+5,LCBI,Update new TP with new BIT limit for 9157 (BGA),,
+6,LCBI,TP bin out base on different binary code on failure collateral,,
+7,LCBI,LCBI PCS rule change to down failure collateral,,
+8,LCBI,"Product is using TA VCTIM (Y/N/NA)
+",,
+9,LCBI,Implement 50 pre-stress cycles to improve the thermal contact on fresh VCTIM,,
+10,LCBI,"Make sure Icc fold in PDB, Tj fold in PDB, Tj max in PDB setup;",,
+11,LCBI,"Enable auto kill for high-risk bin
+",,
+12,LCBI,"Product Visual Mark on BIB
+",,
+13,LCBI,"Make sure TP able to cut off if over-current
+",,
+14,LCBI,"BIB rail requirement based on product specification
+",,
+15,LCBI,Add fool proof screw into socket body;,,
+16,LCBI,Check VCTIM counter code in Test Program,,
+17,LCBI,Add tool chamfer to prevent wrong mis orientation for input tray,,
+18,LCBI,Increase hook opening window size (width >= 31.6) (for LIDDED),,
+19,STHI,Purge enable,"1. Enable Purge Channel 2 in 5M+E and loadded into all HW
+2. Ensure TP run FusionAirControl.StartAutoPurgeAirMonitoring() in every start lot. ",
+20,STHI,Metal Retainer and Metal Retainer installation Jig,"For product which have metal retainer, must enable jig to ensure flawless metal retainer installation and prevent damage on unit due to retainer unbalance.",
+21,STHI,Enable VCTIM inspection (QCS 1508) trigger,"Tighten VCTIM cycle to early down and perform inspection, target for high occurance VCTIM shift products as impact HC",
+22,STHI,TCU PM,TCU PM to prevent PCW leakage,
+23,STHI,Killer HW signal enable ,Develop Killer HW logic to use PPV production data (SPS and SPM) to early detect abnormal HW which induce in damaging the units. Also create RFC to contain and response for lots and HW.,
+24,STHI,Low risk alignment,"New line to tracking pogo pin 02A/11A, Pogo pin mixing highlight risk assessment for XBIAS socket (4.7mm TH)Scope coverage: XBIAS socket
+RPLS/ADLS/CMLS/RKLS/SKL/CFLS: 400-000089-02A (4.7mm TH)
+ARLS/MTLPS: 400-000089-11A (4.7mm TH)",
+25,STHI,Socket OQA using AOI,"Working in progress for proliferation
+Mapped schedule with milestone",
+26,STHI,Checklist for LTIM TCU checking (one time),Applicable for LTIM products. Spec number 121-1668/ Section,
+27,STHI,"Change 90092411 rule to 1/1 and add WF for HW checking.(Fusion only)
+Change 9850 rule to 1/1 and add WF for socket checking (Aguila)",This item only coverage for product on Fusion,
+28,STHI,Request update to latest APSE 9.14.3. Focus on NPI product,"Keep signal restarting without impact to air on, preventing hot de-actuation
+Separate by group NPI leverage TP, legacy, New NPI",
+29,STHI,"Finish detection enhancement for capacitor damage bottom side
+Damage components (E- sub app SI-E-LSC-B-BURNT)
+(2021.48.AT Integrated CCB.21.FWP.81)","New sub app using substrate area around cap discoloration to trigger -> Enabled for all LGA run through DVI, under data collection for PyPCS FWP
+Double check E- sub app SI-E-LSC-B-BURNT enabled for LGA NPI prod.?
+Check for LNL package with Finish.(C YP)
+",
+30,STHI,Enable force check either in TP or Custom CEConfig.xml or TRB TP,"Pending for APL legacy product TP release in Q2-Done
+",
+31,STHI,"Spec'ed: Improve process to check STD unit and socket when troubleshooting cell (refer using magnifier to inspect), c-team will apply process once it’s done",Spec process - no need to track for proliferation,
+32,STHI,"Add in step ""Visual inspection 36 sockets with a magnifier"" to ""SST-STHI VNAT 48h Conversion checklist"" and upload to share drive https://intel.sharepoint.com/sites/vnatassyandtestnpiandiqsite",Spec process - no need to track for proliferation,
+33,STHI,Spec'ed: Add in 'Leakage & Shortage measurement' into TCU repairing checklist for Neon TCU,"Applied for old TCU design, not applicable for current design
+",
+34,STHI,VCTIM script early trigger,Drop,
+35,STHI,VCTIM kapton tape,"Initial design for JSL, EHB. The assessment & qualify for mobile product bare die (ADL P/RPLP) & DG Platform. The rest of product NA with reviewed",
+36,STHI,APSE gating on SYSTEM AIR ON button and add in log capture capability (ver >= 9.5.2),"Div rejected for below listed as no resource support. NPI products cover by NPI checklist and quality matrix process
+
+AGUILA: Don't use APSE but AGUILA GUI have the same function. HOT_DUT gating avaible on GUI.",
+37,STHI,Spec'ed: Add in guideline for safe TCU de-actuation in spec 75-4375 rev94,"Spec process - not product specific
+",
+38,STHI,Finish recipe change to 6um,Pending checl finish for finish proliferation. C YP_W52'23,
+39,STHI,Disable retest DVM/DOUBLESTACK bin + Edispo coverage from NPI stage,Backward proliferation: pending WW12.2,
+40,STHI,3D dent (IA) coverage,#NAME?,
+41,STHI,ISL FACT tracking,,
+42,STHI,DVM check,,
+43,STHI,Vcc shift,,
+44,STHI,STHI coplanarity,,
+45,STHI,ICM-PCS,,
+46,STHI,Edispo (PAD + BIAGI),,
+47,HDBI,Apply VCTIM conditioning if needed (fail contact SHOP bin),,
+48,HDBI,"Setup right conditionning in TCM recipe (number of cycle, UP/DOWN time)",,
+49,HDBI,TP/TOS overcurrent clamp protection ,,
+50,HDBI,VCC check monitoring with Max clamping limit enabled,,
+51,HDBI,Make sure that pin current spec is higher than BI pin current requirements,,
+52,HDBI,Check plunger design for Bare die/Check clamping latch design for Lidded,,
+53,HDBI,Check socket mis-orientation capability,,
+54,HDBI,Make sure TP have Tjavg/TjDrop/TjRise have kill limit,,
+55,HDBI,Setup ENG module recipe for engineer purpose,,
+56,HDBI,"Check DSC and retainer overlap. If overlap, check clearance gap",,
+57,HDBI,Check DKM oversize,,
+58,HDMx,Remove GPIOCheck and add-in delay 10s,"Remove GPIOCheck and add-in delay 10s to avoid TH movement from lot set WF for all CX1, CX1_LFF, HPT Pan product.
+FWP: https://xccb2.intel.com/Documents/DocumentWorkspace.aspx?DocumentID=2256240",
+59,HDMx,Optimize module recipe to turn off unused LTIM valve,"FWP: #https://xccb2.intel.com/Documents/DocumentWorkspace.aspx?DocumentID=2137531
+ module recipe workflow update by change prime function setting in the CX1_Actuate.py, to disable unused LTIM dispense valve. (change prime function setting from ""0"" to ""-1""  which can turn off LTIM valves D1/D3 effectively).
+Proliferate to other CX1 pan products which use same workflow",
+60,HDMx,Check out module recipe change history sync-up with TRB (TRB awared all changes),DFC file/ calibration used TRB reflect latest value DF/TF/ off set/... in 5M+E and matched with module recipe,
+61,HDMx,CMMS golden file require to be updated during NPI for flawless operation without part mixing risk.,CMMS Golden file need to be tracked for all product,
+62,HDMx,Enable LTTC Thermal Monitoring to screen out bad AP HW causing test unit overtemp at LTTC 20C,"Enable LTTC Thermal Monitoring with upper limit to screen out bad AP HW causing test unit overtemp at LTTC 20C while TP isn't enable kill mode for LTTC thermal ramp
+Apply for product have LTTC content and TP isn't kill mode for LTTC thermal
+N-reviewed: product have TP kill / NA: not tested LTTC",
+63,HDMx,Optimize Deactuate Work Flow with function check V3 valve. ,"CX1 de-actuate WF optimize enable function check valve V3 ( which is have sensor) trigger. Alarm pop up when deactuate wf fail. WP link: ""HDMx MTLU281&MTLH682 de-actuate workflow optimization and update recipe [Class IV]"". WP mentioned can proliferation this pratice for other CX1 products.
+http://xccb2.intel.com/Documents/DocumentWorkspace.aspx?DocumentID=2134537",
+64,HDMx,Enhance EGDI conversion procedure to replace Gasket in CX1 AP,Apply for all CX1 AP when doing EGDI conversion,
+65,HDMx,HDMX personality card wrongly. Retire PC rev 02 ( CDAT action). Control method at VNAT: Follow golden file tracking during conversion and repair,RPLP282 TIU RPLP213T1461 wrongly used ADLP282 personality card (PC). Applicable for RPL and ADLP (CX1),
+66,HDMx,"Distinguish collateral name for product which have multiple process use using different physical collateral ( LNL) has BGA&LGA TIU, AP by TP check naming convention
+",To prevent cell testing if mistakenly wrong physical AP or TIU. TP check collateral name and trigger alarm ( Products based),
+67,HDMx,Pogo pin change to prevent burnt pin as TP current limit higher than pogo pin capability (refer bin 9901) ,Tp Claim limit higher than ADLM282 pogo pin ( 144G3) ,
+68,HDMx,PCS enable for NEGATIVE VCC MEASUREMENT FIVR_VLOAD_VCCVDDQ_LC,"PCS WG assessment to apply for ADL , RPL and onward products. MTL will apply during NPI.
+(Risk assessment is low so PCS is only keep for target product, other product will not enable including NPI)
+-> Enable based on request from TRB team",
+69,HDMx,Optimize TP limit for  NEGATIVE VCC MEASUREMENT FIVR_VLOAD_VCCVDDQ_LC,"No commitment from PE to enable for all products as high yield loss concern
+BU manage / PCS  required PCS token only --> no need tracking apply for all product ",
+70,HDMx,PCS MainPedTemp and MainRtdTemp0 Monitoring To Prevent Burnt AP Heater,"Applied for all ADL, RPL products and onwards. Under section Others - PCS proliferation plan - A Money",
+71,HDMx,Sub-app SI-E-SUB-B-STDR (BGA products stain on ball),"POR subapp to catch  LTIM stain on substrate ballside (develop by TD from MTLU281 onward), target replace E-App FMDR1",
+72,HDMx,E-subapp FMDR1 (ADLP/RPLP),"E-subapp to catch LTIM stain on substrate ballside with PyPCS E-app enable, this subapp for ADLP/ RPLP, other bare die follow STDR sub app. Follow up Test-Finish Sync for define proliferation plan",
+73,HDMx,E-subapp SI-E-SUB-T-STAIN (BGA products transparent stain on sub),"E-subapp to catch transparent stain on substrate with CSR or PyPCS enable for CA trigger.
+",
+74,HDMx,PCS_STIM_LTIM_PUSH_2 (Detection of TSP bare die prods LTIM push regulator failed),"To prevent LTIM push regulator fail while running at tool. Applicable for TSP bare die (TSP lid product have LTIM shield so have no issue), condension prevention -TSP: LTIM push to flow air/ CX1: Vacuum valve, if design use vacuum valve connect to sensor V3 then move to action in col ""PCS_STIM_MainAinVoltage_2_Max"", if not V3, high risk - run to fail)",
+75,HDMx,PCS_STIM_MainAinVoltage_2_Max (Detection of CX1 Vacuum V3 failed),"Detection of Vacuum V3 failed (applicable for products run with CX1 Pan use V3) - Required: pedestal vacuum connect to sensor V3 / Module recipe logged token - based on pedestal design, if not V3 connected, high risk - run to fail - TRB request",
+76,HDMx,PCS auto down AP for cleaning,"Not apply for all Lid prod, based on prod performace (TTG, power) and yield loss.
+For NPI: TI will trigger ME, monitoring yield loss MI01 > 0.03 goal due to grid pattern, bake in CA impact in case enabling PCS before HVM",
+77,HDMx,Chrome TSP Pedestal qualify on Lid products,Qualified for Lid products using TSP AP Pan,
+78,HDMx,Chrome TSP Pedestal qualify on Bare die products,"CX1 change to Chrome beginning from design (except LNL). Qualified for Bare die products using TSP AP Pan, pending EHB.W10'25: Propose combine to 1 for Chrome for TSP Pan",
+79,HDMx,Enable PCS DTS Min -> Enable PCS DTS LCL of DTS MAX,"To prevent DTS Min shift due to hardware issue
+NPI / backaward proliferation - pending discussion",
+80,HDMx,PCS_STIM_MainAinVoltage_3_Mean: (CX1 products),"(Check LTIM dispend pressure to detect cell issue)
+(applicable for products run with CX1 Pan)
+-> Under Section: LTIM VALVE -PCS proliferation plan - a QM + TRB",
+81,HDMx,HDMX_DTS_slope_Check_per_Socket ,"RPL/ADL family, MTL mobile onward (MTL DT use old method, using QA script to detect outliner), refer FWP later …
+-> PCS online applied only for BMG G21 + other product can't applied . ICM PCS for other product
+-> under Quality TF -> refer data item #DTS slope ICMPCS",
+82,HDMx,Enable PCS_DTSMAX,"Applied for all ADL, RPL products. Add in PCS check list . Under section DTS - PCS proliferation plan",
+83,HDMx,"Enable back DTS Trim rule for RPL, ADL family and forward (follow PCS check list)","For new prod platform need re-assessment for DTS, don’t leverage from previous products  (Below tracking is for DTS PCS enable)
+MTL: Under review module WG (before PRQ)
+refer FWP later. -> Under section DTS - PCS proliferation plan",
+84,HDMx,PCS DTS Retest Analysis Add-in UCL and Second Analysis Attribute --> PCS DTS Trim,"Applied for legacies client products + RPL. For NPI needs to assess during NPI.
+MTL: Under review module WQ (before PRQ)
+Follow DTS trim and DTS slope alignment --> -> Under section DTS - PCS proliferation plan - A Money",
+85,HDMx,Review the DFC offset value by follow the detail procedure inside spec L2 AP_75-6038 & NPI checklist for TSP AP,"For new NPI prod, TRB owner need to check the offset value follow learning from DRB#12301143 to ensure no repeat issue happen like ASL/TWL case, apply for TSP AP",
+86,HDMx,"Update  BKM "" Kapton Tape Installation "" to  apply  for high risk products ARL S8161BGA, LNL ( high force, power, temperature, have space in AP retainer ) ","VCTIM debris broken & drop to unit lead to the stain issue, TRB owner need to review the product specific then assess to add the Kapton tape to AP. With target minimize the impact. Contact TRB ME owner for make assessment",
+87,HDMx,Bin8Bin159x (Die crack 159x),"Enable follow product level, based on bin faillure. 
+Hold lot: Y
+Down HW: Y",
+88,HDMx,PBIC Vmin,"Enable follow product level, based on token failure. (PdO provide TP name % and  Reps get token name from TRACE) 
+Hold lot: Y
+Down HW: Y",
+89,HDMx,Sky map,"Enable follow product level, based on bin failure (cover for all bin failure- [bin 8->99])
+Hold lot: N
+Down HW: Y",
+90,HDMx,B8B99 Aggegration,"Enable follow product level, based on bin failure [bin 8 and 99 only]
+Hold lot: N
+Down HW: Y",
+91,HDMx,FIVR,"Enable follow product level, based on token failure. (PdO provide TP name % and  Reps get token name from TRACE) 
+Hold lot: Y
+Down HW: Y",
+92,HDMx,AntiMixing_Tester,"Enable follow product level, Based on Tester config (GEN 2 ; GEN 2E; run alls)
+Hold lot: N
+Down HW: Y",
+93,HDMx,Device kit,"Enable by device kit type (product level - Reuse or new device kit)
+Hold lot: N
+Down HW: Y",
+94,HDMx,DTS Slope,"Enable follow product level, based on token failure. (PdO provide TP name % and  Reps get token name from TRACE). Apply mobile/ client only, ADL onward.
+Hold lot: Y
+Down HW: Y",
+95,HDMx,ISL,"Enable follow product level by operation (PPV /EQA / FUSE/ Class Cold trace to Class (hot or cold)/ FUSE/ EQA)….); data trigger bin failure of opertion trigger.
+Hold lot: Y
+Down HW: Y",
+96,HDMx,PyPCS,"Enable follow product level by DVI operation 
+Hold lot: Y (based on specific loss code)
+Down HW: Y",
+97,HDMx,ADVI/DVI IA,"Enable by default. Check with DVI/ADVI module: enable or not ?
+Hold lot: based on RFC 121-2741
+Down HW: based on RFC 121-2741
+- ADVI IA LGA bottom side
+- DVI IA LGA bottom side
+- DVI IA BGA top/bottom side",
+98,HDMx,Cell level bin-based,"Bin8 (VCC)
+Bin15 (Open)
+Bin15_DieCrack_EDM, Bin9 (Leakage), 
+Bin10 (Short),
+Bin11 (VIX), Bin13 (VOX), Bin97 (Thermal Diode), Bin98/99 (HW/SW alarm)
+Bin9901_other/Bin9901_tester,
+Bin25/ Bin46/Bin48/ Bin51/Bin54/ Bin75 ( /O Bins as needed) BinXofY_QA_FUSE",
+99,HDMx,Lot level bin-based,"- Bin9801: Software alarm Add more FB9531 if needed (from TOS 3.10xx)
+- Setup Bins: 
+Missing DFF: IB53
+ISEED ; Lot Level: IB92
+Config generic lot level : IB14,IB19,IB27,IB28,IB31,IB42,IB45,IB49,IB53,IB60,IB62,IB90,IB92,IB93,IB94",
+100,HDMx,"LowYield monitoring 
+(All Bins)",Low Yield rule for All Bins,
+101,HDMx,LowYield monitoring (Contact Bins),"Low_Yield_Contact_Bin (Bins=""IB8,IB9,IB10,IB11,IB13,IB15"")",
+102,HDMx,Parametric_HFE_IN_TEMP,"To moniter chiller health by monitoring HFE in temp to the AP
+Using token PCS_STIM_AP_HFE_IN_TEMP_MEAN",
+103,HDMx,Parametric_StuckDiode,Detect stuck diode using token PCS_STIM_DIODET_UEIDATAX_STD. Check available token on ituff file ,
+104,HDMx,Parametric_Bad_diode_hot,"To check for bad diode reading at start of test. Check ituff for token
+PCS_CHECKDIEFORCEX or covered by Bin97xx
+",
+105,HDMx,Parametric_Heater_Monitor ,"Apply for CX1 products
+To detect if a heater is defective (will show zero current)
+2024.50.AT Integrated CCB.37.PCS
+Parametric_Heater_Monitor use Token:
+PCS_STIM_RAWHEATINGCURRENT_X_MAX",
+106,HDMx,"Thermal monitoring 
+(DTSMIN)","Minitor thermal head variation. Check with PDE if tokens are enabled (PCS_DTSMIN_XXX)
+Request enable from WW04'25",
+107,HDMx,CatalystPassThroughDefinition,Must have,
+108,HDMx,Efuseduplication/DoubleStack,Must have,
+109,HDMx,Rule for detecting bent substrate using open diode rule,"TSP: Bin9985 and SOTx = 255.9
+CX1: Binxxx and compare SOTX (Based on historical cases to avoid invalid trigger)",
+110,HDMx,"Set up the MCBO goal, Limit for SOT/TJDroop/Tjrise on Catalyst","Follow wiki intruction 
+https://wiki.ith.intel.com/pages/viewpage.action?spaceKey=STTDTestProcessCOP&title=PCS+Related+BKM+Archives",
+111,HDMx,Using PCS Recipe Checker to check any error,Use Skyhook to check errors before release to production,
+112,HDMx,BRTI,BRTI: 121-2233 / Not enable due to have DVI IA/ ADVI,
+113,HDMx,HDMTx tray map,"Enable by default (tool entity).
+Hold lot: Y
+Down HW: N",
+114,HDMx,Duplicate collateral,"Enable by default (tool entity). Use unit level data to trigger if 2 set of physical HW have the same BLT name. (Data traceablity cconcern)
+Hold lot: Y
+Down HW: Y",
+115,HDMx,DI issue script,"Enable by default (tool entity). Cover for upload data issue
+Hold lot: Y
+Down HW: Y",
+116,HDMx,Exceed sum char,"Enable by default (tool entity). Use unit level data to trigger for lot have exceed summary letter when introduce multiple times ""W"")
+Hold lot: Y
+Down HW: Y",
+117,HDMx,Enable PCS for FB1917 (Burnt failure mode),"Different prod will have different bin out so not applicable for all prod
+-> Enable based on request from TRB team N+1: same collateral + levarage TP content - consider NPI",
+118,HDMx,CX1 AP grounding check,"Will be updated after complete for  CX1 PAN under FWP LSI, TSP already had grounding cable.",
+119,HDMx,Change the PCS Recipe configuration for Chisquare Generic to have TIU as first Rule to early detect any abnormal FM in socket,This method is to early down TIU for any abnormal FM in socket detection,
+120,HDMx,Products run on unqualified skyline version,To prevent tool run with unqualified skyline version - CDAT #xRB learning from VNAT pratice: SW release memo/ conversion memo- No track proliferation plan ,
+121,HDMx,SysC Startlot Health Check PMU Deviation – Skyline 3.5 build54 upgrade ,PA of PMU drifted (FIVR MRB) Applicable for Gen2 tools,
+122,HDMx,Standardize AP pedestal cleaning process with VF,"Spec process - no need to track proliferation 
+Already in TRB spec 75-6038, apply prod.",
+123,HDMx,Optimize tool released process for tool/cell long idle time/ECO,"Apply for TSP/ CX1 (prods using LTIM).
+Section 6.8 spec 75-5793. IF cells/tools ilde >3 days then  Option1: Run standard mechanical Or Option 2: Dispend LTIM.- no need to track proliferation",
+124,HDMx,Spec'ed: optimize PM step from inspect to replace AP pedestal O-ring,Spec process - not product specific,
+125,HDMx,,Spec process - not product specific,
+126,HDMx,,Spec process - not product specific,
+127,HDMx,,Spec process - not product specific,
+128,HDMx,,,
+129,HDMx,,System change - no need to track proliferation,
+130,HDMx,,,
+131,HDMx,,Product specific,
+132,HDMx,,Spec process - not product specific,
+133,HDMx,,"Target to enable from Lunar Lake and onwards
+BU manage / PCS DTS Max reuired PCS DT MAX token only --> no need tracking apply for all product ",
+134,HDMx,,Product specific,
+135,HDMx,,Target to enable all product,

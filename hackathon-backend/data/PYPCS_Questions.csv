@@ -1,0 +1,25 @@
+question_id,source_prefix,header,display_label,description,role,field_type,required_default,sort_order,options,dependency_rule,notes
+product_name,0,Product Name,Product Name,,TI,text,Y,1,,,Common/base product field
+prodgroup3,0,Product group3,Product group3,,TI,text,Y,2,,,Common/base product field
+operation,0,Operation,Operation,,TI,text,Y,3,,,Common/base operation field; example value in sheet: 6379
+tp_name,0,TP name,TP name,,ME,text,Y,4,,,ME-owned TP name; example value in sheet: 43
+process_step,3.4.5.6.7,Process step,Process step,,TI,text,Y,5,,,"Applies to HDMx_AHMT, HDMx_Class, HDMx_Cfuse, HDMx_EQA, V8 based on prefix"
+backend_test_process_flow,3.4.5.6.7,Backend Test process flow,Backend Test process flow,"2 steps or 1 step FACT, please choose one: a. 1 step FACT (no CFUSE in backend flow); b. 2 steps - CFUSE post PPV/EQA; c. 2 steps - CFUSE before PPV/EQA. If 2 steps, specify plan to change to 1 step and estimate time.",TI,select,Y,6,1_step_FACT|2_steps_CFUSE_post_PPV_EQA|2_steps_CFUSE_before_PPV_EQA|Other,,Long description from Cong Trung matrix
+nsb,0,NSB (Non-Synergy-Build),NSB (Non-Synergy-Build),,TI,select,Y,7,Y|N,,Common/base field; example value in sheet: 321
+mcp,0,MCP? (Y/N),MCP? (Y/N),Multi chip package - products have multiple dies?,TI,select,Y,8,Y|N,,Common/base field
+package,0,Package (BGA/LGA),Package (BGA/LGA),,TI,select,Y,9,BGA|LGA|Other,,Common/base field
+bare_die_lid,0,Bare die or Lid product?,Bare die or Lid product?,,TI,select,Y,10,Bare die|Lidded|Other,,Common/base field
+foveros,0,Foveros or Non-Foveros,Foveros or Non-Foveros,,TI,select,Y,11,Foveros|Non-Foveros,,Common/base field
+implementation_stage,0,Implementation stage - QS timeline,Implementation stage - QS timeline,,TI,text,Y,12,,,Common/base field
+segment,0,Segment,Segment,Client mobile/Client Desktop/5G/SOC/Server/Graphic/Chipset(PCH)/ Thunderbolt?�,TI,select,Y,13,Client mobile|Client Desktop|5G|SOC|Server|Graphic|Chipset(PCH)|Thunderbolt|Other,,Common/base field
+xvi_tool_type,0,xVI tool type (DVI/TRI/ADVI/...) ,xVI tool type,,TI,select,Y,14,DVI|TRI|ADVI|Other,,Common/base field
+fab_technology,0,Fab Technology,Fab Technology,,TI,text,Y,15,,,Common/base field
+lts_ball,0,LTS ball product? (Y/N),LTS ball product? (Y/N),,TI,select,Y,16,Y|N,,Common/base field
+hdmx_ap_pan,3.4.5.6,HDMx AP Pan (CX1/TSP/HPT/...) ,HDMx AP Pan,,ME,select,Y,17,CX1|TSP|HPT|Other,"selected_modules contains any of HDMx_AHMT,HDMx_Class,HDMx_Cfuse,HDMx_EQA",HDMx-specific ME-owned question
+edm_check_enable,3.4.5.6,HDMx EDM check enable in DC Fail Flow?,HDMx EDM check enable in DC Fail Flow?,"HDMx ME to check, ensure TP follow TP standard for EDM flow)
+https://wiki.ith.intel.com/display/ClassTPWiki/Class+EDM#ClassEDM-TestProgramImplementation",ME,select,N,18,Y|N,"selected_modules contains any of HDMx_AHMT,HDMx_Class,HDMx_Cfuse,HDMx_EQA",HDMx-specific question mentioned as dependency example
+ppv_sw_platform,9,PPV_SW Platform,PPV_SW Platform,STHI legacy/SST/Aguila,ME,select,N,19,STHI legacy|SST|Aguila|Other,selected_modules contains STHI,STHI/PPV related question
+fusion_or_apse,9,Fusion or APSE,Fusion or APSE,,ME,select,N,20,Fusion|APSE|Other,selected_modules contains STHI,STHI/PPV related question
+socket_type,9,Socket Type,Socket Type,,ME,text,N,21,,selected_modules contains STHI,STHI/PPV related question
+thermal_technology,9,Thermal Technology,Thermal Technology,VCTIM/LTIM/Dry Contact,ME,select,N,22,VCTIM|LTIM|Dry Contact|Other,selected_modules contains STHI,STHI/PPV related question
+hsx_placeholder,10,HSX TBD,HSX TBD,Placeholder because HSX details are still TBD,TI,text,N,23,,selected_modules contains HSX,Placeholder for future HSX questions
