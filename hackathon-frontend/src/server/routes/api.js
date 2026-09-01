@@ -7,16 +7,6 @@ import solutionsRouter from './api/solutions.js';
 import pdSolutionsRouter from './api/pdSolutions.js';
 import glMqrRouter from './api/glMqr.js';
 import chatRouter from './api/chat.js';
-import {
-    getPypcsModules,
-    getPypcsQuestions,
-    getPypcsVisibleQuestions,
-    submitPypcsSubmission,
-    getPypcsSubmissions,
-    getPypcsSubmissionDetail,
-    deletePypcsSubmission,
-    submitPypcsMatrixSubmission,
-} from '../services/pypcsService.js';
 
 const router = express.Router();
 
@@ -31,12 +21,5 @@ router.use(solutionsRouter);
 router.use(pdSolutionsRouter);
 router.use(glMqrRouter);
 router.use(chatRouter);
-router.get('/pypcs/modules', getPypcsModules);
-router.get('/pypcs/questions', getPypcsQuestions);
-router.post('/pypcs/visible-questions', getPypcsVisibleQuestions);
-router.post('/pypcs/submission', submitPypcsSubmission);
-router.get('/pypcs/submissions', getPypcsSubmissions);
-router.get('/pypcs/submissions/:submissionId', getPypcsSubmissionDetail);
-router.delete('/pypcs/submissions/:submissionId', deletePypcsSubmission);
-router.post('/pypcs/matrix-submission', submitPypcsMatrixSubmission);
+
 export default router;
