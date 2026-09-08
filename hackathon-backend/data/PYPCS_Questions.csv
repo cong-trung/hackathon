@@ -1,6 +1,6 @@
 question_id,source_prefix,header,display_label,description,role,field_type,required_default,sort_order,options,dependency_rule,notes
 product_name,0,Product Name,Product Name,,TI,text,Y,1,,,Common/base product field
-prodgroup3,0,Product group3,Product group3,,TI,text,Y,2,,,Common/base product field
+prodgroup3,0,Product group3,Product group3,,TI,select,Y,2,ADLG601|ADLG881|ADLP282|ADLP682|ADLS601|ADLS881|ARLH682|ARLR816L|ARLR816LK|ARLS681|ARLS816L|ARLU281|AXLF|BTLS601|BTLS881|CFD|CFH|CFLH82|CLXXCP|CMLH82|CMLS62|CWFXDCC|DG1|EMRXCP|GHCR1S|GHCSWS|GMM|GNDHCC|GNDXCC|GNRHCC|GNRHCH|GNRLCP|GNRLWS|GNRUCC|GNRXCP|GNRXWS|ICLU42|ICLY42|ICLY4N|ICXHCP|ICXHJT|ICXXCP|ICXXJT|LWC|M4G|MTLP281|MTLP682|NVP|PTLU404|RKLS81|RPG8161|RPL682|RPL8161|RPLP282|RPLP282IOTG|RPLP682|RPLP682IOTG|RPLPS2|RPLPS6|RPLPX682|RPLS601|RPNS601|RPRP282|RPRP682|RPRS601|RPRS881|RSLHCP|RSLLCP|RSLXCP|SFHD1S|SFHD2S|SFHDCC|SFXDCC|SPH|SPREEC|SPREMC|SPRHSS|SPRMCP|SPRMJT|SPRWSP|SPRXCP|SPRXCS|SQH|SQL|STM2|TGLH81|TGLH8T|TGLU42|TGLUP3|TGLUP4|TGLY42|TGRUP3|WCL|WHLU42|WLW|Other,,Common/base product field; options sourced from Class_product_market.csv PRODGROUP3
 operation,0,Operation,Operation,,TI,text,Y,3,,,Common/base operation field; example value in sheet: 6379
 tp_name,0,TP name,TP name,,ME,text,Y,4,,,ME-owned TP name; example value in sheet: 43
 process_step,3.4.5.6.7,Process step,Process step,,TI,text,Y,5,,,"Applies to HDMx_AHMT, HDMx_Class, HDMx_Cfuse, HDMx_EQA, V8 based on prefix"
