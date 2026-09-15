@@ -8,4 +8,4 @@ module_id,module_key,module_label,enabled_default,allowed_roles,sort_order,notes
 7,V8,"V8",Y,TI,7,"From Cong Trung matrix module column 7"
 8,OLB,"OLB",Y,TI,8,"From Cong Trung matrix module column 8"
 9,STHI,"STHI",Y,TI,9,"From Cong Trung matrix module column 9"
-10,HSX,"HSX",N,TI,10,"From Cong Trung matrix module column 10; placeholder/TBD"
+10,HSX,"HSX",Y,TI,10,"From Cong Trung matrix module column 10"
