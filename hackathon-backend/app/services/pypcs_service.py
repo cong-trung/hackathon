@@ -42,6 +42,45 @@ def load_operation_options(selected_modules: set[str] | None = None) -> list[str
     return options
 
 
+def load_operation_options_by_module(
+    selected_modules: set[str] | None = None,
+) -> dict[str, list[str]]:
+    """Per-module operation options, so each module's own cell only shows its operations."""
+    rows = read_generic_csv(OPERATION_PROCESS_STEP_FILE)
+    modules_upper = (
+        {value_to_str(m).upper() for m in selected_modules}
+        if selected_modules
+        else None
+    )
+    seen_by_module: dict[str, set[str]] = {}
+    options_by_module: dict[str, list[str]] = {}
+
+    for row in rows:
+        module_key = value_to_str(row.get("MODULE_KEY", "")).upper()
+
+        if not module_key:
+            continue
+
+        if modules_upper is not None and module_key not in modules_upper:
+            continue
+
+        operation = value_to_str(row.get("OPERATION", ""))
+
+        if not operation:
+            continue
+
+        seen = seen_by_module.setdefault(module_key, set())
+
+        if operation not in seen:
+            seen.add(operation)
+            options_by_module.setdefault(module_key, []).append(operation)
+
+    for module_key, options in options_by_module.items():
+        options.append("Other")
+
+    return options_by_module
+
+
 def normalize_pypcs_module(row: dict[str, str]) -> dict[str, Any]:
     return {
         "module_id": value_to_str(row.get("module_id", "")),
@@ -58,10 +97,14 @@ def normalize_pypcs_question(
     row: dict[str, str], selected_modules: set[str] | None = None
 ) -> dict[str, Any]:
     question_id = value_to_str(row.get("question_id", ""))
+    is_operation = question_id == "operation"
     options = (
         load_operation_options(selected_modules)
-        if question_id == "operation"
+        if is_operation
         else split_options(row.get("options", ""))
+    )
+    options_by_module = (
+        load_operation_options_by_module(selected_modules) if is_operation else {}
     )
 
     return {
@@ -75,6 +118,7 @@ def normalize_pypcs_question(
         "required_default": yn_to_bool(row.get("required_default", "")),
         "sort_order": safe_int(row.get("sort_order", "0")),
         "options": options,
+        "options_by_module": options_by_module,
         "dependency_rule": value_to_str(row.get("dependency_rule", "")),
         "notes": value_to_str(row.get("notes", "")),
     }

@@ -560,9 +560,13 @@ export default function PYPCSMatrixSubmission({
             );
         }
 
+        const cellQuestion = question.options_by_module?.[moduleKey]
+            ? { ...question, options: question.options_by_module[moduleKey] }
+            : question;
+
         return (
             <td key={moduleKey} className="min-w-40 border bg-green-100 p-2">
-                {renderFieldInput(question, value, (nextValue) =>
+                {renderFieldInput(cellQuestion, value, (nextValue) =>
                     handleCellChange(question.question_id, moduleKey, nextValue),
                 )}
 
