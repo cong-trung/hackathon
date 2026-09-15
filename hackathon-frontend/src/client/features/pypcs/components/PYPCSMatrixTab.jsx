@@ -495,7 +495,7 @@ export default function PYPCSMatrixTab() {
     return (
         <div className="h-[calc(100vh-80px)] overflow-y-auto p-4 pb-10">
             <div className="mb-4">
-                <h2 className="text-xl font-semibold">PYPCS Quality Matrix</h2>
+                <h2 className="text-xl font-semibold">Quality Matrix</h2>
                 <p className="text-sm text-muted-foreground">
                     Select modules to enable required questions or review
                     submitted events.

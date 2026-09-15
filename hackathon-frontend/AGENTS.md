@@ -43,7 +43,10 @@ When importing from the client side, use `@/`-prefixed paths. The shadcn/ui comp
 - The `cn()` utility is at `@/shared/lib/utils` (re-exported as `@/lib/utils` per shadcn conventions via `components.json` aliases).
 
 ## Routing
-
+cd "c:\Coding\Soucre code\TheMatrix\hackathon-backend"
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn main:app --reload --port 8004cd "c:\Coding\Soucre code\TheMatrix\hackathon-frontend"
+npm run dev
 - Route definitions in `src/client/routes/routes.js` use `react-router-dom` lazy imports.
 - Features follow a `src/client/features/<featureName>/pages/<PageName>.jsx` structure.
 - The `AppLayout` (`src/client/shared/layout/AppLayout.jsx`) wraps all routes with a sidebar.

@@ -12,6 +12,35 @@ PYPCS_SUBMISSIONS_FILE = "PYPCS_Submissions.csv"
 PYPCS_SUBMISSION_ANSWERS_FILE = "PYPCS_SubmissionAnswers.csv"
 PYPCS_SUBMISSION_CELLS_FILE = "PYPCS_SubmissionCells.csv"
 
+# Derived from the ATRMS Operation_Process_Step tracker; see data/Operation_Process_Step.csv.
+OPERATION_PROCESS_STEP_FILE = "Operation_Process_Step.csv"
+
+
+def load_operation_options(selected_modules: set[str] | None = None) -> list[str]:
+    rows = read_generic_csv(OPERATION_PROCESS_STEP_FILE)
+    modules_upper = (
+        {value_to_str(m).upper() for m in selected_modules}
+        if selected_modules
+        else None
+    )
+    seen: set[str] = set()
+    options: list[str] = []
+
+    for row in rows:
+        module_key = value_to_str(row.get("MODULE_KEY", "")).upper()
+
+        if modules_upper is not None and module_key not in modules_upper:
+            continue
+
+        operation = value_to_str(row.get("OPERATION", ""))
+
+        if operation and operation not in seen:
+            seen.add(operation)
+            options.append(operation)
+
+    options.append("Other")
+    return options
+
 
 def normalize_pypcs_module(row: dict[str, str]) -> dict[str, Any]:
     return {
@@ -25,9 +54,18 @@ def normalize_pypcs_module(row: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def normalize_pypcs_question(row: dict[str, str]) -> dict[str, Any]:
+def normalize_pypcs_question(
+    row: dict[str, str], selected_modules: set[str] | None = None
+) -> dict[str, Any]:
+    question_id = value_to_str(row.get("question_id", ""))
+    options = (
+        load_operation_options(selected_modules)
+        if question_id == "operation"
+        else split_options(row.get("options", ""))
+    )
+
     return {
-        "question_id": value_to_str(row.get("question_id", "")),
+        "question_id": question_id,
         "source_prefix": value_to_str(row.get("source_prefix", "")),
         "header": value_to_str(row.get("header", "")),
         "display_label": value_to_str(row.get("display_label", "")),
@@ -36,7 +74,7 @@ def normalize_pypcs_question(row: dict[str, str]) -> dict[str, Any]:
         "field_type": value_to_str(row.get("field_type", "text")),
         "required_default": yn_to_bool(row.get("required_default", "")),
         "sort_order": safe_int(row.get("sort_order", "0")),
-        "options": split_options(row.get("options", "")),
+        "options": options,
         "dependency_rule": value_to_str(row.get("dependency_rule", "")),
         "notes": value_to_str(row.get("notes", "")),
     }
@@ -80,7 +118,7 @@ def build_pypcs_visible_questions(
     questions_by_id = {}
 
     for row in question_rows:
-        question = normalize_pypcs_question(row)
+        question = normalize_pypcs_question(row, selected_modules)
 
         if question["question_id"]:
             questions_by_id[question["question_id"]] = question

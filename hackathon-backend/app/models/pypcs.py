@@ -37,3 +37,7 @@ class PYPCSMatrixSubmissionRequest(BaseModel):
     # If set, updates the existing submission in place instead of creating a new one.
     submission_id: str | None = None
     status: Literal["draft", "final"] = "final"
+
+
+class PYPCSQuestionDescriptionUpdate(BaseModel):
+    description: str = ""

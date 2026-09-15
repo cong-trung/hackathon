@@ -13,9 +13,11 @@ from app.io.generic_csv import (
     read_optional_csv,
     split_pipe_value,
     upsert_rows_to_csv,
+    write_rows_to_csv,
 )
 from app.models.pypcs import (
     PYPCSMatrixSubmissionRequest,
+    PYPCSQuestionDescriptionUpdate,
     PYPCSSubmissionRequest,
     PYPCSVisibleQuestionsRequest,
 )
@@ -80,6 +82,36 @@ def get_pypcs_questions(role: str | None = None):
     return {
         "count": len(questions),
         "items": questions,
+    }
+
+
+@router.patch("/pypcs/questions/{question_id}")
+def update_pypcs_question_description(
+    question_id: str, payload: PYPCSQuestionDescriptionUpdate
+):
+    rows = read_generic_csv(PYPCS_QUESTIONS_FILE)
+    target = value_to_str(question_id)
+
+    idx = next(
+        (
+            i
+            for i, row in enumerate(rows)
+            if value_to_str(row.get("question_id", "")) == target
+        ),
+        -1,
+    )
+
+    if idx < 0:
+        raise HTTPException(status_code=404, detail="PYPCS question not found.")
+
+    headers = list(rows[0].keys())
+    rows[idx]["description"] = value_to_str(payload.description)
+    write_rows_to_csv(PYPCS_QUESTIONS_FILE, rows, headers)
+
+    return {
+        "message": "updated",
+        "question_id": target,
+        "description": rows[idx]["description"],
     }
 
 

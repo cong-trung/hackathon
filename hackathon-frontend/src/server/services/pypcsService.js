@@ -50,6 +50,22 @@ export async function getPypcsQuestions(req, res) {
     return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/questions${suffix}`);
 }
 
+export async function updatePypcsQuestionDescription(req, res) {
+    const { questionId } = req.params;
+
+    return proxyRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/questions/${questionId}`,
+        {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(req.body),
+        },
+    );
+}
+
 export async function getPypcsVisibleQuestions(req, res) {
     return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/visible-questions`, {
         method: 'POST',

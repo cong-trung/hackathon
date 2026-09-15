@@ -10,6 +10,7 @@ import chatRouter from './api/chat.js';
 import {
     getPypcsModules,
     getPypcsQuestions,
+    updatePypcsQuestionDescription,
     getPypcsVisibleQuestions,
     submitPypcsSubmission,
     getPypcsSubmissions,
@@ -33,6 +34,7 @@ router.use(glMqrRouter);
 router.use(chatRouter);
 router.get('/pypcs/modules', getPypcsModules);
 router.get('/pypcs/questions', getPypcsQuestions);
+router.patch('/pypcs/questions/:questionId', updatePypcsQuestionDescription);
 router.post('/pypcs/visible-questions', getPypcsVisibleQuestions);
 router.post('/pypcs/submission', submitPypcsSubmission);
 router.get('/pypcs/submissions', getPypcsSubmissions);

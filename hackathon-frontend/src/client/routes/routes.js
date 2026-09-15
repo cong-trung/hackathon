@@ -109,9 +109,9 @@ export const routes = [
     {
         route_name: routesConfig.pypcs_page,
         key: 'pypcs_page',
-        title: 'PYPCS Matrix',
+        title: 'Quality Matrix',
         icon: TablePropertiesIcon,
-        breadcrumb: ['PYPCS Matrix'],
+        breadcrumb: ['Quality Matrix'],
         component: lazy(
             () => import('@/features/pypcs/components/PYPCSMatrixTab'),
         ),
