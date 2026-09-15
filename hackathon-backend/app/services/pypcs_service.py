@@ -56,12 +56,16 @@ def load_operation_options_by_module(
     options_by_module: dict[str, list[str]] = {}
 
     for row in rows:
-        module_key = value_to_str(row.get("MODULE_KEY", "")).upper()
+        # Keep the CSV's original module_key casing (matches PYPCS_Modules.csv,
+        # which is not all-uppercase, e.g. "HDMx_AHMT") so frontend lookups by
+        # exact module_key succeed instead of silently falling back.
+        module_key_original = value_to_str(row.get("MODULE_KEY", ""))
+        module_key_upper = module_key_original.upper()
 
-        if not module_key:
+        if not module_key_original:
             continue
 
-        if modules_upper is not None and module_key not in modules_upper:
+        if modules_upper is not None and module_key_upper not in modules_upper:
             continue
 
         operation = value_to_str(row.get("OPERATION", ""))
@@ -69,11 +73,11 @@ def load_operation_options_by_module(
         if not operation:
             continue
 
-        seen = seen_by_module.setdefault(module_key, set())
+        seen = seen_by_module.setdefault(module_key_original, set())
 
         if operation not in seen:
             seen.add(operation)
-            options_by_module.setdefault(module_key, []).append(operation)
+            options_by_module.setdefault(module_key_original, []).append(operation)
 
     for module_key, options in options_by_module.items():
         options.append("Other")
