@@ -40,6 +40,9 @@ No test suite or lint config exists yet.
   `yn_to_bool`.
 - [app/services/pypcs_service.py](app/services/pypcs_service.py) — PYPCS CSV filenames, row
   normalization, and `build_pypcs_visible_questions()`.
+- `data/PYPCS_ActionItems.csv` (View 2) uses `nbr` as its key; applicability fields mirror
+  PYPCS_Questions `question_id`s and are `|`-joined, with `All`/`NA`/`Multiple` semantics.
+  Action items support add/edit only through the `/pypcs/action-items` endpoints.
 - [app/services/chat_service.py](app/services/chat_service.py) — `get_nyra_client()` for the AI
   chat endpoints.
 - [app/routers/](app/routers) — one FastAPI `APIRouter` per feature area (`health`,
@@ -62,3 +65,9 @@ No test suite or lint config exists yet.
   router in [app/routers/](app/routers) (or create a new router + include it in
   [app/main.py](app/main.py)), resolve config via `get_module_config(module)`, read all rows,
   mutate the list, then `write_data(...)` the whole file back (no partial/streaming writes).
+
+## Planned
+
+- Future View 3 will merge Quality Matrix submissions with View 2. For each Quality Matrix
+  product, the user will select the matching AR follow-up from View 2 using applicability
+  question IDs; this is not implemented.

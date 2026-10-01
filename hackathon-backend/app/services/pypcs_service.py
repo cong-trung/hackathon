@@ -11,9 +11,66 @@ PYPCS_QUESTION_MODULE_MAP_FILE = "PYPCS_QuestionModuleMap.csv"
 PYPCS_SUBMISSIONS_FILE = "PYPCS_Submissions.csv"
 PYPCS_SUBMISSION_ANSWERS_FILE = "PYPCS_SubmissionAnswers.csv"
 PYPCS_SUBMISSION_CELLS_FILE = "PYPCS_SubmissionCells.csv"
+PYPCS_ACTION_ITEMS_FILE = "PYPCS_ActionItems.csv"
+
+ACTION_ITEM_APPLICABILITY_FIELDS = {
+    "package": "package",
+    "bare_die_lid": "bare_die_lid",
+    "foveros": "foveros",
+    "segment": "segment",
+    "xvi_tool_type": "xvi_tool_type",
+    "lts_ball": "lts_ball",
+    "hdmx_ap_pan": "hdmx_ap_pan",
+}
+ACTION_ITEM_HEADERS = [
+    "nbr",
+    "ar_follow_up",
+    "actionable_item",
+    "reference",
+    "description",
+    "package",
+    "bare_die_lid",
+    "foveros",
+    "segment",
+    "xvi_tool_type",
+    "xvi_tool_comment",
+    "lts_ball",
+    "hdmx_ap_pan",
+    "owner",
+    "update_by",
+    "scenario",
+    "updated_at",
+]
 
 # Derived from the ATRMS Operation_Process_Step tracker; see data/Operation_Process_Step.csv.
 OPERATION_PROCESS_STEP_FILE = "Operation_Process_Step.csv"
+
+
+def build_action_item_options() -> dict[str, Any]:
+    questions_by_id = {
+        value_to_str(row.get("question_id", "")): row
+        for row in read_generic_csv(PYPCS_QUESTIONS_FILE)
+    }
+    extra_options = {
+        "segment": ["Mobile"],
+        "xvi_tool_type": ["Multiple"],
+    }
+    fields = {}
+
+    for field, question_id in ACTION_ITEM_APPLICABILITY_FIELDS.items():
+        question = questions_by_id.get(question_id, {})
+        candidates = [
+            "All",
+            *split_options(question.get("options", "")),
+            *extra_options.get(field, []),
+            "NA",
+        ]
+        fields[field] = list(dict.fromkeys(candidates))
+
+    return {
+        "fields": fields,
+        "owner": ["TRB", "Module Engineer", "Other"],
+    }
 
 
 def load_operation_options(selected_modules: set[str] | None = None) -> list[str]:

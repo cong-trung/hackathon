@@ -1,7 +1,7 @@
 """PYPCS dynamic questionnaire/matrix endpoints: modules, questions, submissions."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -11,12 +11,14 @@ from app.io.generic_csv import (
     delete_rows_from_csv,
     read_generic_csv,
     read_optional_csv,
+    safe_int,
     split_pipe_value,
     upsert_rows_to_csv,
     write_rows_to_csv,
 )
 from app.models.pypcs import (
     PYPCSMatrixSubmissionRequest,
+    PYPCSActionItemRequest,
     PYPCSQuestionDescriptionUpdate,
     PYPCSSubmissionRequest,
     PYPCSVisibleQuestionsRequest,
@@ -28,6 +30,10 @@ from app.services.pypcs_service import (
     PYPCS_SUBMISSION_ANSWERS_FILE,
     PYPCS_SUBMISSION_CELLS_FILE,
     PYPCS_SUBMISSIONS_FILE,
+    ACTION_ITEM_APPLICABILITY_FIELDS,
+    ACTION_ITEM_HEADERS,
+    PYPCS_ACTION_ITEMS_FILE,
+    build_action_item_options,
     build_pypcs_visible_questions,
     normalize_pypcs_map,
     normalize_pypcs_module,
@@ -38,6 +44,147 @@ router = APIRouter()
 
 # TP name must be a real identifier, not a short placeholder.
 MIN_TP_NAME_LENGTH = 7
+
+
+def action_item_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace(
+        "+00:00", "Z"
+    )
+
+
+def validate_action_item(payload: PYPCSActionItemRequest) -> None:
+    for field in ("actionable_item", "reference", "owner", "update_by"):
+        if not getattr(payload, field):
+            raise HTTPException(
+                status_code=422,
+                detail={"field": field, "message": f"{field} is required."},
+            )
+
+    allowed_by_field = build_action_item_options()["fields"]
+
+    for field in ACTION_ITEM_APPLICABILITY_FIELDS:
+        options = allowed_by_field[field]
+        values = [
+            value.strip()
+            for value in getattr(payload, field)
+            if value.strip()
+        ]
+        setattr(payload, field, values)
+
+        if "Other" in options and "Other" in values:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "field": field,
+                    "message": f"Please specify the Other value for {field}.",
+                },
+            )
+
+        invalid = [
+            value
+            for value in values
+            if value not in options
+            and not (
+                "Other" in options
+                and len(value) <= 100
+                and "|" not in value
+                and value.casefold() not in {"all", "na", "multiple", "other"}
+            )
+        ]
+        if invalid:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "field": field,
+                    "message": (
+                        f"Values must be selected from: "
+                        f"{', '.join(options)}."
+                    ),
+                },
+            )
+
+    if "Multiple" in payload.xvi_tool_type and not payload.xvi_tool_comment:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "field": "xvi_tool_comment",
+                "message": "xvi_tool_comment is required when xvi_tool_type includes Multiple.",
+            },
+        )
+
+
+def action_item_row(
+    nbr: int, payload: PYPCSActionItemRequest, updated_at: str
+) -> dict[str, str]:
+    row = {key: value for key, value in payload.model_dump().items()}
+    for field in ACTION_ITEM_APPLICABILITY_FIELDS:
+        values = row[field]
+        row[field] = "All" if "All" in values else "|".join(values)
+    row["nbr"] = str(nbr)
+    row["updated_at"] = updated_at
+    return row
+
+
+def normalize_action_item(row: dict[str, str]) -> dict:
+    item = {
+        key: value_to_str(row.get(key, ""))
+        for key in ACTION_ITEM_HEADERS
+        if key not in ACTION_ITEM_APPLICABILITY_FIELDS
+        and key not in {"nbr", "updated_at"}
+    }
+    item["nbr"] = safe_int(row.get("nbr", ""))
+    item["updated_at"] = value_to_str(row.get("updated_at", ""))
+    for field in ACTION_ITEM_APPLICABILITY_FIELDS:
+        item[field] = split_pipe_value(row.get(field, ""))
+    return item
+
+
+@router.get("/pypcs/action-items")
+def get_pypcs_action_items():
+    rows = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
+    rows.sort(key=lambda row: safe_int(row.get("nbr", "")))
+    items = [normalize_action_item(row) for row in rows]
+    return {"count": len(items), "items": items}
+
+
+@router.get("/pypcs/action-items/options")
+def get_pypcs_action_item_options():
+    return build_action_item_options()
+
+
+@router.post("/pypcs/action-items", status_code=201)
+def create_pypcs_action_item(payload: PYPCSActionItemRequest):
+    validate_action_item(payload)
+    rows = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
+    next_nbr = max(
+        (safe_int(row.get("nbr", "")) for row in rows),
+        default=0,
+    ) + 1
+    created = action_item_row(next_nbr, payload, action_item_timestamp())
+    rows.append(created)
+    write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+    return normalize_action_item(created)
+
+
+@router.put("/pypcs/action-items/{nbr}")
+def update_pypcs_action_item(nbr: int, payload: PYPCSActionItemRequest):
+    rows = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
+    target_index = next(
+        (
+            index
+            for index, row in enumerate(rows)
+            if safe_int(row.get("nbr", ""), -1) == nbr
+        ),
+        -1,
+    )
+    if target_index < 0:
+        raise HTTPException(status_code=404, detail="PYPCS action item not found.")
+
+    validate_action_item(payload)
+    updated = action_item_row(nbr, payload, action_item_timestamp())
+    rows[target_index] = updated
+    write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+    return normalize_action_item(updated)
 
 
 def normalize_status(value: str) -> str:

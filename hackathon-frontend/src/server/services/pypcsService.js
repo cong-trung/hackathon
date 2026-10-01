@@ -123,3 +123,33 @@ export async function submitPypcsMatrixSubmission(req, res) {
         body: JSON.stringify(req.body),
     });
 }
+
+export async function getPypcsActionItems(req, res) {
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items`);
+}
+
+export async function getPypcsActionItemOptions(req, res) {
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items/options`);
+}
+
+export async function createPypcsActionItem(req, res) {
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body),
+    });
+}
+
+export async function updatePypcsActionItem(req, res) {
+    const nbr = encodeURIComponent(String(req.params.nbr));
+
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items/${nbr}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body),
+    });
+}

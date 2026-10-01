@@ -1,15 +1,12 @@
 import { lazy } from 'react';
 import {
-    HomeIcon,
     ComputerIcon,
     MessageCircleQuestionMarkIcon,
-    UserSearchIcon,
     FileSpreadsheetIcon,
     MonitorCloudIcon,
-    Table2Icon,
     TablePropertiesIcon,
+    ListChecksIcon,
 } from 'lucide-react';
-import roboticArmIcon from '@/shared/assets/icons/RoboticArmIcon';
 
 import { routesConfig } from './constants';
 
@@ -115,6 +112,14 @@ export const routes = [
         component: lazy(
             () => import('@/features/pypcs/components/PYPCSMatrixTab'),
         ),
+    },
+    {
+        route_name: routesConfig.view2_page,
+        key: 'view2_page',
+        title: 'View 2',
+        icon: ListChecksIcon,
+        breadcrumb: ['View 2'],
+        component: lazy(() => import('@/features/view2/pages/View2Page')),
     },
     {
         route_name: routesConfig.chat_page,

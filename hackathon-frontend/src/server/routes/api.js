@@ -17,6 +17,10 @@ import {
     getPypcsSubmissionDetail,
     deletePypcsSubmission,
     submitPypcsMatrixSubmission,
+    getPypcsActionItems,
+    getPypcsActionItemOptions,
+    createPypcsActionItem,
+    updatePypcsActionItem,
 } from '../services/pypcsService.js';
 
 const router = express.Router();
@@ -41,4 +45,8 @@ router.get('/pypcs/submissions', getPypcsSubmissions);
 router.get('/pypcs/submissions/:submissionId', getPypcsSubmissionDetail);
 router.delete('/pypcs/submissions/:submissionId', deletePypcsSubmission);
 router.post('/pypcs/matrix-submission', submitPypcsMatrixSubmission);
+router.get('/pypcs/action-items/options', getPypcsActionItemOptions);
+router.get('/pypcs/action-items', getPypcsActionItems);
+router.post('/pypcs/action-items', createPypcsActionItem);
+router.put('/pypcs/action-items/:nbr', updatePypcsActionItem);
 export default router;
