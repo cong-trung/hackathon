@@ -73,6 +73,7 @@ const customText = (emptyMessage) =>
 const schema = (options) => z
     .object({
         actionable_item: requiredText('Actionable item'),
+        event_id: z.string().trim().max(50, 'Max 50 characters.').refine((value) => !value.includes('|'), 'Cannot contain |.'),
         reference: requiredText('Reference'),
         description: z.string(),
         ar_follow_up: z.string(),
@@ -119,6 +120,7 @@ const schema = (options) => z
 
 const textFields = [
     { name: 'actionable_item', label: 'Actionable item' },
+    { name: 'event_id', label: 'Event ID' },
     { name: 'reference', label: 'Reference', multiline: true },
     { name: 'description', label: 'Description', multiline: true },
     { name: 'ar_follow_up', label: 'AR follow up', multiline: true },
@@ -127,6 +129,7 @@ const textFields = [
 function defaults(item, options) {
     return {
         actionable_item: item?.actionable_item ?? '',
+        event_id: item?.event_id ?? '',
         reference: item?.reference ?? '',
         description: item?.description ?? '',
         ar_follow_up: item?.ar_follow_up ?? '',

@@ -38,6 +38,10 @@ function buildMatrixRows(detail) {
     return Object.values(rowsByQuestion);
 }
 
+function displayAnswer(questionId, answer) {
+    return questionId === 'operation' ? (answer || '').split('|').join(', ') : answer;
+}
+
 export default function PYPCSSubmissionsReview({
     onContinueEditing = () => {},
 } = {}) {
@@ -222,7 +226,7 @@ export default function PYPCSSubmissionsReview({
                                             key={moduleKey}
                                             className="border bg-green-100 p-3"
                                         >
-                                            {cell.answer}
+                                            {displayAnswer(row.question_id, cell.answer)}
                                         </td>
                                     );
                                 })}
@@ -263,7 +267,7 @@ export default function PYPCSSubmissionsReview({
                                     {answer.display_label ||
                                         answer.question_id}
                                 </td>
-                                <td className="p-3">{answer.answer}</td>
+                                <td className="p-3">{displayAnswer(answer.question_id, answer.answer)}</td>
                                 <td className="p-3">{answer.role}</td>
                                 <td className="p-3">
                                     {(answer.applies_to || []).join(', ')}
@@ -331,7 +335,7 @@ export default function PYPCSSubmissionsReview({
 
                     <div>
                         <span className="font-medium">Operation:</span>{' '}
-                        {selectedDetail.submission?.operation}
+                        {displayAnswer('operation', selectedDetail.submission?.operation)}
                     </div>
 
                     <div>
@@ -435,7 +439,7 @@ export default function PYPCSSubmissionsReview({
                                     </td>
                                     <td className="p-3">{item.product_name}</td>
                                     <td className="p-3">{item.prodgroup3}</td>
-                                    <td className="p-3">{item.operation}</td>
+                                    <td className="p-3">{displayAnswer('operation', item.operation)}</td>
                                     <td className="p-3">
                                         {(item.selected_modules || []).join(
                                             ', ',

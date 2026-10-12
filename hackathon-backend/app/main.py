@@ -4,7 +4,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import ALLOWED_ORIGINS
-from app.routers import chat, health, pdsolutions, product_basis, pypcs, solutions
+from app.routers import (
+    chat,
+    health,
+    pdsolutions,
+    product_action_matrix,
+    product_basis,
+    pypcs,
+    solutions,
+)
 
 app = FastAPI(
     title="Quality Matrix Multi-Module API",
@@ -25,4 +33,5 @@ app.include_router(product_basis.router)
 app.include_router(solutions.router)
 app.include_router(pdsolutions.router)
 app.include_router(pypcs.router)
+app.include_router(product_action_matrix.router)
 app.include_router(chat.router)

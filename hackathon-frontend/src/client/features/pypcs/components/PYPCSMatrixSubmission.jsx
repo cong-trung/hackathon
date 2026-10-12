@@ -1,5 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ChevronsUpDown, X } from 'lucide-react';
 
+import { Button } from '@/shared/components/ui/button';
+import { Checkbox } from '@/shared/components/ui/checkbox';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/shared/components/ui/command';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/shared/components/ui/popover';
 import { scrollbarClassName } from '@/shared/utils/scrollbar';
 
 const API_BASE = '/api';
@@ -47,6 +63,125 @@ function getCellKey(questionId, moduleKey) {
 function isQuestionApplicableToModule(question, moduleKey) {
     return Array.isArray(question.applies_to)
         && question.applies_to.includes(moduleKey);
+}
+
+function OperationInput({ options, value, onChange }) {
+    const values = value ? value.split('|') : [];
+    const known = values.filter((item) => item !== 'Other' && options.includes(item));
+    const unknown = values.filter((item) => item !== 'Other' && !options.includes(item));
+    const hasOther = values.includes('Other') || unknown.length > 0;
+    const [otherText, setOtherText] = useState(unknown[0] || '');
+    const [search, setSearch] = useState('');
+    const matches = options.filter((option) =>
+        option.toLowerCase().includes(search.trim().toLowerCase()),
+    );
+
+    function toggle(option) {
+        if (option === 'Other') {
+            if (hasOther) {
+                setOtherText('');
+                onChange(known.join('|'));
+            } else {
+                onChange([...values, otherText.trim() || 'Other'].join('|'));
+            }
+            return;
+        }
+
+        onChange((values.includes(option)
+            ? values.filter((item) => item !== option)
+            : [...values, option]).join('|'));
+    }
+
+    function changeOther(text) {
+        const additional = unknown[0] === otherText.trim() ? unknown.slice(1) : unknown;
+        setOtherText(text);
+        onChange([...known, text.trim() || 'Other', ...additional].join('|'));
+    }
+
+    return (
+        <div className="min-w-0 space-y-1">
+            <Popover onOpenChange={() => setSearch('')}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-label="Select operations"
+                        className="w-full justify-between font-normal"
+                    >
+                        <span className="truncate">
+                            {known.length + unknown.length
+                                ? `${known.length + unknown.length} selected`
+                                : 'Select operations'}
+                        </span>
+                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command filter={(option, query) =>
+                        option.toLowerCase().includes(query.toLowerCase()) ? 1 : 0
+                    }>
+                        <CommandInput
+                            placeholder="Search operations"
+                            value={search}
+                            onValueChange={setSearch}
+                        />
+                        <CommandList>
+                            <CommandEmpty>No operations found.</CommandEmpty>
+                            <CommandGroup>
+                                {matches.slice(0, 200).map((option) => (
+                                    <CommandItem key={option} value={option} onSelect={() => toggle(option)}>
+                                        <Checkbox
+                                            checked={option === 'Other' ? hasOther : values.includes(option)}
+                                            tabIndex={-1}
+                                            className="pointer-events-none mr-2"
+                                        />
+                                        {option}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                            {matches.length > 200 ? (
+                                <div className="p-2 text-xs text-muted-foreground">
+                                    Refine your search to see more operations.
+                                </div>
+                            ) : null}
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+            {hasOther ? (
+                <input
+                    className="w-full rounded border px-2 py-1 text-sm"
+                    type="text"
+                    aria-label="Please specify other operation"
+                    placeholder="Please specify other operation"
+                    value={otherText}
+                    onChange={(event) => changeOther(event.target.value.replaceAll('|', ''))}
+                    maxLength={100}
+                />
+            ) : null}
+            {values.filter((item) => item && item !== 'Other').length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                    {values.map((item, index) => item && item !== 'Other' ? (
+                        <span key={`${item}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded border bg-white px-1 text-xs">
+                            <span className="truncate" title={item}>{item}</span>
+                            <button
+                                type="button"
+                                aria-label={`Remove ${item}`}
+                                title={`Remove ${item}`}
+                                onClick={() => {
+                                    if (item === unknown[0] && hasOther) setOtherText(unknown[1] || '');
+                                    onChange(values.filter((_, itemIndex) => itemIndex !== index).join('|'));
+                                }}
+                            >
+                                <X className="size-3" />
+                            </button>
+                        </span>
+                    ) : null)}
+                </div>
+            ) : null}
+        </div>
+    );
 }
 
 export default function PYPCSMatrixSubmission({
@@ -325,7 +460,7 @@ export default function PYPCSMatrixSubmission({
         const nextErrors = {};
 
         questions.forEach((question) => {
-            if (!question.required) {
+            if (!question.required || question.question_id === 'operation') {
                 return;
             }
 
@@ -355,6 +490,32 @@ export default function PYPCSMatrixSubmission({
             }
         });
 
+        return nextErrors;
+    }
+
+    function validateOperations(requireAll) {
+        const nextErrors = {};
+        const question = questions.find((item) => item.question_id === 'operation');
+        if (!question) return nextErrors;
+
+        selectedModules.forEach((moduleKey) => {
+            if (!isQuestionApplicableToModule(question, moduleKey)) return;
+            const cellKey = getCellKey('operation', moduleKey);
+            const answer = cells[cellKey] || '';
+            const options = question.options_by_module?.[moduleKey] || question.options || [];
+            const parts = answer ? answer.split('|') : [];
+
+            if (!parts.length) {
+                if (requireAll && question.required) nextErrors[cellKey] = 'Operation is required';
+            } else if (parts.some((part) => {
+                const trimmed = part.trim();
+                return !trimmed || trimmed === 'Other' || (trimmed !== part)
+                    || (!options.includes(trimmed)
+                        && (!options.includes('Other') || trimmed.length > 100));
+            })) {
+                nextErrors[cellKey] = 'Select valid operations or specify Other (max 100 characters, no |).';
+            }
+        });
         return nextErrors;
     }
 
@@ -393,7 +554,7 @@ export default function PYPCSMatrixSubmission({
         const tpNameErrors = validateTpNameLength();
         const requiredErrors =
             nextStatus === 'final' ? validateMatrix() : {};
-        const nextErrors = { ...requiredErrors, ...tpNameErrors };
+        const nextErrors = { ...requiredErrors, ...validateOperations(nextStatus === 'final'), ...tpNameErrors };
 
         if (Object.keys(nextErrors).length > 0) {
             setErrors(nextErrors);
@@ -471,13 +632,17 @@ export default function PYPCSMatrixSubmission({
         await saveMatrix('final');
     }
 
-    function renderFieldInput(question, value, onChange) {
+    function renderFieldInput(question, value, onChange, inputKey) {
         const options = question.options || [];
         const hasOtherOption = options.includes('Other');
         const isOtherSelected =
             hasOtherOption
             && value !== ''
             && (value === 'Other' || !options.includes(value));
+
+        if (question.question_id === 'operation') {
+            return <OperationInput key={inputKey} options={options} value={value} onChange={onChange} />;
+        }
 
         if (question.field_type === 'select') {
             return (
@@ -566,8 +731,11 @@ export default function PYPCSMatrixSubmission({
 
         return (
             <td key={moduleKey} className="min-w-40 border bg-green-100 p-2">
-                {renderFieldInput(cellQuestion, value, (nextValue) =>
-                    handleCellChange(question.question_id, moduleKey, nextValue),
+                {renderFieldInput(
+                    cellQuestion,
+                    value,
+                    (nextValue) => handleCellChange(question.question_id, moduleKey, nextValue),
+                    `${submissionId || 'new'}-${cellKey}`,
                 )}
 
                 {error ? (

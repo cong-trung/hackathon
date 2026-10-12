@@ -6,6 +6,7 @@ import {
     MonitorCloudIcon,
     TablePropertiesIcon,
     ListChecksIcon,
+    Grid3x3Icon,
 } from 'lucide-react';
 
 import { routesConfig } from './constants';
@@ -120,6 +121,14 @@ export const routes = [
         icon: ListChecksIcon,
         breadcrumb: ['View 2'],
         component: lazy(() => import('@/features/view2/pages/View2Page')),
+    },
+    {
+        route_name: routesConfig.view3_page,
+        key: 'view3_page',
+        title: 'View 3',
+        icon: Grid3x3Icon,
+        breadcrumb: ['View 3'],
+        component: lazy(() => import('@/features/view3/pages/View3Page')),
     },
     {
         route_name: routesConfig.chat_page,

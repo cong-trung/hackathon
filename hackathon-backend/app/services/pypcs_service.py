@@ -24,6 +24,7 @@ ACTION_ITEM_APPLICABILITY_FIELDS = {
 }
 ACTION_ITEM_HEADERS = [
     "nbr",
+    "event_id",
     "ar_follow_up",
     "actionable_item",
     "reference",

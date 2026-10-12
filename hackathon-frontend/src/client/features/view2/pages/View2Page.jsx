@@ -65,8 +65,9 @@ function BadgesCell({ values, comment }) {
 
 const frozen = {
     nbr: 'sticky left-0 z-10 w-16 min-w-16 bg-background',
-    ar_follow_up: 'sticky left-16 z-10 w-36 min-w-36 bg-background',
-    actionable_item: 'sticky left-52 z-10 w-52 min-w-52 bg-background',
+    event_id: 'sticky left-16 z-10 w-36 min-w-36 bg-background',
+    ar_follow_up: 'sticky left-52 z-10 w-36 min-w-36 bg-background',
+    actionable_item: 'sticky left-88 z-10 w-52 min-w-52 bg-background',
 };
 
 function TextValueCell({ getValue }) {
@@ -118,6 +119,7 @@ function columnsFor() {
 
     return [
         { accessorKey: 'nbr', header: 'NBr#', size: 64 },
+        text('event_id', 'Event ID', 144),
         text('ar_follow_up', 'AR follow up', 144),
         text('actionable_item', 'Actionable item', 208),
         text('reference', 'Reference', 240),
@@ -226,7 +228,7 @@ export default function View2Page() {
                     <Table style={{ width: table.getTotalSize() }} className="table-fixed border-collapse text-sm">
                         <TableHeader className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-900">
                             <TableRow className="h-10 border-b">
-                                {table.getAllLeafColumns().slice(0, 5).map((column) => (
+                                {table.getAllLeafColumns().slice(0, 6).map((column) => (
                                     <TableHead
                                         key={column.id}
                                         rowSpan={2}
@@ -239,14 +241,14 @@ export default function View2Page() {
                                 <TableHead colSpan={7} className="border-x text-center font-semibold text-slate-700 dark:text-slate-200">
                                     Applicability (Quality Matrix questions)
                                 </TableHead>
-                                {table.getAllLeafColumns().slice(12).map((column) => (
+                                {table.getAllLeafColumns().slice(13).map((column) => (
                                     <TableHead key={column.id} rowSpan={2} style={{ width: column.getSize() }} className="align-middle font-semibold text-slate-700 dark:text-slate-200">
                                         {column.columnDef.header}
                                     </TableHead>
                                 ))}
                             </TableRow>
                             <TableRow className="h-10 border-b">
-                                {table.getAllLeafColumns().slice(5, 12).map((column) => (
+                                {table.getAllLeafColumns().slice(6, 13).map((column) => (
                                     <TableHead key={column.id} style={{ width: column.getSize() }} className="border-l font-semibold text-slate-700 dark:text-slate-200">
                                         {column.columnDef.header}
                                     </TableHead>
@@ -270,7 +272,7 @@ export default function View2Page() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={17} className="h-32 text-center text-muted-foreground">
+                                    <TableCell colSpan={18} className="h-32 text-center text-muted-foreground">
                                         {term ? 'No action items match your search.' : 'No action items yet.'}
                                     </TableCell>
                                 </TableRow>

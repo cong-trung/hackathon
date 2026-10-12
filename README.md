@@ -145,6 +145,7 @@ The stale Browserslist data warning at frontend startup is harmless.
 | GL-MQR (STHI / LCBI) | `/gl-mqr/sthi`, `/gl-mqr/lcbi` | Proxy requests `/solutions/sthi` and `/solutions/lcbi`; FastAPI currently exposes `/solutions` with a `module` query parameter | `Solution.csv` |
 | Quality Matrix (PYPCS) | `/pypcs` | `/pypcs/modules`, `/pypcs/questions`, `/pypcs/submissions`, `/pypcs/matrix-submission`, and related `/pypcs/*` endpoints | `PYPCS_Modules.csv`, `PYPCS_Questions.csv`, `PYPCS_QuestionModuleMap.csv`, `PYPCS_Submissions.csv`, `PYPCS_SubmissionAnswers.csv`, `PYPCS_SubmissionCells.csv`, `Operation_Process_Step.csv` |
 | View 2 | `/view-2` | `/pypcs/action-items` and `/pypcs/action-items/options` | `PYPCS_ActionItems.csv` |
+| View 3 | `/view-3` | `/pypcs/product-action-matrix`, `/pypcs/product-action-matrix/rows`, `/pypcs/product-action-matrix/export` | PYPCS submission files, `PYPCS_Modules.csv`, `PYPCS_ActionItems.csv`, `PYPCS_ProductActionMatrix.csv` |
 | Chat | `/chat` | `/chat` (health: `/chat/health`) | No local data file; requires NYRA configuration and `nyra-services` (not in `requirements.txt`) |
 
 The GL-MQR proxy path and FastAPI route do not currently match; see the API
@@ -158,10 +159,23 @@ features above. Updates rewrite the corresponding CSV file, so back up the data
 before bulk edits. The API has no authentication by design; run it only in an
 appropriate trusted environment.
 
-## Planned Work
+### Network share data
 
-View 3 is planned to join Quality Matrix submissions with View 2 action items
-using applicability question IDs. It is not implemented.
+When `QUALITY_MATRIX_DATA_DIR` is not overridden, the backend reads the share
+configured in `hackathon-backend/.env.production`:
+`\\VNATSHFS.intel.com\VNATAnalysis$\MAOATM\VN\Applications\TE\Quality`.
+View 2 needs `PYPCS_ActionItems.csv` (and `PYPCS_Questions.csv` for its options
+endpoint). View 3 needs `PYPCS_Modules.csv`, `PYPCS_Submissions.csv`,
+`PYPCS_SubmissionCells.csv`, `PYPCS_SubmissionAnswers.csv`,
+`PYPCS_ActionItems.csv`, and `PYPCS_ProductActionMatrix.csv` to retain decisions.
+Nothing has been copied to the network share.
+
+## View 3
+
+View 3 merges the latest submission for each product with all View 2 actions,
+groups selected modules, and suggests status from package compatibility. Decisions
+are stored in the flat matrix file and preserved when source products or actions
+are removed.
 
 ## Further Documentation
 

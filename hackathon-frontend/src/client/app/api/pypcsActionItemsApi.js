@@ -15,7 +15,7 @@ export const pypcsActionItemsApi = apiSlice.injectEndpoints({
                 method: 'POST',
                 body,
             }),
-            invalidatesTags: ['PYPCSActionItem'],
+            invalidatesTags: ['PYPCSActionItem', 'ProductActionMatrix'],
         }),
         updateActionItem: builder.mutation({
             query: ({ nbr, body }) => ({
@@ -23,7 +23,7 @@ export const pypcsActionItemsApi = apiSlice.injectEndpoints({
                 method: 'PUT',
                 body,
             }),
-            invalidatesTags: ['PYPCSActionItem'],
+            invalidatesTags: ['PYPCSActionItem', 'ProductActionMatrix'],
         }),
     }),
 });

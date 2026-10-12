@@ -66,8 +66,15 @@ No test suite or lint config exists yet.
   [app/main.py](app/main.py)), resolve config via `get_module_config(module)`, read all rows,
   mutate the list, then `write_data(...)` the whole file back (no partial/streaming writes).
 
-## Planned
+## PYPCS Views
 
-- Future View 3 will merge Quality Matrix submissions with View 2. For each Quality Matrix
-  product, the user will select the matching AR follow-up from View 2 using applicability
-  question IDs; this is not implemented.
+- View 2 `PYPCS_ActionItems.csv` has an optional `event_id` column immediately after `nbr`.
+  It is trimmed, limited to 50 characters, and cannot contain `|`; old files read it as blank.
+- View 1 matrix `operation` cell answers are validated per module and stored as trimmed,
+  de-duplicated `|`-joined values. `Other` uses the existing custom-text convention.
+- View 3 is a flat `PYPCS_ProductActionMatrix.csv`, one row per product/module-group/action.
+  Product keys are `lower(trim(prodgroup3))||lower(trim(product_name))`; HDMx modules group
+  under `HDMx`. Package suggestions set `Y` for a match and `NA` for a non-match; empty,
+  `All`, or only-`NA` action packages and blank product packages produce no suggestion.
+- View 3 rows expose `decision_state` (`draft`/`final`); legacy nonblank decisions default to `final`,
+  and rebuilds preserve it while export includes it. PUT `mode` defaults to `final`; final statuses require comments, drafts allow optional comments, and blank draft cells clear.

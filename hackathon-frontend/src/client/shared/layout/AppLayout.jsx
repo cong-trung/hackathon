@@ -24,7 +24,7 @@ function AppLayout() {
     return (
         <SidebarProvider className="select-none" defaultOpen={true}>
             <AppSidebar />
-            <SidebarInset className="min-h-0 max-h-screen min-w-[1600px]">
+            <SidebarInset className="min-h-0 max-h-screen min-w-0">
                 <header className="sticky top-0 z-20 border-b bg-background h-12 flex shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
                     <div className="flex items-center gap-2 px-4 flex-1">
                         <SidebarTrigger className="-ml-1" />

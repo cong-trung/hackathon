@@ -46,6 +46,7 @@ class PYPCSQuestionDescriptionUpdate(BaseModel):
 class PYPCSActionItemRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    event_id: str = Field(default="")
     ar_follow_up: str = Field(default="", max_length=5000)
     actionable_item: str = Field(default="", max_length=5000)
     reference: str = Field(default="", max_length=5000)
@@ -64,6 +65,7 @@ class PYPCSActionItemRequest(BaseModel):
 
     @field_validator(
         "ar_follow_up",
+        "event_id",
         "actionable_item",
         "reference",
         "description",
@@ -92,3 +94,16 @@ class PYPCSActionItemRequest(BaseModel):
         if isinstance(values, list):
             return [value.strip() if isinstance(value, str) else value for value in values]
         return values
+
+
+class ProductActionMatrixCellUpdate(BaseModel):
+    action_nbr: int
+    status: str = ""
+    comment: str = ""
+
+
+class ProductActionMatrixRowUpdate(BaseModel):
+    product_key: str = ""
+    module_group: str = ""
+    updated_by: str = ""
+    cells: list[ProductActionMatrixCellUpdate] = Field(default_factory=list)

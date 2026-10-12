@@ -16,6 +16,11 @@ import {
     SelectValue,
 } from '@/shared/components/ui/select';
 import { scrollbarClassName } from '@/shared/utils/scrollbar';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/shared/components/ui/popover';
 import AddButton from '../components/AddButton';
 import { useGetPdSolutionQuery } from '@/app/api/pdSolutionApi';
 
@@ -105,6 +110,11 @@ function LCBIPage() {
                                     s.status,
                                 ]),
                             );
+                            const noteMap = Object.fromEntries(
+                                (items[grp] ?? [])
+                                    .filter((s) => s.note)
+                                    .map((s) => [s.solutionid, s.note]),
+                            );
                             return (
                                 <TableRow key={grp}>
                                     <TableCell className="sticky left-0 bg-background z-10 font-medium">
@@ -117,7 +127,25 @@ function LCBIPage() {
                                                 key={sol.solutionid}
                                                 className={statusColor(st)}
                                             >
-                                                {st ?? '—'}
+                                                <div className="flex items-center gap-1">
+                                                    <span>{st ?? '—'}</span>
+                                                    {noteMap[sol.solutionid] ? (
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <button
+                                                                    type="button"
+                                                                    aria-label={`View note for ${sol.solution}`}
+                                                                    className="inline-flex size-4 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground hover:bg-accent"
+                                                                >
+                                                                    ?
+                                                                </button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-64 break-words text-sm">
+                                                                {noteMap[sol.solutionid]}
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    ) : null}
+                                                </div>
                                             </TableCell>
                                         );
                                     })}

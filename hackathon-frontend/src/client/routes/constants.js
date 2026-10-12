@@ -5,5 +5,6 @@ export const routesConfig = {
     gl_mqr_page: { sthi: '/gl-mqr/sthi', lcbi: '/gl-mqr/lcbi' },
     pypcs_page: '/pypcs',
     view2_page: '/view-2',
+    view3_page: '/view-3',
     chat_page: '/chat',
 };

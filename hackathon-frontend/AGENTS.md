@@ -91,11 +91,9 @@ npm run dev
 - `agentation` is loaded in dev mode in `App.jsx` at `localhost:4747`.
 - `ioredis` is a dependency but may not be used in this frontend (server-side only).
 
-## Planned
+## View 3
 
-- Future View 3 will merge Quality Matrix submissions with View 2. For each Quality Matrix
-	product, the user will select the matching AR follow-up from View 2 using applicability
-	question IDs; this is not implemented.
+- View 3 backend and Express proxy endpoints are implemented under `/pypcs/product-action-matrix`.
 
 ## Existing Instruction Sources
 

@@ -39,6 +39,45 @@ async function proxyRequest(res, url, options = {}) {
     }
 }
 
+async function proxyRawRequest(res, url, options = {}) {
+    try {
+        console.log('[PYPCS proxy] forwarding raw response to:', url);
+
+        const response = await fetch(url, options);
+        const body = Buffer.from(await response.arrayBuffer());
+        res.status(response.status);
+
+        for (const header of ['content-type', 'content-disposition']) {
+            const value = response.headers.get(header);
+            if (value) {
+                res.setHeader(header, value);
+            }
+        }
+
+        return res.send(body);
+    } catch (error) {
+        console.error('[PYPCS proxy] raw fetch failed:', {
+            url,
+            message: error.message,
+            cause: error.cause,
+        });
+
+        return res.status(500).json({
+            message: 'Failed to proxy PYPCS request',
+            url,
+            error: error.message,
+            cause: error.cause
+                ? {
+                      code: error.cause.code,
+                      address: error.cause.address,
+                      port: error.cause.port,
+                      syscall: error.cause.syscall,
+                  }
+                : null,
+        });
+    }
+}
+
 export async function getPypcsModules(req, res) {
     return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/modules`);
 }
@@ -152,4 +191,38 @@ export async function updatePypcsActionItem(req, res) {
         },
         body: JSON.stringify(req.body),
     });
+}
+
+export async function getPypcsProductActionMatrix(req, res) {
+    const queryString = new URLSearchParams(req.query).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+
+    return proxyRawRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/product-action-matrix${suffix}`,
+    );
+}
+
+export async function updatePypcsProductActionMatrixRow(req, res) {
+    return proxyRawRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/product-action-matrix/rows`,
+        {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(req.body),
+        },
+    );
+}
+
+export async function exportPypcsProductActionMatrix(req, res) {
+    const queryString = new URLSearchParams(req.query).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+
+    return proxyRawRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/product-action-matrix/export${suffix}`,
+    );
 }

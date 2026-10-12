@@ -87,7 +87,7 @@ function AddEntryForm({ onSubmit, onCancel }) {
                 pdid,
                 solutionid,
                 status,
-                comment,
+                note: comment,
             })),
         });
         onSubmit(data);

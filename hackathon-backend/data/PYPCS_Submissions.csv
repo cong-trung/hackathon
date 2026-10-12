@@ -1,3 +1,124 @@
 ﻿submission_id,created_at,updated_at,submitted_by,role,selected_modules,product_name,prodgroup3,operation,answer_count,status
 a0317059-302f-45dc-8706-43732d49a0d7,2026-08-19T01:49:29Z,"",current_user,TI,LCBI|HDMX_AHMT|HDMX_CLASS|STHI,Demo,DEMO123,6379,15,""
 98f0058f-0815-454c-adc2-9cb1e9da8bde,2026-08-25T10:14:55Z,2026-08-25T10:40:50Z,current_user,"",LCBI,Hello,aa,aa,14,final
+23ae28d7-21d8-474d-acb5-3516523502c5,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake S601 IOTG,ADLG601,,2,draft
+75872cd2-2268-4369-807c-4354d6760c0e,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake PS282,ADLPS2,,2,draft
+11656aa3-7381-486d-8522-e46cb2c2af80,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI|LCBI,Alder Lake M282,ADLM282,,2,draft
+8845f2ef-3bc7-4dee-aaa5-794cf5446a8f,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake N081,ADLN,,2,draft
+4484155a-5423-48e5-83bf-63de8563cab7,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake PS682,ADLPS6,,2,draft
+ff85de1b-af80-4eb7-a3f1-a449430d2580,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake S601,ADLS601,,2,draft
+7b2c5aca-36b4-42e4-a374-4afbcccbef0f,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COFFEE LAKE CPU-8,CFH,,2,draft
+dcf81424-29ca-4cb6-b206-ff98129f706e,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COMET LAKE CPU-10-24,CMLS102,,2,draft
+5a35af0e-a4eb-4313-a75c-17a77760632a,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,AlderLake S881 BGA,ADLS8BGA,,2,draft
+77b78595-ddec-4186-b36e-e1a00c17b99f,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake N081 IOTG,ADNIOTG,,2,draft
+b474ae0d-a1c9-48a5-8322-2c24d71b1710,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Apollo Lake,APK,,2,draft
+1168ecfe-1cc9-4558-8ccf-636da75e3b4d,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Apollo Lake,APL,,2,draft
+b78306e5-7ddd-4f0a-bf64-be45a39ba953,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Apollo Lake,AXLF,,2,draft
+5e2be974-235f-4479-85be-7cd2b4c0c9fd,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,BURNSIDE BRIDGE,BBR,,2,draft
+6518eeb7-5640-4570-a107-ed0dae592a90,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COFFEE LAKE CPU-4-48,CFLU43,,2,draft
+7ebf2a4b-5ea8-4b7a-bed3-cef269c45fb3,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Lake Field,LFA,,2,draft
+42aeb52a-f186-4848-9fd5-79783633c934,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI|LCBI,Meadow Wood,MDW,,2,draft
+0bc2889e-bf0c-4aa2-adbd-3189e0d8e2fe,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI|LCBI,Trout Creek,TRC,,2,draft
+7586627c-9a32-4e61-94c7-32c9a70efbe7,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,ALDER LAKE-PCH-S,ADP,,2,draft
+d239e4a8-236b-4089-a655-c08cc317e781,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,BRASWELL,BSW,,2,draft
+1adc21e8-f40a-4989-bd50-f7b6b2ee3830,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COMET LAKE CPU-8-24,CMLH82,,2,draft
+e8201d84-8433-4fde-b7db-6d0ad73c504a,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COUGAR MOUNTAIN,CGM,,2,draft
+252ecc25-5ecc-46c4-a49b-2f412d30f8c6,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COFFEE LAKE CPU-6,CFLH62,,2,draft
+76067411-0965-44bd-b9ed-c21333ba3973,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COMET LAKE (COFFEE LAKE-4-24),CMLU42,,2,draft
+cb523ff6-8d53-4eef-afd3-1c6de7e3ed3e,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COFFEE LAKE (KABY LAKE CPU-4),CFA,,2,draft
+ddf53e3e-a574-48b9-bae0-8d9a8062f5c1,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COFFEE LAKE CPU-6,CFD,,2,draft
+d53b04c5-79e3-4478-b780-c0a0b7720ceb,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,CASCADE LAKE (SKYLAKE-28),CLXXCP,,2,draft
+f9dfc6d7-56d6-466c-8e1f-b9b9910e35ab,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,DG2 128 GPU,DG128,,2,draft
+47d6ecdb-5cb2-43a7-80b5-696b9f2681eb,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COFFEE LAKE (KABY LAKE CPU-4),CFZ,,2,draft
+1c050d84-3431-4d7f-b2fd-3c0f3db289b1,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,DG2 512 GPU,DG512,,2,draft
+4eec431a-0db3-4df4-a415-8e858ff66d4b,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COMET LAKE CPU-6,CMLS62,,2,draft
+e124f6d9-7dc7-44d1-91f6-7a52e21a648c,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COMET LAKE PCH-H,CMP,,2,draft
+2fb00e20-7ad3-41e1-acbb-0022d7de9c14,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,CANNON LAKE PCH-H,CNLUSFF,,2,draft
+cfcaf171-1b0f-47e3-8512-81a3ca1ffe7e,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,CANNON LAKE PCH-H,CNP,,2,draft
+96fa7f75-9437-4d97-95b8-7831460e97e5,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,CHERRY TRAIL-4,CT1,,2,draft
+6863c8fe-ea12-4c9f-80e7-8ff3a1fc5f4b,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,CHERRY TRAIL-4,CTC,,2,draft
+a790e21c-da2b-4f98-ac87-46496bc0fab1,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COUGAR MOUNTAIN XL,CXL,,2,draft
+ebbf443b-52dd-49d1-bcb8-323085f79615,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,GEMINI LAKE-4,GLK,,2,draft
+5fc0a7b0-797a-40a6-8346-d2679e33fced,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,ROCKET LAKE CPU-8,RKLS81,,2,draft
+1e5b86dc-a7dd-401d-a4e2-87387af097c6,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake S881 IOTG,ADLG881,,2,draft
+2e311a2d-9410-42c6-85e3-8e3148a59dd3,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,HASWELL-H-2,HSWH,,2,draft
+e95a2db5-029f-4b6d-a0d6-fe373bf4725e,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,HASWELL-HE-4,HSWR,,2,draft
+e5463706-6315-4c12-a159-faaee3921bed,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,HASWELL-HE-4,HWS,,2,draft
+f4d62a26-23f0-4788-92af-ec79f8892275,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,KABY LAKE CPU-2,KBC,,2,draft
+3ebdcd4b-e230-417c-a2b8-f88370ed7231,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,KABY LAKE CPU-4,KBZ,,2,draft
+9744aa5b-50bc-438a-9847-5d16431a2fd3,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,SKYLAKE CPU-4,SKA,,2,draft
+b5f66b7d-b432-4012-a75f-54a10526568d,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,SKYLAKE CPU-4,SKB,,2,draft
+c05ae10d-8dea-4d68-862f-42913cfd8f00,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,SKYLAKE CPU-2,SKC,,2,draft
+b8e31ddc-e1d0-4bc3-8790-0106b88f085a,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,TIGER LAKE PCH-H,TGP,,2,draft
+aa606435-dbc0-49f9-9da8-056eccac4df2,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,VALLEYVIEW,V2V,,2,draft
+cb422881-d15b-4362-8891-5b9bd0011474,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake S881,ADLS881,,2,draft
+5512abce-5858-4216-a204-a36b9d1ff949,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake 8161 (RAPTOR LAKE-CPU-24),RPL8161,,2,draft
+85f9a7cc-7766-4a71-9458-febd41194bb6,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake S601 (ALDER LAKE-CPU-6),RPLG601,,2,draft
+732f71a3-c13c-4ec6-b422-b05644104833,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,COMET LAKE CPU-6-24,CMLU62,,2,draft
+1ae8813a-ba72-4932-82bc-89a9d877801f,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake S881 (ALDER LAKE-CPU-16),RPLG881,,2,draft
+55f41801-3880-4ff4-9489-460606246a22,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake S601 (ALDER LAKE-CPU-6),RPLS601,,2,draft
+e7ea31f5-49c5-4923-8d39-95b784e57d19,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake S881 BGA (ALDER LAKE-CPU-16),RPLS8BGA,,2,draft
+a1c008a4-8563-4d6d-a49e-6ba02bec9e78,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,ELKHART LAKE,EHB,,2,draft
+9d6bb0ef-cb58-48b0-88ec-a2740f88d413,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,ELKHART LAKE,EHL,,2,draft
+1020d4e2-a75f-4b60-af03-4bcd2cd54494,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,JASPER LAKE CPU-4,JSL,,2,draft
+2b1f0118-619f-4a2a-9aed-0fcc4babecd9,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,TIGER LAKE CPU-4-96,TGLUP3,,2,draft
+79704672-fa62-4643-859a-e990123e432e,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,TIGER LAKE CPU-4-96,TGLUP4,,2,draft
+6ec93278-e487-4e51-a62b-89c71c4b8e16,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,KABY LAKE CPU-2-24,KBLU22,,2,draft
+9c80ed10-ca0d-4b1f-9ced-73c29430862c,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,TIGER LAKE CPU-4-96,TGRUP3,,2,draft
+9db0e0b6-0c09-48da-81d8-feaeaadeeb14,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Shadow Wood,SDW,,2,draft
+15f8fd48-fd20-4d43-b490-224ce7e45301,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,KABY LAKE CPU-4-24,KBLU42,,2,draft
+5d3b0515-4e53-4d81-85c5-4d7991417406,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake S881 (ALDER LAKE-CPU-16),RPLS881,,2,draft
+ff86e8eb-42b7-40ce-8794-6380395e4c0a,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,WHISKEY LAKE (COFFEE LAKE-4-24),WHLU42,,2,draft
+7da5a4fd-b547-4a1f-84b7-7300d90a556d,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Snow Ridge (SNR),SNWRDG,,2,draft
+5d783b72-795e-46f2-90ec-80c4dc9ade8a,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake P282 IOTG,ADL282IOTG,,2,draft
+9967eaf8-76c5-4a6f-9c23-2f16eba497e6,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake P282,ADLP282,,2,draft
+2a25363e-85d7-438e-bb7f-4e2d7fc9a525,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Alder Lake P682,ADLP682,,2,draft
+7dc2636a-76c2-4680-a6bf-ae41245162f8,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake P282 (RAPTOR LAKE-CPU-10),RPLP282,,2,draft
+b10785e2-fa05-41d3-b605-3b0cc3fed1c0,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake P282 (RAPTOR LAKE-CPU-10),RPLP282IOTG,,2,draft
+f3f29548-745d-4269-91b9-a5c62ac05cf0,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake P682 (RAPTOR LAKE-CPU-14),RPLP682,,2,draft
+200dba14-c7ee-46ae-8257-c8d83d066218,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake P682 (RAPTOR LAKE-CPU-14),RPLP682IOTG,,2,draft
+88962a6c-18db-4db7-b51c-894499d1c818,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Meteor Lake (METEOR LAKE-BASE-M282),MTLU282,,2,draft
+8d3bf51b-1b88-4c28-9df7-37fa738b00bb,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Meteor Lake (METEOR LAKE-BASE-P281),MTLU281,,2,draft
+6b6b3984-3578-41e2-bd63-79ad84a819c5,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI|LCBI,Tarpon Creek,TRK,,2,draft
+2f31d35c-efc9-4421-bb29-173d835a56bb,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI|LCBI,Grand Ridge,GRR,,2,draft
+61b1117e-6e7c-40d5-bc0f-ad0f4e78f46c,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Meteor Lake PS682,MTLPS6,,2,draft
+925bc492-1e3d-439b-b00d-2627356d48a0,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Meteor Lake PS282,MTLPS2,,2,draft
+35794faf-1793-4367-84ea-a3ae414cf41d,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake PS682,RPLPS6,,2,draft
+7482390f-9aa9-4e57-a7d2-d60b102145ea,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake PS282,RPLPS2,,2,draft
+103248e1-7bfc-4d9e-8582-331afbdbf6bf,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake S601 (ALDER LAKE-CPU-6) Refresh,RPRS601,,2,draft
+44de9f74-ef8f-4f95-9730-dc385fbad0b6,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake S881 (ALDER LAKE-CPU-16) Refresh,RPRS881,,2,draft
+588707ff-1060-45c3-bb0b-f374c5d99aaa,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Raptor Lake 8161 (RAPTOR LAKE-CPU-24) Refresh,RPR8161,,2,draft
+2474f04d-b4c4-44ca-b8eb-8f490cceae0a,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Amston lake,ASL,,2,draft
+9f56b649-a430-4d97-bc54-b08b763e3359,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Lunarlake M442,LNLM442,,2,draft
+64b06be4-8696-448e-96e4-a8b19a80888b,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Arrrow Lake S8161 BGA,ARLS816B,,2,draft
+d9a1afca-e51e-403a-b56f-08d2bcb41b48,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Meteor Lake H682,MTLH682,,2,draft
+504fc733-3510-4e8a-b38b-aecdaa170739,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Arrow Lake S8161 LGA,ARLS816L,,2,draft
+e0d93cdb-a03c-4b52-84bc-ced521d6cde1,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Arrow Lake S681 LGA,ARLS681,,2,draft
+6dc034ea-7b6a-4636-822f-07ca3c2b1beb,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Bartlett Lake S12 P,BTL12P,,2,draft
+cc3b2bd7-77d6-410a-b09c-47cfe4459e25,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Sapphire Rapid XCC,SPRXCC,,2,draft
+1cd8ec73-d262-4349-87dc-eefe3230ab2e,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Sapphire Rapid MCC,SPRMCC,,2,draft
+1428988b-7d56-4659-b708-33c3be8145c3,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Sapphire Rapid 112L XCC,SPR112L,,2,draft
+944d1334-4518-4580-a114-b5c7ff49cf76,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Sapphire Rapid WS MCC,SPRWS,,2,draft
+08431a3e-1b16-4466-b482-15342bf80eee,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Ice Lake,ICX,,2,draft
+4b5d593d-ed64-41bd-b9b1-097c082c1e4b,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Wildcat Lake N,WCL,,2,draft
+c2e72ad3-cf90-472d-8a5b-74f8c417ed47,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,PANTHER LAKE U404,PTL U404,,2,draft
+da519beb-5c64-4230-b5d9-afa7190ee001,2026-10-12T11:11:59Z,,product_catalog_seed,TI,STHI,Arrow Lake S8161 BGA Refresh,ARLR816B,,2,draft
+c77684d7-1fcb-4452-bb6a-12f62280a240,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Shaddow Wood,SDW,,2,draft
+7d16b383-96ab-4be5-97e3-4e5ade896b8c,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Alder Lake S881 BGA,,,2,draft
+03176406-ff5f-4906-9047-e155f60e5044,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Raptor Lake S881 BGA,,,2,draft
+b1b52445-6a57-46ee-84a0-ac010b4f1aad,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Bartlett Lake S/ S12P,BTLS/BTL S12P,,2,draft
+4ab41caa-d854-4ebe-b0df-faec73cbb808,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Skylake LGA 2+2,SKC,,2,draft
+7e36cfba-9236-4bf3-b773-8340eb6fbe04,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Skylake LGA 4+2,SKA/SKB/SKZ,,2,draft
+19d52b63-4c5c-4a3c-8c61-6d9f1ab265b9,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Kaby Lake U22,KBLU22,,2,draft
+19950517-66fe-4fb4-bbb4-052f0955d51c,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Coffee Lake,CFA/CFD/CFH/CFG/CFZ,,2,draft
+73fdcfa3-89da-4895-84f6-3547764f22d0,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Tiger Lake UP3,TGLUP3,,2,draft
+e1a56e07-420a-4d55-a1b5-c33c77009fe6,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Alder Lake P682,ADL P682,,2,draft
+8f3c8a54-8205-418b-9be7-8dcd2a3b997f,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Raptor Lake P682 / Raptor Lake Refresh P682,RPLP682 / RPRP682,,2,draft
+90e6f0a8-6c5e-4cc5-b140-f0aedddf7bef,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Alder Lake P282,ADL P282 / RPL P282,,2,draft
+ba92a85d-68f1-4c3b-8271-1b02c8c62905,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,ADL N0+8+1,ADLN081/ ASL / ASL Auto (RDL),,2,draft
+cfa9ceb5-2183-4b64-aa22-db5515cae77a,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,DG512,DG2-512/ DG2-256/ ACM G21,,2,draft
+1ecdd4a8-7cf1-4393-82f4-3e5ee0f85354,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Comet Lake S62,CMLS62,,2,draft
+863ea3b8-a69d-4afb-8745-c2bf485d871b,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Comet Lake S102,CMLS102,,2,draft
+2e508270-57a2-4c68-9b77-f398c4acc320,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Rocket Lake S81,RKLS81,,2,draft
+09679cfa-b080-42c4-acaf-78f74a3f0616,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,Raptor Lake S8161 LGA,RPL8161/RPR8161/RRC8161,,2,draft
+c4c42a4b-58bd-4485-a4f2-49a5681c6d49,2026-10-12T11:11:59Z,,product_catalog_seed,TI,LCBI,ICX HCC,ICXHCP,,2,draft

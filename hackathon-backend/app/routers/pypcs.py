@@ -60,6 +60,15 @@ def validate_action_item(payload: PYPCSActionItemRequest) -> None:
                 detail={"field": field, "message": f"{field} is required."},
             )
 
+    if len(payload.event_id) > 50 or "|" in payload.event_id:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "field": "event_id",
+                "message": "event_id must be at most 50 characters and cannot contain '|'.",
+            },
+        )
+
     allowed_by_field = build_action_item_options()["fields"]
 
     for field in ACTION_ITEM_APPLICABILITY_FIELDS:
@@ -191,6 +200,41 @@ def normalize_status(value: str) -> str:
     # Older rows predate the status column; treat missing status as already-final.
     status = value_to_str(value).lower()
     return status if status in {"draft", "final"} else "final"
+
+
+def normalize_operation_answer(answer: str, options: list[str]) -> str:
+    values = list(dict.fromkeys(part.strip() for part in answer.split("|") if part.strip()))
+    if "Other" in options and any(value.casefold() == "other" for value in values):
+        raise HTTPException(
+            status_code=422,
+            detail={"field": "answer", "message": "Please specify the Other operation."},
+        )
+
+    invalid = [
+        value
+        for value in values
+        if value not in options
+        and not (
+            "Other" in options
+            and len(value) <= 100
+            and value.casefold() not in {"all", "na", "multiple", "other"}
+        )
+    ]
+    if invalid:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "field": "answer",
+                "message": f"Operation values must be selected from: {', '.join(options)}.",
+            },
+        )
+    return "|".join(values)
+
+
+def normalize_operation_value(value: str) -> str:
+    return "|".join(
+        dict.fromkeys(part.strip() for part in value.split("|") if part.strip())
+    )
 
 
 @router.get("/pypcs/modules")
@@ -730,6 +774,18 @@ def create_pypcs_matrix_submission(req: PYPCSMatrixSubmissionRequest):
                 ),
             )
 
+        if question_id == "operation":
+            options_by_module = question.get("options_by_module", {})
+            module_options = next(
+                (
+                    options
+                    for key, options in options_by_module.items()
+                    if key.upper() == module_key
+                ),
+                [],
+            )
+            answer = normalize_operation_answer(answer, module_options)
+
         mapping = mapping_by_pair.get((question_id, module_key), {})
 
         submitted_cells.append(
@@ -839,7 +895,7 @@ def create_pypcs_matrix_submission(req: PYPCSMatrixSubmissionRequest):
 
     product_name = value_to_str(req.product_name)
     prodgroup3 = value_to_str(req.prodgroup3)
-    operation = value_to_str(req.operation)
+    operation = normalize_operation_value(value_to_str(req.operation))
 
     if not product_name:
         product_name = next(
