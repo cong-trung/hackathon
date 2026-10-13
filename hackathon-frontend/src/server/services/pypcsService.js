@@ -115,15 +115,6 @@ export async function getPypcsVisibleQuestions(req, res) {
     });
 }
 
-export async function submitPypcsSubmission(req, res) {
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/submission`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(req.body),
-    });
-}
 export async function getPypcsSubmissions(req, res) {
     const queryString = new URLSearchParams(req.query).toString();
     const suffix = queryString ? `?${queryString}` : '';

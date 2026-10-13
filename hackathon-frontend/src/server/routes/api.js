@@ -12,7 +12,6 @@ import {
     getPypcsQuestions,
     updatePypcsQuestionDescription,
     getPypcsVisibleQuestions,
-    submitPypcsSubmission,
     getPypcsSubmissions,
     getPypcsSubmissionDetail,
     deletePypcsSubmission,
@@ -43,7 +42,6 @@ router.get('/pypcs/modules', getPypcsModules);
 router.get('/pypcs/questions', getPypcsQuestions);
 router.patch('/pypcs/questions/:questionId', updatePypcsQuestionDescription);
 router.post('/pypcs/visible-questions', getPypcsVisibleQuestions);
-router.post('/pypcs/submission', submitPypcsSubmission);
 router.get('/pypcs/submissions', getPypcsSubmissions);
 router.get('/pypcs/submissions/:submissionId', getPypcsSubmissionDetail);
 router.delete('/pypcs/submissions/:submissionId', deletePypcsSubmission);

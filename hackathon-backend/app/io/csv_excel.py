@@ -9,6 +9,7 @@ from typing import Any
 import polars as pl
 
 from app.config import DATA_DIR
+from app.io.concurrency import atomic_write_bytes
 
 
 def value_to_str(value: Any) -> str:
@@ -123,9 +124,11 @@ def write_excel_like(
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_out:
         tmp_out_path = Path(tmp_out.name)
-    wb.save(tmp_out_path)
-    shutil.copy(tmp_out_path, path)
-    tmp_out_path.unlink(missing_ok=True)
+    try:
+        wb.save(tmp_out_path)
+        atomic_write_bytes(path, tmp_out_path.read_bytes())
+    finally:
+        tmp_out_path.unlink(missing_ok=True)
 
 
 def read_csv_file(
@@ -166,7 +169,7 @@ def write_csv_file(
         {h: [r.get(h, "") for r in data] for h in final_headers},
         schema={h: pl.Utf8 for h in final_headers},
     )
-    path.write_bytes(b"\xef\xbb\xbf" + df.write_csv().encode("utf-8"))
+    atomic_write_bytes(path, b"\xef\xbb\xbf" + df.write_csv().encode("utf-8"))
 
 
 def read_data(config: dict[str, Any]) -> tuple[list[str], list[dict[str, str]]]:

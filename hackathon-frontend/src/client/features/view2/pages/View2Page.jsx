@@ -352,6 +352,12 @@ export default function View2Page() {
                 <ActionItemForm
                     key={activeItem?.nbr ?? 'new'}
                     item={activeItem}
+                    onReload={async () => {
+                        const latest = await refetch().unwrap();
+                        const item = latest.items.find((entry) => entry.nbr === activeItem.nbr);
+                        if (!item) throw new Error('Action item no longer exists.');
+                        return item;
+                    }}
                     onClose={() => setActiveItem(undefined)}
                 />
             )}

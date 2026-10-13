@@ -126,32 +126,52 @@ function ActionEditor({ action, index, cell, form, focusRef, focused }) {
     );
 }
 
-export default function RowEditor({ row, actions, focusedAction, onClose }) {
+export default function RowEditor({ row, actions, focusedAction, onClose, onReload }) {
     const focusRef = useRef(null);
     const cancelRef = useRef(null);
     const [confirmDiscard, setConfirmDiscard] = useState(false);
+    const [conflict, setConflict] = useState(null);
+    const [reloading, setReloading] = useState(false);
+    const [loadedRow, setLoadedRow] = useState(row);
     const form = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
             updated_by: localStorage.getItem('view3.updatedBy') ?? '',
-            cells: actions.map((action) => savedCell(row, action)),
+            cells: actions.map((action) => savedCell(loadedRow, action)),
         },
     });
     const { isDirty } = form.formState;
     const cells = useWatch({ control: form.control, name: 'cells' });
     const [updateRow, { isLoading: saving }] = useUpdateProductActionMatrixRowMutation();
-    const changed = actions.some((action, index) => isChanged(row, action, cells?.[index]));
-    const hasDrafts = actions.some((action) => row.cells?.[action.nbr]?.decision_state === 'draft');
+    const changed = actions.some((action, index) => isChanged(loadedRow, action, cells?.[index]));
+    const hasDrafts = actions.some((action) => loadedRow.cells?.[action.nbr]?.decision_state === 'draft');
 
     function requestClose() {
-        if (saving) return;
+        if (saving || reloading) return;
         if (isDirty) setConfirmDiscard(true);
         else onClose();
     }
 
+    async function reloadLatest() {
+        setReloading(true);
+        try {
+            const latest = await onReload();
+            setLoadedRow(latest);
+            form.reset({
+                updated_by: localStorage.getItem('view3.updatedBy') ?? '',
+                cells: actions.map((action) => savedCell(latest, action)),
+            });
+            setConflict(null);
+        } catch {
+            toast.error('Could not reload the row. Please try again.');
+        } finally {
+            setReloading(false);
+        }
+    }
+
     function acceptSuggestions() {
         actions.forEach((action, index) => {
-            const cell = row.cells?.[action.nbr];
+            const cell = loadedRow.cells?.[action.nbr];
             if (!cell?.status && !cells?.[index]?.status && cell?.suggested_status) {
                 form.setValue(`cells.${index}.status`, cell.suggested_status, { shouldDirty: true, shouldValidate: true });
                 form.setValue(`cells.${index}.comment`, cell.suggested_comment, { shouldDirty: true, shouldValidate: true });
@@ -176,7 +196,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose }) {
             const result = schema.superRefine((data, context) => {
                 actions.forEach((action, index) => {
                     const cell = data.cells[index];
-                    if (cell && shouldSend(row, action, cell, 'final') && cell.status && !cell.comment) {
+                    if (cell && shouldSend(loadedRow, action, cell, 'final') && cell.status && !cell.comment) {
                         context.addIssue({ code: 'custom', path: ['cells', index, 'comment'], message: 'Comment is required for a decision.' });
                     }
                 });
@@ -190,15 +210,17 @@ export default function RowEditor({ row, actions, focusedAction, onClose }) {
         const sentIndices = [];
         const changes = actions.flatMap((action, index) => {
             const cell = values.cells[index];
-            if (!shouldSend(row, action, cell, mode)) return [];
+            if (!shouldSend(loadedRow, action, cell, mode)) return [];
             sentIndices.push(index);
-            return [{ action_nbr: action.nbr, status: cell.status, comment: cell.comment }];
+            const version = loadedRow.cells?.[action.nbr]?.version;
+            return [{ action_nbr: action.nbr, status: cell.status, comment: cell.comment,
+                ...(version ? { expected_version: version } : {}) }];
         });
         if (!changes.length) return;
         try {
             await updateRow({
-                product_key: row.product_key,
-                module_group: row.module_group,
+                product_key: loadedRow.product_key,
+                module_group: loadedRow.module_group,
                 updated_by: values.updated_by,
                 mode,
                 cells: changes,
@@ -207,7 +229,11 @@ export default function RowEditor({ row, actions, focusedAction, onClose }) {
             toast.success(mode === 'draft' ? 'Draft saved.' : 'Saved.');
             onClose();
         } catch (error) {
-            mapError(error, form, sentIndices);
+            if (error?.status === 409 && error.data?.detail?.code === 'conflict') {
+                setConflict(error.data.detail);
+            } else {
+                mapError(error, form, sentIndices);
+            }
         }
     }
 
@@ -223,11 +249,32 @@ export default function RowEditor({ row, actions, focusedAction, onClose }) {
                     }
                 }}>
                 <DialogHeader className="px-6 pt-6 pr-12">
-                    <DialogTitle>{row.product_name} · {row.module_group}</DialogTitle>
+                    <DialogTitle>{loadedRow.product_name} · {loadedRow.module_group}</DialogTitle>
                     <DialogDescription>Review actions for this product.</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={(event) => { event.preventDefault(); handleSave('final'); }} className="flex min-h-0 flex-col">
+                        {conflict && (
+                            <div role="alert" className="mx-6 rounded border border-destructive/30 p-3 text-sm text-destructive">
+                                <p>{conflict.message}</p>
+                                {conflict.conflicts?.length > 0 && (
+                                    <ul className="mt-1 list-disc pl-5">
+                                        {conflict.conflicts.map(({ action_nbr, current }) => {
+                                            const action = actions.find((entry) => entry.nbr === action_nbr);
+                                            return (
+                                                <li key={action_nbr}>
+                                                    {action?.event_id || `#${action_nbr}`}: changed by {current?.updated_by || 'unknown'}
+                                                    {current?.updated_at && ` at ${new Date(current.updated_at).toLocaleString()}`}
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+                                <Button type="button" variant="outline" className="mt-2" onClick={reloadLatest} disabled={reloading}>
+                                    {reloading ? 'Reloading...' : 'Reload latest'}
+                                </Button>
+                            </div>
+                        )}
                         <div className={`min-h-0 overflow-y-auto px-6 ${scrollbarClassName}`}>
                             <FormField control={form.control} name="updated_by" render={({ field }) => (
                                 <FormItem>
@@ -241,16 +288,16 @@ export default function RowEditor({ row, actions, focusedAction, onClose }) {
                             </Button>
                             {actions.map((action, index) => (
                                 <ActionEditor key={action.nbr} action={action} index={index}
-                                    cell={row.cells?.[action.nbr]} form={form} focusRef={focusRef}
+                                    cell={loadedRow.cells?.[action.nbr]} form={form} focusRef={focusRef}
                                     focused={action.nbr === focusedAction} />
                             ))}
                         </div>
                         <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-6 py-4">
                             <Button ref={cancelRef} type="button" variant="outline" onClick={requestClose} disabled={saving}>Cancel</Button>
-                            <Button type="button" variant="outline" onClick={() => handleSave('draft')} disabled={saving || !changed}>
+                            <Button type="button" variant="outline" onClick={() => handleSave('draft')} disabled={saving || reloading || Boolean(conflict) || !changed}>
                                 Save draft
                             </Button>
-                            <Button type="submit" disabled={saving || (!changed && !hasDrafts)}>
+                            <Button type="submit" disabled={saving || reloading || Boolean(conflict) || (!changed && !hasDrafts)}>
                                 Save
                             </Button>
                         </div>

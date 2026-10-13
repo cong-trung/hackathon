@@ -1,6 +1,6 @@
 """Request models for the PYPCS dynamic questionnaire/matrix subsystem."""
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -8,16 +8,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class PYPCSVisibleQuestionsRequest(BaseModel):
     selected_modules: list[str] = Field(default_factory=list)
     role: str | None = None
-
-
-class PYPCSSubmissionRequest(BaseModel):
-    selected_modules: list[str] = Field(default_factory=list)
-    role: str | None = None
-    submitted_by: str | None = None
-    product_name: str | None = None
-    prodgroup3: str | None = None
-    operation: str | None = None
-    answers: dict[str, Any] = Field(default_factory=dict)
 
 
 class PYPCSMatrixCellPayload(BaseModel):
@@ -37,6 +27,7 @@ class PYPCSMatrixSubmissionRequest(BaseModel):
     # If set, updates the existing submission in place instead of creating a new one.
     submission_id: str | None = None
     status: Literal["draft", "final"] = "final"
+    expected_version: str | None = None
 
 
 class PYPCSQuestionDescriptionUpdate(BaseModel):
@@ -46,6 +37,7 @@ class PYPCSQuestionDescriptionUpdate(BaseModel):
 class PYPCSActionItemRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    expected_version: str | None = None
     event_id: str = Field(default="")
     ar_follow_up: str = Field(default="", max_length=5000)
     actionable_item: str = Field(default="", max_length=5000)

@@ -350,7 +350,15 @@ export default function View3Page() {
                     page={currentPage} pageSize={pageSize} onPageChange={setPage}
                     onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
                 {editor && <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
-                    row={editor.row} actions={actions} focusedAction={editor.actionNbr} onClose={() => setEditor(null)} />}
+                    row={editor.row} actions={actions} focusedAction={editor.actionNbr}
+                    onReload={async () => {
+                        const latest = await query.refetch().unwrap();
+                        const row = latest.rows.find((entry) =>
+                            entry.product_key === editor.row.product_key
+                            && entry.module_group === editor.row.module_group);
+                        if (!row) throw new Error('Row no longer exists.');
+                        return row;
+                    }} onClose={() => setEditor(null)} />}
             </div>
         </TooltipProvider>
     );

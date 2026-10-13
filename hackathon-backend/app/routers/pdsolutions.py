@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter
 
-from app.io.csv_excel import read_data, write_data
+from app.io.csv_excel import get_path, read_data, write_data
+from app.io.concurrency import locked_files
 from app.models.common import PdSolutionItem
 from app.schema_config import SOLUTION_CONFIG, get_module_solution_config
 
@@ -47,28 +48,29 @@ def list_pdsolutions(module: str, q: str | None = None):
 @router.post("/pdsolutions/{module}")
 def update_pdsolutions(module: str, payload: list[PdSolutionItem]):
     config = get_module_solution_config(module)
-    headers, rows = read_data(config)
-    for item in payload:
-        idx = next(
-            (
-                i
-                for i, r in enumerate(rows)
-                if r.get("pdid", "").lower() == item.pdid.lower()
-                and r.get("solutionid", "").lower() == item.solutionid.lower()
-            ),
-            -1,
-        )
-        if idx >= 0:
-            rows[idx]["status"] = item.status
-            rows[idx]["note"] = item.note
-        else:
-            rows.append(
-                {
-                    "pdid": item.pdid,
-                    "solutionid": item.solutionid,
-                    "status": item.status,
-                    "note": item.note,
-                }
+    with locked_files(get_path(config)):
+        headers, rows = read_data(config)
+        for item in payload:
+            idx = next(
+                (
+                    i
+                    for i, r in enumerate(rows)
+                    if r.get("pdid", "").lower() == item.pdid.lower()
+                    and r.get("solutionid", "").lower() == item.solutionid.lower()
+                ),
+                -1,
             )
-    write_data(config, rows, headers)
+            if idx >= 0:
+                rows[idx]["status"] = item.status
+                rows[idx]["note"] = item.note
+            else:
+                rows.append(
+                    {
+                        "pdid": item.pdid,
+                        "solutionid": item.solutionid,
+                        "status": item.status,
+                        "note": item.note,
+                    }
+                )
+        write_data(config, rows, headers)
     return {"message": "updated", "module": module.upper(), "count": len(payload)}

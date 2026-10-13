@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter, Query, HTTPException
 
-from app.io.csv_excel import find_by_key, read_data, value_to_str, write_data
+from app.io.csv_excel import find_by_key, get_path, read_data, value_to_str, write_data
+from app.io.concurrency import locked_files
 from app.models.common import FlexiblePayload, SolutionPayload
 from app.schema_config import SOLUTION_CONFIG, field_schema
 
@@ -36,35 +37,38 @@ def list_solutions(
 
 @router.post("/solutions")
 def create_solution(payload: SolutionPayload):
-    headers, rows = read_data(SOLUTION_CONFIG)
-    data = payload.model_dump()
-    existing_ids = [
-        int(row["id"]) for row in rows if value_to_str(row.get("id", "")).isdigit()
-    ]
-    data["id"] = str(max(existing_ids, default=0) + 1)
-    rows.append({k: value_to_str(v) for k, v in data.items()})
-    write_data(SOLUTION_CONFIG, rows, headers)
+    with locked_files(get_path(SOLUTION_CONFIG)):
+        headers, rows = read_data(SOLUTION_CONFIG)
+        data = payload.model_dump()
+        existing_ids = [
+            int(row["id"]) for row in rows if value_to_str(row.get("id", "")).isdigit()
+        ]
+        data["id"] = str(max(existing_ids, default=0) + 1)
+        rows.append({k: value_to_str(v) for k, v in data.items()})
+        write_data(SOLUTION_CONFIG, rows, headers)
     return {"message": "created", "item": data}
 
 
 @router.patch("/solutions/{solution_id}")
 def patch_solution(solution_id: str, payload: FlexiblePayload):
-    headers, rows = read_data(SOLUTION_CONFIG)
-    idx = find_by_key(rows, "id", solution_id)
-    if idx < 0:
-        raise HTTPException(status_code=404, detail="Solution not found")
-    data = payload.model_dump(exclude_none=True)
-    rows[idx] = {**rows[idx], **{k: value_to_str(v) for k, v in data.items()}}
-    write_data(SOLUTION_CONFIG, rows, headers)
+    with locked_files(get_path(SOLUTION_CONFIG)):
+        headers, rows = read_data(SOLUTION_CONFIG)
+        idx = find_by_key(rows, "id", solution_id)
+        if idx < 0:
+            raise HTTPException(status_code=404, detail="Solution not found")
+        data = payload.model_dump(exclude_none=True)
+        rows[idx] = {**rows[idx], **{k: value_to_str(v) for k, v in data.items()}}
+        write_data(SOLUTION_CONFIG, rows, headers)
     return {"message": "patched", "item": rows[idx]}
 
 
 @router.delete("/solutions/{solution_id}")
 def delete_solution(solution_id: str):
-    headers, rows = read_data(SOLUTION_CONFIG)
-    idx = find_by_key(rows, "id", solution_id)
-    if idx < 0:
-        raise HTTPException(status_code=404, detail="Solution not found")
-    removed = rows.pop(idx)
-    write_data(SOLUTION_CONFIG, rows, headers)
+    with locked_files(get_path(SOLUTION_CONFIG)):
+        headers, rows = read_data(SOLUTION_CONFIG)
+        idx = find_by_key(rows, "id", solution_id)
+        if idx < 0:
+            raise HTTPException(status_code=404, detail="Solution not found")
+        removed = rows.pop(idx)
+        write_data(SOLUTION_CONFIG, rows, headers)
     return {"message": "deleted", "item": removed}

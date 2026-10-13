@@ -26,19 +26,3 @@ export async function getVisibleQuestions(selectedModules, role = 'TI') {
 
     return res.json();
 }
-
-export async function submitPYPCSSubmission(payload) {
-    const res = await fetch('/api/pypcs/submission', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-        throw new Error(await res.text());
-    }
-
-    return res.json();
-}

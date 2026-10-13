@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 MODULE_CONFIG = {
     "STHI": {
-        "file": "ProductBasisInfo_STHI.csv",
+        "file": "TI/ProductBasisInfo_STHI.csv",
         "fields": [
             "product",
             "prodgroup3",
@@ -62,7 +62,7 @@ MODULE_CONFIG = {
         },
     },
     "LCBI": {
-        "file": "ProductBasicInfo_LCBI.csv",
+        "file": "TI/ProductBasisInfo_LCBI.csv",
         "fields": [
             "product",
             "prodgroup3",
@@ -94,7 +94,7 @@ MODULE_CONFIG = {
 }
 
 SOLUTION_CONFIG = {
-    "file": "Solution.csv",
+    "file": "GL-MQR/Solution.csv",
     "fields": ["id", "module", "solution", "key_summary", "excursion_related"],
     "original_to_fe": {
         "ID": "id",
@@ -137,7 +137,7 @@ FIELD_LABELS = {
 
 MODULE_SOLUTION_CONFIG = {
     "STHI": {
-        "file": "ProductSolutionMatrix_STHI.csv",
+        "file": "PdO/ProductSolutionMatrix_STHI.csv",
         "fields": ["pdid", "solutionid", "status", "note"],
         "original_to_fe": {
             "PdID": "pdid",
@@ -153,7 +153,7 @@ MODULE_SOLUTION_CONFIG = {
         },
     },
     "LCBI": {
-        "file": "ProductSolutionMatrix_LCBI.csv",
+        "file": "PdO/ProductSolutionMatrix_LCBI.csv",
         "fields": ["pdid", "solutionid", "status", "note"],
         "original_to_fe": {
             "PdID": "pdid",

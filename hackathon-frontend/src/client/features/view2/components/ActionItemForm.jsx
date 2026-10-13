@@ -270,21 +270,24 @@ function ApplicabilityField({ control, setValue, name, label, options }) {
     );
 }
 
-export default function ActionItemForm({ item, onClose }) {
+export default function ActionItemForm({ item, onClose, onReload }) {
     const [confirmDiscard, setConfirmDiscard] = useState(false);
+    const [conflict, setConflict] = useState(null);
+    const [reloading, setReloading] = useState(false);
+    const [loadedItem, setLoadedItem] = useState(item);
     const cancelRef = useRef(null);
     const { data: options, isLoading, isError, refetch } =
         useGetActionItemOptionsQuery();
     const form = useForm({
         resolver: zodResolver(schema(options)),
-        defaultValues: defaults(item, options),
+        defaultValues: defaults(loadedItem, options),
     });
     const { reset, formState: { isDirty } } = form;
     useEffect(() => {
         if (options && !isDirty) {
-            reset(defaults(item, options));
+            reset(defaults(loadedItem, options));
         }
-    }, [options, item, reset, isDirty]);
+    }, [options, loadedItem, reset, isDirty]);
     const selectedTools = useWatch({ control: form.control, name: 'xvi_tool_type' });
     const selectedOwner = useWatch({ control: form.control, name: 'owner' });
     const [createItem, { isLoading: isCreating }] = useCreateActionItemMutation();
@@ -292,9 +295,23 @@ export default function ActionItemForm({ item, onClose }) {
     const saving = isCreating || isUpdating;
 
     function requestClose() {
-        if (saving) return;
+        if (saving || reloading) return;
         if (isDirty) setConfirmDiscard(true);
         else onClose();
+    }
+
+    async function reloadLatest() {
+        setReloading(true);
+        try {
+            const latest = await onReload();
+            setLoadedItem(latest);
+            reset(defaults(latest, options));
+            setConflict(null);
+        } catch {
+            toast.error('Could not reload the action item. Please try again.');
+        } finally {
+            setReloading(false);
+        }
     }
 
     async function onSubmit(values) {
@@ -314,15 +331,25 @@ export default function ActionItemForm({ item, onClose }) {
         applicabilityFields.forEach(({ name }) => delete payload[`${name}_other`]);
 
         try {
-            if (item) {
-                await updateItem({ nbr: item.nbr, body: payload }).unwrap();
+            if (loadedItem) {
+                await updateItem({
+                    nbr: loadedItem.nbr,
+                    body: {
+                        ...payload,
+                        ...(loadedItem.version ? { expected_version: loadedItem.version } : {}),
+                    },
+                }).unwrap();
             } else {
                 await createItem(payload).unwrap();
             }
             toast.success(item ? 'Action item updated.' : 'Action item added.');
             onClose();
         } catch (error) {
-            applyServerErrors(error, form);
+            if (error?.status === 409 && error.data?.detail?.code === 'conflict') {
+                setConflict(error.data.detail);
+            } else {
+                applyServerErrors(error, form);
+            }
         }
     }
 
@@ -349,6 +376,18 @@ export default function ActionItemForm({ item, onClose }) {
                 ) : (
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-col">
+                            {conflict && (
+                                <div role="alert" className="mx-6 rounded border border-destructive/30 p-3 text-sm text-destructive">
+                                    <p>{conflict.message}</p>
+                                    {(conflict.current?.update_by || conflict.current?.updated_at) && (
+                                        <p>Changed by {conflict.current.update_by || 'unknown'}
+                                            {conflict.current.updated_at && ` at ${new Date(conflict.current.updated_at).toLocaleString()}`}</p>
+                                    )}
+                                    <Button type="button" variant="outline" className="mt-2" onClick={reloadLatest} disabled={reloading}>
+                                        {reloading ? 'Reloading...' : 'Reload latest'}
+                                    </Button>
+                                </div>
+                            )}
                             <div className="grid min-h-0 grid-cols-1 gap-4 overflow-y-auto px-6 py-2 sm:grid-cols-2">
                                 {textFields.map(({ name, label, multiline }) => (
                                     <FormField
@@ -459,7 +498,7 @@ export default function ActionItemForm({ item, onClose }) {
                                 <Button ref={cancelRef} type="button" variant="outline" disabled={saving} onClick={requestClose}>
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={saving || isLoading || isError}>
+                                <Button type="submit" disabled={saving || reloading || Boolean(conflict) || isLoading || isError}>
                                     {saving ? 'Saving...' : item ? 'Save changes' : 'Add item'}
                                 </Button>
                             </div>

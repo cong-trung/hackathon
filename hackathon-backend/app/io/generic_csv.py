@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from app.config import DATA_DIR
 from app.io.csv_excel import value_to_str
+from app.io.concurrency import atomic_write_bytes, locked_files
 
 
 def split_options(value: Any) -> List[str]:
@@ -77,6 +78,18 @@ def read_optional_csv(file_name: str) -> list[dict[str, str]]:
     return read_generic_csv(file_name)
 
 
+def read_generic_csv_headers(file_name: str) -> list[str]:
+    path = DATA_DIR / file_name
+    if not path.exists():
+        return []
+    return pl.read_csv(
+        path,
+        encoding="utf8-lossy",
+        infer_schema_length=0,
+        ignore_errors=True,
+    ).columns
+
+
 def write_rows_to_csv(
     file_name: str,
     rows: list[dict[str, Any]],
@@ -103,7 +116,7 @@ def write_rows_to_csv(
         schema={header: pl.Utf8 for header in headers},
     )
 
-    path.write_bytes(b"\xef\xbb\xbf" + df.write_csv().encode("utf-8"))
+    atomic_write_bytes(path, b"\xef\xbb\xbf" + df.write_csv().encode("utf-8"))
 
 
 def append_rows_to_csv(
@@ -111,16 +124,12 @@ def append_rows_to_csv(
     new_rows: list[dict[str, Any]],
     headers: list[str],
 ) -> None:
-    existing_rows = []
-
     path = DATA_DIR / file_name
-
-    if path.exists():
-        existing_rows = read_generic_csv(file_name)
-
-    all_rows = existing_rows + new_rows
-
-    write_rows_to_csv(file_name, all_rows, headers)
+    with locked_files(path):
+        existing_rows = read_generic_csv(file_name) if path.exists() else []
+        existing_headers = read_generic_csv_headers(file_name)
+        final_headers = existing_headers + [header for header in headers if header not in existing_headers]
+        write_rows_to_csv(file_name, existing_rows + new_rows, final_headers)
 
 
 def upsert_rows_to_csv(
@@ -131,46 +140,45 @@ def upsert_rows_to_csv(
     headers: list[str],
 ) -> None:
     """Replace all rows matching key_field == key_value with new_rows (drops, then re-appends)."""
-    existing_rows = read_generic_csv(file_name)
-    target = value_to_str(key_value)
-
-    remaining_rows = [
-        row for row in existing_rows
-        if value_to_str(row.get(key_field, "")) != target
-    ]
-
-    write_rows_to_csv(file_name, remaining_rows + new_rows, headers)
+    path = DATA_DIR / file_name
+    with locked_files(path):
+        existing_rows = read_generic_csv(file_name)
+        existing_headers = read_generic_csv_headers(file_name)
+        final_headers = existing_headers + [header for header in headers if header not in existing_headers]
+        target = value_to_str(key_value)
+        remaining_rows = [
+            row for row in existing_rows
+            if value_to_str(row.get(key_field, "")) != target
+        ]
+        write_rows_to_csv(file_name, remaining_rows + new_rows, final_headers)
 
 
 def delete_rows_from_csv(file_name: str, key_field: str, key_value: str) -> int:
     """Remove all rows matching key_field == key_value. Returns the number of rows removed."""
     path = DATA_DIR / file_name
 
-    if not path.exists():
-        return 0
+    with locked_files(path):
+        if not path.exists():
+            return 0
 
-    df = pl.read_csv(
-        path,
-        encoding="utf8-lossy",
-        infer_schema_length=0,
-        ignore_errors=True,
-    )
-    headers = df.columns
-    target = value_to_str(key_value)
-
-    rows = [
-        {key: value_to_str(value) for key, value in row.items()}
-        for row in df.to_dicts()
-    ]
-    remaining_rows = [
-        row for row in rows if value_to_str(row.get(key_field, "")) != target
-    ]
-
-    deleted_count = len(rows) - len(remaining_rows)
-
-    if deleted_count:
-        write_rows_to_csv(file_name, remaining_rows, headers)
-
-    return deleted_count
+        df = pl.read_csv(
+            path,
+            encoding="utf8-lossy",
+            infer_schema_length=0,
+            ignore_errors=True,
+        )
+        headers = df.columns
+        target = value_to_str(key_value)
+        rows = [
+            {key: value_to_str(value) for key, value in row.items()}
+            for row in df.to_dicts()
+        ]
+        remaining_rows = [
+            row for row in rows if value_to_str(row.get(key_field, "")) != target
+        ]
+        deleted_count = len(rows) - len(remaining_rows)
+        if deleted_count:
+            write_rows_to_csv(file_name, remaining_rows, headers)
+        return deleted_count
 
 

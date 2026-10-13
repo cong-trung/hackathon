@@ -48,7 +48,14 @@ async function requestJson(path, options = {}) {
     const text = await response.text();
 
     if (!response.ok) {
-        throw new Error(text || response.statusText);
+        const error = new Error(text || response.statusText);
+        error.status = response.status;
+        try {
+            error.detail = JSON.parse(text)?.detail;
+        } catch {
+            error.detail = undefined;
+        }
+        throw error;
     }
 
     if (!text) {
@@ -256,6 +263,8 @@ export default function PYPCSMatrixSubmission({
     const instanceId = useId();
     const [submissionId, setSubmissionId] = useState(null);
     const [submissionStatus, setSubmissionStatus] = useState(null);
+    const [versions, setVersions] = useState({});
+    const [conflict, setConflict] = useState(null);
     const [editingDescriptionId, setEditingDescriptionId] = useState(null);
     const [descriptionDrafts, setDescriptionDrafts] = useState({});
     const [modulesOpen, setModulesOpen] = useState(false);
@@ -287,6 +296,8 @@ export default function PYPCSMatrixSubmission({
         setErrors({});
         setSubmissionId(null);
         setSubmissionStatus(null);
+        setVersions({});
+        setConflict(null);
         setStatusMessage('');
     }
 
@@ -330,7 +341,7 @@ export default function PYPCSMatrixSubmission({
             setErrors({});
             if (!modules.some((module) => module.enabled_default)) {
                 setQuestions([]);
-                return;
+                return true;
             }
         }
 
@@ -354,9 +365,11 @@ export default function PYPCSMatrixSubmission({
                 result.items || [], nextSelectedModules, previousCells,
             ));
             setErrors({});
+            return true;
         } catch (error) {
             setStatusKind('error');
             setStatusMessage(`Failed to load matrix: ${error.message}`);
+            return false;
         } finally {
             setLoading(false);
         }
@@ -383,6 +396,8 @@ export default function PYPCSMatrixSubmission({
         setErrors({});
         setSubmissionId(sub.submission_id || null);
         setSubmissionStatus(sub.status || 'final');
+        setVersions(sub.versions || {});
+        setConflict(null);
         setStatusMessage('');
 
         refreshQuestions(nextModules, nextRole);
@@ -641,12 +656,14 @@ export default function PYPCSMatrixSubmission({
     }
 
     function showSaveError(error) {
-        let detail;
+        let detail = error.detail;
 
-        try {
-            detail = JSON.parse(error.message)?.detail;
-        } catch {
-            detail = error.message;
+        if (detail === undefined) {
+            try {
+                detail = JSON.parse(error.message)?.detail;
+            } catch {
+                detail = error.message;
+            }
         }
 
         const missing = Array.isArray(detail?.missing_required)
@@ -761,6 +778,8 @@ export default function PYPCSMatrixSubmission({
             cells: submittedCells,
             submission_id: submissionId,
             status: nextStatus,
+            ...(submissionId && versions[role]
+                ? { expected_version: versions[role] } : {}),
         };
 
         setLoading(true);
@@ -774,6 +793,7 @@ export default function PYPCSMatrixSubmission({
 
             setSubmissionId(result.submission_id || null);
             setSubmissionStatus(result.status || nextStatus);
+            setVersions(result.versions || {});
             setStatusKind('success');
             setStatusMessage(
                 nextStatus === 'draft'
@@ -782,7 +802,39 @@ export default function PYPCSMatrixSubmission({
             );
         } catch (error) {
             setStatusKind('error');
-            showSaveError(error);
+            if (error.status === 409 && error.detail?.code === 'conflict') {
+                setConflict(error.detail);
+            } else {
+                showSaveError(error);
+            }
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function reloadLatest() {
+        setLoading(true);
+        try {
+            const detail = await requestJson(`/pypcs/submissions/${submissionId}`);
+            const sub = detail.submission;
+            const nextModules = sub.selected_modules || [];
+            const nextRole = sub.role ? sub.role.toUpperCase() : 'ALL';
+            const nextCells = {};
+            (detail.cells || []).forEach((cell) => {
+                nextCells[getCellKey(cell.question_id, cell.module_key)] = cell.answer || '';
+            });
+            if (!await refreshQuestions(nextModules, nextRole)) return;
+            setSelectedModules(nextModules);
+            setRole(nextRole);
+            setSubmissionStatus(sub.status || 'final');
+            setVersions(sub.versions || {});
+            setCells(nextCells);
+            setErrors({});
+            setConflict(null);
+            setStatusMessage('');
+        } catch (error) {
+            setStatusKind('error');
+            setStatusMessage(`Failed to reload submission: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -1067,15 +1119,23 @@ export default function PYPCSMatrixSubmission({
                     </PopoverContent>
                 </Popover>
                 <div className="ml-auto flex items-center gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={handleSaveDraft} disabled={loading || !selectedModules.length}>
+                    <Button type="button" size="sm" variant="outline" onClick={handleSaveDraft} disabled={loading || Boolean(conflict) || !selectedModules.length}>
                         {loading ? 'Working...' : 'Save Draft'}
                     </Button>
-                    <Button type="button" size="sm" onClick={handleSubmitFinal} disabled={loading || !selectedModules.length}>
+                    <Button type="button" size="sm" onClick={handleSubmitFinal} disabled={loading || Boolean(conflict) || !selectedModules.length}>
                         {loading ? 'Working...' : 'Submit Final'}
                     </Button>
                 </div>
             </div>
 
+            {conflict && (
+                <div role="alert" className="shrink-0 rounded border border-destructive/30 p-3 text-sm text-destructive">
+                    <p>{conflict.message}</p>
+                    <Button type="button" size="sm" variant="outline" className="mt-2" onClick={reloadLatest} disabled={loading}>
+                        {loading ? 'Reloading...' : 'Reload latest'}
+                    </Button>
+                </div>
+            )}
             {(statusMessage || loading || moduleLoadError) ? (
                 <div className="shrink-0 text-sm" role={statusKind === 'error' ? 'alert' : 'status'} aria-live="polite">
                     {statusKind === 'error' && typeof statusMessage !== 'string' ? (

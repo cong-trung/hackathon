@@ -5,13 +5,12 @@ from typing import Any
 from app.io.csv_excel import value_to_str
 from app.io.generic_csv import read_generic_csv, safe_int, split_options, yn_to_bool
 
-PYPCS_MODULES_FILE = "PYPCS_Modules.csv"
-PYPCS_QUESTIONS_FILE = "PYPCS_Questions.csv"
-PYPCS_QUESTION_MODULE_MAP_FILE = "PYPCS_QuestionModuleMap.csv"
-PYPCS_SUBMISSIONS_FILE = "PYPCS_Submissions.csv"
-PYPCS_SUBMISSION_ANSWERS_FILE = "PYPCS_SubmissionAnswers.csv"
-PYPCS_SUBMISSION_CELLS_FILE = "PYPCS_SubmissionCells.csv"
-PYPCS_ACTION_ITEMS_FILE = "PYPCS_ActionItems.csv"
+PYPCS_MODULES_FILE = "QualityMatrix/Settings/PYPCS_Modules.csv"
+PYPCS_QUESTIONS_FILE = "QualityMatrix/Settings/PYPCS_Questions.csv"
+PYPCS_QUESTION_MODULE_MAP_FILE = "QualityMatrix/Settings/PYPCS_QuestionModuleMap.csv"
+PYPCS_SUBMISSIONS_FILE = "QualityMatrix/PYPCS_Submissions.csv"
+PYPCS_SUBMISSION_CELLS_FILE = "QualityMatrix/PYPCS_SubmissionCells.csv"
+PYPCS_ACTION_ITEMS_FILE = "View2/PYPCS_ActionItems.csv"
 
 ACTION_ITEM_APPLICABILITY_FIELDS = {
     "package": "package",
@@ -43,8 +42,8 @@ ACTION_ITEM_HEADERS = [
     "updated_at",
 ]
 
-# Derived from the ATRMS Operation_Process_Step tracker; see data/Operation_Process_Step.csv.
-OPERATION_PROCESS_STEP_FILE = "Operation_Process_Step.csv"
+# Derived from the ATRMS Operation_Process_Step tracker.
+OPERATION_PROCESS_STEP_FILE = "QualityMatrix/Settings/Operation_Process_Step.csv"
 
 
 def build_action_item_options() -> dict[str, Any]:

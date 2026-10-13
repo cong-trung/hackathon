@@ -13,17 +13,17 @@ from fastapi import HTTPException
 
 from app.config import DATA_DIR
 from app.io.csv_excel import value_to_str
+from app.io.concurrency import locked_files, record_version
 from app.io.generic_csv import read_generic_csv, write_rows_to_csv, safe_int
 from app.services.pypcs_service import (
     PYPCS_ACTION_ITEMS_FILE,
     PYPCS_MODULES_FILE,
-    PYPCS_SUBMISSION_ANSWERS_FILE,
     PYPCS_SUBMISSION_CELLS_FILE,
     PYPCS_SUBMISSIONS_FILE,
     normalize_pypcs_module,
 )
 
-PRODUCT_ACTION_MATRIX_FILE = "PYPCS_ProductActionMatrix.csv"
+PRODUCT_ACTION_DECISIONS_FILE = "View3/PYPCS_ProductActionDecisions.csv"
 PRODUCT_ATTRIBUTES = [
     "package",
     "bare_die_lid",
@@ -36,6 +36,20 @@ PRODUCT_ATTRIBUTES = [
 ]
 ATTRIBUTE_QUESTION_IDS = PRODUCT_ATTRIBUTES + ["product_name", "prodgroup3"]
 DECISION_FIELDS = ["status", "decision_state", "comment", "updated_by", "updated_at"]
+PRODUCT_ACTION_DECISION_HEADERS = [
+    "product_key",
+    "module_group",
+    "action_nbr",
+    "status",
+    "decision_state",
+    "comment",
+    "updated_by",
+    "updated_at",
+    "product_name",
+    "prodgroup3",
+    "event_id",
+    "actionable_item",
+]
 PRODUCT_ACTION_MATRIX_HEADERS = [
     "product_key",
     "product_name",
@@ -71,8 +85,7 @@ _MATRIX_INPUT_FILES = (
     PYPCS_MODULES_FILE,
     PYPCS_SUBMISSIONS_FILE,
     PYPCS_SUBMISSION_CELLS_FILE,
-    PYPCS_SUBMISSION_ANSWERS_FILE,
-    PRODUCT_ACTION_MATRIX_FILE,
+    PRODUCT_ACTION_DECISIONS_FILE,
     PYPCS_ACTION_ITEMS_FILE,
 )
 _CACHE_LOCK = threading.RLock()
@@ -120,7 +133,9 @@ def _product_key(prodgroup3: str, product_name: str) -> str:
 
 def _decision_values(row: dict[str, str]) -> dict[str, str]:
     decision = {field: value_to_str(row.get(field, "")) for field in DECISION_FIELDS}
-    if not decision["decision_state"] and (decision["status"] or decision["comment"]):
+    if not decision["decision_state"] and any(
+        decision[field] for field in DECISION_FIELDS if field != "decision_state"
+    ):
         decision["decision_state"] = "final"
     return decision
 
@@ -173,7 +188,6 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
     modules_by_key, group_order = _module_catalog()
     submissions = read_generic_csv(PYPCS_SUBMISSIONS_FILE)
     cells = read_generic_csv(PYPCS_SUBMISSION_CELLS_FILE)
-    answers = read_generic_csv(PYPCS_SUBMISSION_ANSWERS_FILE)
     cells_by_submission: dict[str, dict[tuple[str, str], list[str]]] = defaultdict(
         lambda: defaultdict(list)
     )
@@ -184,11 +198,10 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
         module_key = value_to_str(cell.get("module_key", "")).casefold()
         answer = value_to_str(cell.get("answer", ""))
         if answer:
-            cells_by_submission[submission_id][(question_id, module_key)].append(answer)
-    for answer in answers:
-        answers_by_submission[value_to_str(answer.get("submission_id", ""))][
-            value_to_str(answer.get("question_id", ""))
-        ] = value_to_str(answer.get("answer", ""))
+            if module_key:
+                cells_by_submission[submission_id][(question_id, module_key)].append(answer)
+            else:
+                answers_by_submission[submission_id][question_id] = answer
 
     latest_by_product: dict[str, dict[str, str]] = {}
     for submission in submissions:
@@ -328,7 +341,7 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
                 }
                 flat_rows.append(flat_row)
 
-    previous_rows = read_generic_csv(PRODUCT_ACTION_MATRIX_FILE)
+    previous_rows = read_generic_csv(PRODUCT_ACTION_DECISIONS_FILE)
     previous_decisions = _decision_index(previous_rows)
     current_keys = set()
     for row in flat_rows:
@@ -345,10 +358,16 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
         )
         has_decision = any(value_to_str(row.get(field, "")) for field in DECISION_FIELDS)
         if all(key) and key not in current_keys and has_decision:
-            preserved = {
-                header: value_to_str(row.get(header, ""))
-                for header in PRODUCT_ACTION_MATRIX_HEADERS
-            }
+            preserved = {header: "" for header in PRODUCT_ACTION_MATRIX_HEADERS}
+            preserved.update(
+                {
+                    header: value_to_str(row.get(header, ""))
+                    for header in (
+                        "product_key", "module_group", "action_nbr", "product_name",
+                        "prodgroup3", "event_id", "actionable_item",
+                    )
+                }
+            )
             preserved.update(_decision_values(row))
             flat_rows.append(preserved)
 
@@ -415,6 +434,7 @@ def _api_row(rows: list[dict[str, str]]) -> dict[str, Any]:
             "suggested_comment": value_to_str(row.get("suggested_comment", "")),
             "updated_by": value_to_str(row.get("updated_by", "")),
             "updated_at": value_to_str(row.get("updated_at", "")),
+            "version": record_version(_decision_values(row)),
         }
     return {
         "product_key": value_to_str(first.get("product_key", "")),
@@ -474,22 +494,41 @@ def rebuild_product_action_matrix(
 ) -> list[dict[str, str]]:
     """Regenerate current rows and preserve decisions, including orphaned ones."""
     global _CACHE_FINGERPRINT, _CACHED_MATRIX
-    with _CACHE_LOCK:
-        built = built if built is not None else build_product_action_matrix()
-        updates = decision_updates or {}
-        for row in built["flat_rows"]:
-            key = (row["product_key"], row["module_group"], row["action_nbr"])
-            if key in updates:
-                row.update(updates[key])
-        write_rows_to_csv(
-            PRODUCT_ACTION_MATRIX_FILE,
-            built["flat_rows"],
-            PRODUCT_ACTION_MATRIX_HEADERS,
-        )
-        invalidate_product_action_matrix_cache()
-        _CACHE_FINGERPRINT = _input_fingerprint()
-        _CACHED_MATRIX = copy.deepcopy(built)
-        return built["flat_rows"]
+    with locked_files(PRODUCT_ACTION_DECISIONS_FILE):
+        with _CACHE_LOCK:
+            built = built if built is not None else build_product_action_matrix()
+            updates = decision_updates or {}
+            for row in built["flat_rows"]:
+                key = (row["product_key"], row["module_group"], row["action_nbr"])
+                if key in updates:
+                    row.update(updates[key])
+            decision_rows = []
+            for row in built["flat_rows"]:
+                decision = _decision_values(row)
+                if not any(value_to_str(row.get(field, "")) for field in DECISION_FIELDS):
+                    continue
+                decision_rows.append(
+                    {
+                        **{
+                            header: value_to_str(row.get(header, ""))
+                            for header in PRODUCT_ACTION_DECISION_HEADERS[:3]
+                        },
+                        **decision,
+                        **{
+                            header: value_to_str(row.get(header, ""))
+                            for header in PRODUCT_ACTION_DECISION_HEADERS[8:]
+                        },
+                    }
+                )
+            write_rows_to_csv(
+                PRODUCT_ACTION_DECISIONS_FILE,
+                decision_rows,
+                PRODUCT_ACTION_DECISION_HEADERS,
+            )
+            invalidate_product_action_matrix_cache()
+            _CACHE_FINGERPRINT = _input_fingerprint()
+            _CACHED_MATRIX = copy.deepcopy(built)
+            return built["flat_rows"]
 
 
 def matrix_timestamp() -> str:
