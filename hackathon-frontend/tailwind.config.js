@@ -1,3 +1,5 @@
+import tailwindcssAnimate from 'tailwindcss-animate';
+
 /** @type {import('tailwindcss').Config} */
 export default {
     darkMode: ["class"],
@@ -10,6 +12,24 @@ export default {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
+			table: {
+				header: 'hsl(var(--table-header))',
+				'header-foreground': 'hsl(var(--table-header-foreground))',
+				subheader: 'hsl(var(--table-subheader))',
+				'subheader-foreground': 'hsl(var(--table-subheader-foreground))',
+				frozen: 'hsl(var(--table-frozen))',
+				stripe: 'hsl(var(--table-stripe))',
+				hover: 'hsl(var(--table-hover))',
+				link: 'hsl(var(--table-link))',
+			},
+				status: {
+					warning: 'hsl(var(--status-warning))',
+					'warning-foreground': 'hsl(var(--status-warning-foreground))',
+					info: 'hsl(var(--status-info))',
+					'info-foreground': 'hsl(var(--status-info-foreground))',
+					success: 'hsl(var(--status-success))',
+					'success-foreground': 'hsl(var(--status-success-foreground))',
+				},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -63,6 +83,6 @@ export default {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+	plugins: [tailwindcssAnimate],
 }
 

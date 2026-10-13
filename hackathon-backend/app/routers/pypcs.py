@@ -39,6 +39,7 @@ from app.services.pypcs_service import (
     normalize_pypcs_module,
     normalize_pypcs_question,
 )
+from app.services.product_action_matrix_service import invalidate_product_action_matrix_cache
 
 router = APIRouter()
 
@@ -172,6 +173,7 @@ def create_pypcs_action_item(payload: PYPCSActionItemRequest):
     created = action_item_row(next_nbr, payload, action_item_timestamp())
     rows.append(created)
     write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+    invalidate_product_action_matrix_cache()
     return normalize_action_item(created)
 
 
@@ -193,6 +195,7 @@ def update_pypcs_action_item(nbr: int, payload: PYPCSActionItemRequest):
     updated = action_item_row(nbr, payload, action_item_timestamp())
     rows[target_index] = updated
     write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+    invalidate_product_action_matrix_cache()
     return normalize_action_item(updated)
 
 
@@ -445,12 +448,14 @@ def create_pypcs_submission(req: PYPCSSubmissionRequest):
         [submission_row],
         submission_headers,
     )
+    invalidate_product_action_matrix_cache()
 
     append_rows_to_csv(
         PYPCS_SUBMISSION_ANSWERS_FILE,
         answer_rows,
         answer_headers,
     )
+    invalidate_product_action_matrix_cache()
 
     return {
         "message": "created",
@@ -660,6 +665,8 @@ def delete_pypcs_submission(submission_id: str):
     deleted = delete_rows_from_csv(
         PYPCS_SUBMISSIONS_FILE, "submission_id", target_id
     )
+    if deleted:
+        invalidate_product_action_matrix_cache()
 
     if not deleted:
         raise HTTPException(
@@ -668,7 +675,9 @@ def delete_pypcs_submission(submission_id: str):
         )
 
     delete_rows_from_csv(PYPCS_SUBMISSION_ANSWERS_FILE, "submission_id", target_id)
+    invalidate_product_action_matrix_cache()
     delete_rows_from_csv(PYPCS_SUBMISSION_CELLS_FILE, "submission_id", target_id)
+    invalidate_product_action_matrix_cache()
 
     return {"message": "deleted", "submission_id": target_id}
 
@@ -1037,6 +1046,7 @@ def create_pypcs_matrix_submission(req: PYPCSMatrixSubmissionRequest):
         [submission_row],
         submission_headers,
     )
+    invalidate_product_action_matrix_cache()
 
     upsert_rows_to_csv(
         PYPCS_SUBMISSION_CELLS_FILE,
@@ -1045,6 +1055,7 @@ def create_pypcs_matrix_submission(req: PYPCSMatrixSubmissionRequest):
         cell_rows,
         cell_headers,
     )
+    invalidate_product_action_matrix_cache()
 
     return {
         "message": "created" if not existing_submission else "updated",

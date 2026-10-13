@@ -1,14 +1,17 @@
 """Build and persist the merged PYPCS product/action matrix."""
 
 import csv
+import copy
 import io
 import re
+import threading
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import HTTPException
 
+from app.config import DATA_DIR
 from app.io.csv_excel import value_to_str
 from app.io.generic_csv import read_generic_csv, write_rows_to_csv, safe_int
 from app.services.pypcs_service import (
@@ -64,6 +67,37 @@ PRODUCT_ACTION_MATRIX_HEADERS = [
     "updated_by",
     "updated_at",
 ]
+_MATRIX_INPUT_FILES = (
+    PYPCS_MODULES_FILE,
+    PYPCS_SUBMISSIONS_FILE,
+    PYPCS_SUBMISSION_CELLS_FILE,
+    PYPCS_SUBMISSION_ANSWERS_FILE,
+    PRODUCT_ACTION_MATRIX_FILE,
+    PYPCS_ACTION_ITEMS_FILE,
+)
+_CACHE_LOCK = threading.RLock()
+_CACHE_FINGERPRINT: tuple[tuple[str, int | None, int | None], ...] | None = None
+_CACHED_MATRIX: dict[str, Any] | None = None
+
+
+def _input_fingerprint() -> tuple[tuple[str, int | None, int | None], ...]:
+    fingerprint = []
+    for file_name in _MATRIX_INPUT_FILES:
+        path = DATA_DIR / file_name
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            fingerprint.append((str(path.resolve()), None, None))
+        else:
+            fingerprint.append((str(path.resolve()), stat.st_mtime_ns, stat.st_size))
+    return tuple(fingerprint)
+
+
+def invalidate_product_action_matrix_cache() -> None:
+    global _CACHE_FINGERPRINT, _CACHED_MATRIX
+    with _CACHE_LOCK:
+        _CACHE_FINGERPRINT = None
+        _CACHED_MATRIX = None
 
 
 def _split_values(value: Any) -> list[str]:
@@ -131,7 +165,7 @@ def _action_rows() -> list[dict[str, str]]:
     return actions
 
 
-def _module_group_build() -> tuple[
+def _module_group_build(actions: list[dict[str, str]]) -> tuple[
     list[dict[str, Any]],
     list[dict[str, str]],
     set[tuple[str, str, str]],
@@ -140,10 +174,17 @@ def _module_group_build() -> tuple[
     submissions = read_generic_csv(PYPCS_SUBMISSIONS_FILE)
     cells = read_generic_csv(PYPCS_SUBMISSION_CELLS_FILE)
     answers = read_generic_csv(PYPCS_SUBMISSION_ANSWERS_FILE)
-    cells_by_submission: dict[str, list[dict[str, str]]] = defaultdict(list)
+    cells_by_submission: dict[str, dict[tuple[str, str], list[str]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
     answers_by_submission: dict[str, dict[str, str]] = defaultdict(dict)
     for cell in cells:
-        cells_by_submission[value_to_str(cell.get("submission_id", ""))].append(cell)
+        submission_id = value_to_str(cell.get("submission_id", ""))
+        question_id = value_to_str(cell.get("question_id", ""))
+        module_key = value_to_str(cell.get("module_key", "")).casefold()
+        answer = value_to_str(cell.get("answer", ""))
+        if answer:
+            cells_by_submission[submission_id][(question_id, module_key)].append(answer)
     for answer in answers:
         answers_by_submission[value_to_str(answer.get("submission_id", ""))][
             value_to_str(answer.get("question_id", ""))
@@ -190,8 +231,6 @@ def _module_group_build() -> tuple[
     ordered_groups = sorted(group_order, key=lambda group: (group_order[group], group.casefold()))
     flat_rows: list[dict[str, str]] = []
     group_counts: dict[str, int] = {}
-    actions = _action_rows()
-
     for module_group in ordered_groups:
         group_products = products_by_group.get(module_group, [])
         group_counts[module_group] = len({item[0] for item in group_products})
@@ -203,19 +242,14 @@ def _module_group_build() -> tuple[
         )
         for product_key, submission, module_keys in group_products:
             submission_id = value_to_str(submission.get("submission_id", ""))
-            product_cells = cells_by_submission.get(submission_id, [])
+            product_cells = cells_by_submission.get(submission_id, {})
             legacy_answers = answers_by_submission.get(submission_id, {})
 
             def cell_values(question_id: str) -> list[str]:
                 values = []
                 for module_key in module_keys:
-                    target_module = module_key.casefold()
                     values.extend(
-                        value_to_str(cell.get("answer", ""))
-                        for cell in product_cells
-                        if value_to_str(cell.get("question_id", "")) == question_id
-                        and value_to_str(cell.get("module_key", "")).casefold() == target_module
-                        and value_to_str(cell.get("answer", ""))
+                        product_cells.get((question_id, module_key.casefold()), [])
                     )
                 return values
 
@@ -326,8 +360,9 @@ def _module_group_build() -> tuple[
     return groups, flat_rows, active_keys
 
 
-def build_product_action_matrix() -> dict[str, Any]:
-    module_groups, flat_rows, active_keys = _module_group_build()
+def _build_product_action_matrix() -> dict[str, Any]:
+    action_rows = _action_rows()
+    module_groups, flat_rows, active_keys = _module_group_build(action_rows)
     active_rows = [
         row
         for row in flat_rows
@@ -335,7 +370,7 @@ def build_product_action_matrix() -> dict[str, Any]:
         in active_keys
     ]
     actions = []
-    for action in _action_rows():
+    for action in action_rows:
         actions.append(
             {
                 "nbr": safe_int(action.get("nbr", "")),
@@ -351,6 +386,20 @@ def build_product_action_matrix() -> dict[str, Any]:
         "rows": active_rows,
         "flat_rows": flat_rows,
     }
+
+
+def build_product_action_matrix() -> dict[str, Any]:
+    global _CACHE_FINGERPRINT, _CACHED_MATRIX
+    with _CACHE_LOCK:
+        while True:
+            fingerprint = _input_fingerprint()
+            if fingerprint == _CACHE_FINGERPRINT and _CACHED_MATRIX is not None:
+                return copy.deepcopy(_CACHED_MATRIX)
+            built = _build_product_action_matrix()
+            if fingerprint == _input_fingerprint():
+                _CACHE_FINGERPRINT = fingerprint
+                _CACHED_MATRIX = copy.deepcopy(built)
+                return built
 
 
 def _api_row(rows: list[dict[str, str]]) -> dict[str, Any]:
@@ -382,8 +431,11 @@ def _api_row(rows: list[dict[str, str]]) -> dict[str, Any]:
     }
 
 
-def get_product_action_matrix(module_group: str | None = None) -> dict[str, Any]:
-    built = build_product_action_matrix()
+def get_product_action_matrix(
+    module_group: str | None = None,
+    built: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    built = built if built is not None else build_product_action_matrix()
     available_groups = {item["key"] for item in built["module_groups"]}
     if module_group is not None and module_group not in available_groups:
         raise HTTPException(
@@ -418,20 +470,26 @@ def get_product_action_matrix(module_group: str | None = None) -> dict[str, Any]
 
 def rebuild_product_action_matrix(
     decision_updates: dict[tuple[str, str, str], dict[str, str]] | None = None,
+    built: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     """Regenerate current rows and preserve decisions, including orphaned ones."""
-    built = build_product_action_matrix()
-    updates = decision_updates or {}
-    for row in built["flat_rows"]:
-        key = (row["product_key"], row["module_group"], row["action_nbr"])
-        if key in updates:
-            row.update(updates[key])
-    write_rows_to_csv(
-        PRODUCT_ACTION_MATRIX_FILE,
-        built["flat_rows"],
-        PRODUCT_ACTION_MATRIX_HEADERS,
-    )
-    return built["flat_rows"]
+    global _CACHE_FINGERPRINT, _CACHED_MATRIX
+    with _CACHE_LOCK:
+        built = built if built is not None else build_product_action_matrix()
+        updates = decision_updates or {}
+        for row in built["flat_rows"]:
+            key = (row["product_key"], row["module_group"], row["action_nbr"])
+            if key in updates:
+                row.update(updates[key])
+        write_rows_to_csv(
+            PRODUCT_ACTION_MATRIX_FILE,
+            built["flat_rows"],
+            PRODUCT_ACTION_MATRIX_HEADERS,
+        )
+        invalidate_product_action_matrix_cache()
+        _CACHE_FINGERPRINT = _input_fingerprint()
+        _CACHED_MATRIX = copy.deepcopy(built)
+        return built["flat_rows"]
 
 
 def matrix_timestamp() -> str:

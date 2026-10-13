@@ -1,8 +1,9 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { DownloadIcon, Grid3x3Icon, PencilIcon, SearchIcon } from 'lucide-react';
+import { ArrowDown, ArrowDownUp, ArrowUp, DownloadIcon, Grid3x3Icon, PencilIcon, SearchIcon } from 'lucide-react';
 
 import { useGetProductActionMatrixQuery } from '@/app/api/productActionMatrixApi';
+import ClientPagination from '@/shared/components/data-table/ClientPagination';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
@@ -30,12 +31,31 @@ const stickyColumns = new Set(['product_name', 'prodgroup3', 'module_group']);
 
 function stickyClass(column, header = false) {
     if (!stickyColumns.has(column.id)) return '';
-    const position = column.id === 'module_group' ? 'md:sticky' : 'sticky';
-    return `${position} ${header ? 'z-30' : 'z-10'}`;
+    const edge = column.id === 'module_group'
+        ? 'border-r-2 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]' : '';
+    return `sticky ${header ? 'z-30 bg-table-header' : 'z-10 bg-table-frozen group-hover:bg-table-hover'} ${edge}`;
+}
+
+function columnStyle(column) {
+    const width = column.getSize();
+    return {
+        width,
+        minWidth: width,
+        maxWidth: width,
+        ...(stickyColumns.has(column.id) ? { left: column.getStart() } : {}),
+    };
 }
 
 function displayValue(value) {
     return value?.replaceAll('|', ', ') || '—';
+}
+
+function rowNeedsReview(row, actions) {
+    return actions.some((action) => !row.cells?.[action.nbr]?.status || row.cells?.[action.nbr]?.decision_state === 'draft');
+}
+
+function ReviewStatusCell({ row }) {
+    return row.original.needsReview ? 'Needs review' : 'Reviewed';
 }
 
 function ProductCell({ row, table }) {
@@ -58,7 +78,7 @@ function ModuleCell({ row }) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <span tabIndex={0} className="block w-full cursor-help break-words underline decoration-dotted underline-offset-4">
+                <span tabIndex={0} className="block w-full cursor-help break-words text-table-link underline decoration-dotted underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
                     {row.original.module_group}
                 </span>
             </TooltipTrigger>
@@ -78,18 +98,18 @@ function StatusCell({ row, column, table }) {
     const action = column.columnDef.meta.action;
     const cell = row.original.cells?.[action.nbr];
     const status = cell?.status;
-        const draft = cell?.decision_state === 'draft';
+    const draft = cell?.decision_state === 'draft';
     const suggested = !status && cell?.suggested_status;
         const label = draft ? `${status || (cell.comment ? 'note' : 'not reviewed')} draft` : status || 'not reviewed';
         const style = draft ? `${status === 'Y' ? 'bg-green-200 text-green-900 dark:bg-green-900 dark:text-green-100'
                 : status === 'N' ? 'bg-red-200 text-red-900 dark:bg-red-900 dark:text-red-100'
-                    : status === 'NA' ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-slate-100'
-                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200'} border border-dashed border-slate-500`
+                    : status === 'NA' ? 'bg-muted text-foreground'
+                        : 'bg-muted text-muted-foreground'} border border-dashed border-border`
                 : status === 'Y' ? 'bg-green-600 text-white hover:bg-green-700'
-        : status === 'N' ? 'bg-red-600 text-white hover:bg-red-700'
-          : status === 'NA' ? 'bg-slate-300 text-slate-900 hover:bg-slate-400 dark:bg-slate-600 dark:text-white'
-            : suggested ? 'border border-dashed border-slate-400 text-muted-foreground italic hover:bg-slate-100 dark:hover:bg-slate-800'
-              : 'hover:bg-slate-100 dark:hover:bg-slate-800';
+                : status === 'N' ? 'bg-red-600 text-white hover:bg-red-700'
+                    : status === 'NA' ? 'bg-muted text-foreground hover:bg-accent'
+                        : suggested ? 'border border-dashed border-border text-muted-foreground italic hover:bg-muted'
+                            : 'hover:bg-muted';
         const description = draft
                 ? `Draft · ${cell.comment || '—'} · ${cell.updated_by || '—'} · ${cell.updated_at || '—'}`
                 : status
@@ -120,6 +140,7 @@ function columnsFor(actions) {
             size,
             cell: key === 'product_name' ? ProductCell : key === 'module_group' ? ModuleCell : AttributeCell,
         })),
+        { id: 'review_status', header: 'Review status', size: 120, cell: ReviewStatusCell },
         ...actions.map((action) => ({
             id: `action-${action.nbr}`,
             header: action.actionable_item,
@@ -134,6 +155,9 @@ export default function View3Page() {
     const [moduleGroup, setModuleGroup] = useState('');
     const [search, setSearch] = useState('');
     const [needsReview, setNeedsReview] = useState(false);
+    const [sort, setSort] = useState({ key: 'product_name', direction: 'ascending' });
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
     const [editor, setEditor] = useState(null);
     const allQuery = useGetProductActionMatrixQuery({});
     const filteredQuery = useGetProductActionMatrixQuery({ moduleGroup }, { skip: !moduleGroup });
@@ -146,28 +170,53 @@ export default function View3Page() {
     const visibleRows = useMemo(() => rows.filter((row) => {
         const matches = !term || [row.product_name, row.prodgroup3, row.module_group, ...(row.module_keys ?? [])]
             .some((value) => value?.toLowerCase().includes(term));
-        return matches && (!needsReview || actions.some((action) =>
-            !row.cells?.[action.nbr]?.status || row.cells?.[action.nbr]?.decision_state === 'draft'));
+        return matches && (!needsReview || rowNeedsReview(row, actions));
     }), [rows, actions, term, needsReview]);
+    const sortedRows = useMemo(() => visibleRows.map((row) => ({ ...row, needsReview: rowNeedsReview(row, actions) }))
+        .sort((first, second) => {
+            const comparison = sort.key === 'review_status'
+                ? Number(first.needsReview) - Number(second.needsReview)
+                : String(first[sort.key] ?? '').localeCompare(String(second[sort.key] ?? ''), undefined, { numeric: true });
+            return sort.direction === 'ascending' ? comparison : -comparison;
+        }), [visibleRows, actions, sort]);
+    const currentPage = Math.min(page, Math.max(1, Math.ceil(sortedRows.length / pageSize)));
+        const pagedRows = useMemo(
+            () => sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+            [sortedRows, currentPage, pageSize],
+        );
     const columns = useMemo(() => columnsFor(actions), [actions]);
+    const onEdit = useCallback((row, actionNbr) => setEditor({ row, actionNbr }), []);
+    const tableMeta = useMemo(() => ({ onEdit }), [onEdit]);
     const table = useReactTable({
-        data: visibleRows,
+        data: pagedRows,
         columns,
-        meta: { onEdit: (row, actionNbr) => setEditor({ row, actionNbr }) },
+        meta: tableMeta,
         getRowId: (row) => `${row.product_key}::${row.module_group}`,
         getCoreRowModel: getCoreRowModel(),
     });
     const rowModel = table.getRowModel();
     const leafColumns = table.getAllLeafColumns();
-    const productColumnCount = leafColumns.filter((column) => !column.columnDef.meta?.action).length;
+    const productColumns = leafColumns.filter((column) => !column.columnDef.meta?.action);
     const exportUrl = `/api/pypcs/product-action-matrix/export${moduleGroup ? `?module_group=${encodeURIComponent(moduleGroup)}` : ''}`;
+
+    function renderHeader(column) {
+        if (!['product_name', 'review_status'].includes(column.id)) return column.columnDef.header;
+        const direction = sort.key === column.id ? sort.direction : 'none';
+        const Icon = direction === 'ascending' ? ArrowUp : direction === 'descending' ? ArrowDown : ArrowDownUp;
+        return (
+            <button type="button" className="inline-flex items-center gap-1 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                onClick={() => { setSort({ key: column.id, direction: direction === 'ascending' ? 'descending' : 'ascending' }); setPage(1); }}>
+                {column.columnDef.header}<Icon aria-hidden="true" className="size-4 shrink-0" />
+            </button>
+        );
+    }
 
     return (
         <TooltipProvider>
             <div className="flex min-w-0 flex-col gap-5 p-4 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                        <h2 className="flex items-center gap-2 text-xl font-semibold"><Grid3x3Icon className="size-5 text-slate-600" /> View 3</h2>
+                        <h2 className="flex items-center gap-2 text-xl font-semibold"><Grid3x3Icon className="size-5 text-primary" /> View 3</h2>
                         <p className="mt-1 text-sm text-muted-foreground">Product × Excursion/FMEA action matrix</p>
                         <p className="mt-1 text-xs text-muted-foreground">{rows.length} products · {actions.length} actions</p>
                     </div>
@@ -178,11 +227,11 @@ export default function View3Page() {
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Decision legend">
                     <span><span className="mr-1 inline-block size-3 bg-green-600 align-middle" />Y</span>
                     <span><span className="mr-1 inline-block size-3 bg-red-600 align-middle" />N</span>
-                    <span><span className="mr-1 inline-block size-3 bg-slate-300 align-middle" />NA</span>
-                    <span><span className="mr-1 inline-block size-3 border border-dashed border-slate-500 bg-green-200 align-middle" />Draft</span>
-                    <span><span className="mr-1 inline-block size-3 border border-dashed border-slate-400 align-middle" />Y? / NA? suggested</span>
+                    <span><span className="mr-1 inline-block size-3 border bg-muted align-middle" />NA</span>
+                    <span><span className="mr-1 inline-block size-3 border border-dashed border-border bg-green-200 align-middle dark:bg-green-900" />Draft</span>
+                    <span><span className="mr-1 inline-block size-3 border border-dashed border-border align-middle" />Y? / NA? suggested</span>
                 </div>
-                <Tabs value={moduleGroup || '__all__'} onValueChange={(value) => setModuleGroup(value === '__all__' ? '' : value)} className="min-w-0">
+                <Tabs value={moduleGroup || '__all__'} onValueChange={(value) => { setModuleGroup(value === '__all__' ? '' : value); setPage(1); }} className="min-w-0">
                     <div className={`overflow-x-auto ${scrollbarClassName}`}>
                         <TabsList className="h-auto w-max justify-start gap-1">
                             <TabsTrigger value="__all__">All ({allQuery.data?.rows?.length ?? rows.length})</TabsTrigger>
@@ -197,13 +246,14 @@ export default function View3Page() {
                         <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input type="search" aria-label="Search products, ProdGroup3 or module"
                             placeholder="Search products or modules" value={search}
-                            onChange={(event) => setSearch(event.target.value)} className="pl-9" />
+                            onChange={(event) => { setSearch(event.target.value); setPage(1); }} className="pl-9" />
                     </div>
                     <label className="flex cursor-pointer items-center gap-2 text-sm">
-                        <Checkbox checked={needsReview} onCheckedChange={(value) => setNeedsReview(value === true)} />
+                        <Checkbox checked={needsReview} onCheckedChange={(value) => { setNeedsReview(value === true); setPage(1); }} />
                         Needs review only
                     </label>
                 </div>
+                <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{visibleRows.length} products found</span>
                 {query.isError ? (
                     <div role="alert" className="rounded-md border border-destructive/30 p-5 text-sm text-destructive">
                         Could not load the product action matrix.{' '}
@@ -217,29 +267,33 @@ export default function View3Page() {
                 ) : (
                     <div aria-busy={query.isFetching} className={`max-h-[72vh] min-w-0 max-w-full overflow-auto rounded-md border ${scrollbarClassName}`}>
                         {query.isFetching && <p className="sr-only" role="status">Updating matrix</p>}
-                        <Table style={{ width: table.getTotalSize() }} className="table-fixed border-collapse text-xs">
+                        <Table style={{ width: table.getTotalSize() }} className="table-fixed border-separate border-spacing-0 text-xs">
                             <colgroup>
                                 {leafColumns.map((column) => <col key={column.id} style={{ width: column.getSize() }} />)}
                             </colgroup>
-                            <TableHeader className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-900">
-                                <TableRow className="border-b bg-slate-200 dark:bg-slate-800">
-                                    <TableHead colSpan={productColumnCount} className="sticky left-0 z-30 border-r bg-slate-200 font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100">
-                                        Excursion/FMEA IDN
-                                    </TableHead>
-                                    {actions.map((action) => (
-                                        <TableHead key={action.nbr} className="border-r bg-slate-200 text-center font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100">
+                            <TableHeader className="sticky top-0 z-20 bg-table-header">
+                                <TableRow className="bg-table-header hover:bg-table-header">
+                                    {productColumns.map((column, index) => (
+                                        <TableHead key={column.id} style={columnStyle(column)}
+                                            className={`border-b border-r bg-table-header text-table-header-foreground ${stickyClass(column, true)} ${index === productColumns.length - 1 ? 'text-right' : ''}`}>
+                                            {index === productColumns.length - 1 ? 'Excursion/FMEA IDN' : null}
+                                        </TableHead>
+                                    ))}
+                                    {actions.map((action, index) => (
+                                        <TableHead key={action.nbr} style={columnStyle(leafColumns[productColumns.length + index])}
+                                            className="border-b border-r bg-table-header text-center font-semibold text-table-header-foreground [overflow-wrap:anywhere]">
                                             {action.event_id || `#${action.nbr}`}
                                         </TableHead>
                                     ))}
                                 </TableRow>
-                                <TableRow className="border-b bg-slate-100 dark:bg-slate-900">
+                                <TableRow className="bg-table-header hover:bg-table-header">
                                     {leafColumns.map((column) => (
-                                        <TableHead key={column.id} style={{ width: column.getSize(), left: stickyColumns.has(column.id) ? column.getStart() : undefined }}
-                                            className={`border-r bg-slate-100 align-top font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-200 ${stickyClass(column, true)}`}>
+                                        <TableHead key={column.id} aria-sort={['product_name', 'review_status'].includes(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined} style={columnStyle(column)}
+                                            className={`border-b border-r bg-table-header align-top font-semibold text-table-header-foreground ${stickyClass(column, true)}`}>
                                             {column.columnDef.meta?.action ? (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <span tabIndex={0} className="line-clamp-4 cursor-help break-words underline decoration-dotted underline-offset-2">
+                                                        <span tabIndex={0} className="line-clamp-4 cursor-help break-words underline decoration-dotted underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
                                                             {column.columnDef.header}
                                                         </span>
                                                     </TooltipTrigger>
@@ -247,30 +301,35 @@ export default function View3Page() {
                                                         {column.columnDef.header}{'\n'}Reference: {column.columnDef.meta.action.reference || '—'}
                                                     </TooltipContent>
                                                 </Tooltip>
-                                            ) : column.columnDef.header}
+                                            ) : renderHeader(column)}
                                         </TableHead>
                                     ))}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {rowModel.rows.length ? rowModel.rows.map((row) => (
-                                    <TableRow key={row.id} className="group border-b hover:bg-slate-50 dark:hover:bg-slate-900">
+                                    <TableRow key={row.id} className="group even:bg-table-stripe hover:bg-table-hover">
                                         {row.getVisibleCells().map((cell) => (
-                                            <TableCell key={cell.id} style={{ width: cell.column.getSize(), left: stickyColumns.has(cell.column.id) ? cell.column.getStart() : undefined }}
-                                                className={`border-r align-top ${stickyClass(cell.column)} ${stickyColumns.has(cell.column.id) ? 'bg-background group-hover:bg-slate-50 dark:group-hover:bg-slate-900' : ''}`}>
+                                            <TableCell key={cell.id} style={columnStyle(cell.column)}
+                                                className={`border-b border-r align-top [overflow-wrap:anywhere] ${stickyClass(cell.column)}`}>
                                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                             </TableCell>
                                         ))}
                                     </TableRow>
                                 )) : (
                                     <TableRow><TableCell colSpan={leafColumns.length} className="h-32 text-center text-muted-foreground">
-                                        {rows.length ? 'No products match.' : 'No Quality Matrix submissions yet'}
+                                        {rows.length ? <>No matching products.{' '}
+                                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setNeedsReview(false); setModuleGroup(''); setPage(1); }}>Clear filters</Button>
+                                        </> : 'No Quality Matrix submissions yet'}
                                     </TableCell></TableRow>
                                 )}
                             </TableBody>
                         </Table>
                     </div>
                 )}
+                {!query.isLoading && !query.isError && <ClientPagination label="Products" total={sortedRows.length}
+                    page={currentPage} pageSize={pageSize} onPageChange={setPage}
+                    onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
                 {editor && <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
                     row={editor.row} actions={actions} focusedAction={editor.actionNbr} onClose={() => setEditor(null)} />}
             </div>

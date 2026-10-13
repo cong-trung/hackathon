@@ -1,10 +1,14 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 
 import { useUpdateProductActionMatrixRowMutation } from '@/app/api/productActionMatrixApi';
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/shared/components/ui/alert-dialog';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -78,7 +82,7 @@ function ActionEditor({ action, index, cell, form, focusRef, focused }) {
     return (
         <div className="grid gap-3 border-b py-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
             <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <p className="text-xs font-semibold text-muted-foreground">
                     {action.event_id || `#${action.nbr}`}
                     {cell?.decision_state === 'draft' && <Badge variant="outline" className="ml-2 text-[10px]">Draft</Badge>}
                 </p>
@@ -124,6 +128,8 @@ function ActionEditor({ action, index, cell, form, focusRef, focused }) {
 
 export default function RowEditor({ row, actions, focusedAction, onClose }) {
     const focusRef = useRef(null);
+    const cancelRef = useRef(null);
+    const [confirmDiscard, setConfirmDiscard] = useState(false);
     const form = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
@@ -131,10 +137,17 @@ export default function RowEditor({ row, actions, focusedAction, onClose }) {
             cells: actions.map((action) => savedCell(row, action)),
         },
     });
+    const { isDirty } = form.formState;
     const cells = useWatch({ control: form.control, name: 'cells' });
     const [updateRow, { isLoading: saving }] = useUpdateProductActionMatrixRowMutation();
     const changed = actions.some((action, index) => isChanged(row, action, cells?.[index]));
     const hasDrafts = actions.some((action) => row.cells?.[action.nbr]?.decision_state === 'draft');
+
+    function requestClose() {
+        if (saving) return;
+        if (isDirty) setConfirmDiscard(true);
+        else onClose();
+    }
 
     function acceptSuggestions() {
         actions.forEach((action, index) => {
@@ -199,8 +212,10 @@ export default function RowEditor({ row, actions, focusedAction, onClose }) {
     }
 
     return (
-        <Dialog open onOpenChange={(open) => !open && !saving && onClose()}>
+        <Dialog open onOpenChange={(open) => !open && requestClose()}>
             <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-3xl flex-col overflow-hidden p-0"
+                onInteractOutside={(event) => { if (confirmDiscard) event.preventDefault(); }}
+                onEscapeKeyDown={(event) => { if (confirmDiscard) event.preventDefault(); }}
                 onOpenAutoFocus={(event) => {
                     if (focusedAction !== null) {
                         event.preventDefault();
@@ -231,7 +246,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose }) {
                             ))}
                         </div>
                         <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-6 py-4">
-                            <Button type="button" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+                            <Button ref={cancelRef} type="button" variant="outline" onClick={requestClose} disabled={saving}>Cancel</Button>
                             <Button type="button" variant="outline" onClick={() => handleSave('draft')} disabled={saving || !changed}>
                                 Save draft
                             </Button>
@@ -242,6 +257,21 @@ export default function RowEditor({ row, actions, focusedAction, onClose }) {
                     </form>
                 </Form>
             </DialogContent>
+            <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+                <AlertDialogContent onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    cancelRef.current?.focus();
+                }}>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+                        <AlertDialogDescription>Your changes will be lost.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Keep editing</AlertDialogCancel>
+                        <AlertDialogAction onClick={onClose}>Discard</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Dialog>
     );
 }

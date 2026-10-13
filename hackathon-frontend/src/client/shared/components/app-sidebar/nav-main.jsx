@@ -24,16 +24,9 @@ import { routes } from '@/routes/routes';
 const NavMain = memo(() => {
   const location = useLocation();
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
-  // Active background classes
-  const activeBg = isDark
-    ? '!bg-white !text-black !hover:bg-white/95 !hover:text-black'
-    : '!bg-black !text-white !hover:bg-black/95 !hover:text-white';
-
-  const nonActiveHover = isDark
-    ? '!hover:bg-white/10 !hover:text-white'
-    : '!hover:bg-black/10 !hover:text-black';
+  const activeBg = '!bg-sidebar-primary !text-sidebar-primary-foreground hover:!bg-sidebar-primary hover:!text-sidebar-primary-foreground focus-visible:!ring-inset focus-visible:!ring-white';
+  const nonActiveHover = 'hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground';
 
   return (
     <SidebarGroup>
@@ -50,6 +43,7 @@ const NavMain = memo(() => {
                   <SidebarMenuButton
                     asChild
                     tooltip={route.title}
+                    isActive={isActive}
                     className={isActive ? activeBg : nonActiveHover}
                   >
                     <Link to={path}>
@@ -91,6 +85,7 @@ const NavMain = memo(() => {
                     <SidebarMenuButton
                       tooltip={route.title}
                       isActive={isParentActive}
+                      className={isParentActive ? activeBg : nonActiveHover}
                     >
                       {typeof route.icon === 'function' ? (
                         <route.icon theme={theme} isActive={isParentActive} />

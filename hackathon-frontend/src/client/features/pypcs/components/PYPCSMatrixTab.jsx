@@ -327,7 +327,7 @@ export default function PYPCSMatrixTab() {
                     <div className="font-medium">
                         {question.display_label || question.header || questionId}
                         {question.required ? (
-                            <span className="ml-1 text-red-600">*</span>
+                            <span className="ml-1 text-destructive">*</span>
                         ) : null}
                     </div>
 
@@ -343,7 +343,7 @@ export default function PYPCSMatrixTab() {
                     </div>
 
                     {question.description ? (
-                        <div className="mt-2 rounded-md bg-slate-50 p-2 text-xs text-muted-foreground">
+                        <div className="mt-2 rounded-md bg-muted p-2 text-xs text-muted-foreground">
                             {question.description}
                         </div>
                     ) : null}
@@ -352,7 +352,7 @@ export default function PYPCSMatrixTab() {
                 {renderInput(question)}
 
                 {error ? (
-                    <div className="mt-1 text-xs text-red-600">{error}</div>
+                    <div className="mt-1 text-xs text-destructive">{error}</div>
                 ) : null}
             </div>
         );
@@ -393,7 +393,7 @@ export default function PYPCSMatrixTab() {
                     ) : null}
 
                     {!loadingModules && sortedModules.length === 0 ? (
-                        <div className="text-sm text-red-600">
+                        <div className="text-sm text-destructive">
                             No PYPCS modules found. Please check
                             /api/pypcs/modules.
                         </div>
@@ -411,8 +411,8 @@ export default function PYPCSMatrixTab() {
                                     key={module.module_key}
                                     className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm ${
                                         checked
-                                            ? 'border-blue-600 bg-blue-50'
-                                            : 'bg-white'
+                                            ? 'border-primary bg-primary/10'
+                                            : 'bg-card'
                                     } ${
                                         disabled
                                             ? 'cursor-not-allowed opacity-50'
@@ -440,7 +440,7 @@ export default function PYPCSMatrixTab() {
                     </div>
                 </div>
 
-                <div className="rounded-md border bg-white p-4">
+                <div className="rounded-md border bg-card p-4">
                     <div className="mb-3 flex items-center justify-between">
                         <h3 className="text-lg font-semibold">
                             Required Steps
@@ -473,7 +473,7 @@ export default function PYPCSMatrixTab() {
                         <div className="mt-4">
                             <button
                                 type="button"
-                                className="rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+                                className="rounded-md bg-primary px-4 py-2 text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                                 onClick={handleSubmit}
                                 disabled={isBusy}
                             >
@@ -492,23 +492,15 @@ export default function PYPCSMatrixTab() {
         );
     }
 
-    return (
-        <div className="h-[calc(100vh-80px)] overflow-y-auto p-4 pb-10">
-            <div className="mb-4">
-                <h2 className="text-xl font-semibold">Quality Matrix</h2>
-                <p className="text-sm text-muted-foreground">
-                    Select modules to enable required questions or review
-                    submitted events.
-                </p>
-            </div>
-
-            <div className="mb-4 flex gap-2">
+    const modeSwitch = (
+        <div className="flex shrink-0 gap-2">
                 <button
                     type="button"
-                    className={`rounded-md border px-3 py-2 text-sm ${
+                    aria-pressed={activeMode === 'matrix'}
+                    className={`rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring ${
                         activeMode === 'matrix'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-card'
                     }`}
                     onClick={() => setActiveMode('matrix')}
                 >
@@ -517,25 +509,31 @@ export default function PYPCSMatrixTab() {
 
                 <button
                     type="button"
-                    className={`rounded-md border px-3 py-2 text-sm ${
+                    aria-pressed={activeMode === 'review'}
+                    className={`rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring ${
                         activeMode === 'review'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-card'
                     }`}
                     onClick={() => setActiveMode('review')}
                 >
                     Review Submissions
                 </button>
-            </div>
+        </div>
+    );
 
+    return (
+        <div className="p-4 md:flex md:h-full md:min-h-0 md:flex-col md:overflow-hidden">
             {activeMode === 'review' ? (
                 <PYPCSSubmissionsReview
                     onContinueEditing={handleContinueEditing}
+                    modeSwitch={modeSwitch}
                 />
             ) : activeMode === 'matrix' ? (
                 <PYPCSMatrixSubmission
                     resumeSubmission={resumeSubmission}
                     onResumeHandled={() => setResumeSubmission(null)}
+                    modeSwitch={modeSwitch}
                 />
             ) : (
                 renderCreateSubmission()

@@ -1,8 +1,9 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
-import { ListChecksIcon, PencilIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { ArrowDown, ArrowDownUp, ArrowUp, ListChecksIcon, PencilIcon, PlusIcon, SearchIcon } from 'lucide-react';
 
 import { useGetActionItemsQuery } from '@/app/api/pypcsActionItemsApi';
+import ClientPagination from '@/shared/components/data-table/ClientPagination';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -31,9 +32,18 @@ const applicability = [
 ];
 
 function TextCell({ value }) {
+    const [expanded, setExpanded] = useState(false);
+    const longText = String(value ?? '').length > 120;
     return (
-        <div className="max-h-24 max-w-64 min-w-36 overflow-y-auto whitespace-pre-line break-words">
-            {value || <span className="text-muted-foreground">-</span>}
+        <div className="min-w-0 [overflow-wrap:anywhere]">
+            <div className={`whitespace-pre-line ${longText && !expanded ? 'line-clamp-3' : ''}`}>
+                {value || <span className="text-muted-foreground">-</span>}
+            </div>
+            {longText && <button type="button" aria-expanded={expanded}
+                className="mt-1 text-primary underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                onClick={() => setExpanded(!expanded)}>
+                {expanded ? 'Show less' : 'Show more'}
+            </button>}
         </div>
     );
 }
@@ -46,7 +56,7 @@ function BadgesCell({ values, comment }) {
                     <Badge
                         key={value}
                         variant={value === 'All' || value === 'NA' ? 'secondary' : 'outline'}
-                        className="max-w-full whitespace-normal break-words text-left"
+                        className="max-w-full whitespace-normal border-primary/30 bg-primary/5 text-left text-foreground [overflow-wrap:anywhere]"
                     >
                         {value}
                     </Badge>
@@ -64,11 +74,21 @@ function BadgesCell({ values, comment }) {
 }
 
 const frozen = {
-    nbr: 'sticky left-0 z-10 w-16 min-w-16 bg-background',
-    event_id: 'sticky left-16 z-10 w-36 min-w-36 bg-background',
-    ar_follow_up: 'sticky left-52 z-10 w-36 min-w-36 bg-background',
-    actionable_item: 'sticky left-88 z-10 w-52 min-w-52 bg-background',
+    nbr: 'sticky z-10 bg-table-frozen group-hover:bg-table-hover',
+    event_id: 'sticky z-10 border-r-2 bg-table-frozen shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] group-hover:bg-table-hover lg:border-r lg:shadow-none',
+    ar_follow_up: 'lg:sticky lg:z-10 lg:bg-table-frozen lg:group-hover:bg-table-hover',
+    actionable_item: 'lg:sticky lg:z-10 lg:border-r-2 lg:bg-table-frozen lg:shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] lg:group-hover:bg-table-hover',
 };
+
+function columnStyle(column) {
+    const width = column.getSize();
+    return {
+        width,
+        minWidth: width,
+        maxWidth: width,
+        ...(frozen[column.id] ? { left: column.getStart() } : {}),
+    };
+}
 
 function TextValueCell({ getValue }) {
     return <TextCell value={getValue()} />;
@@ -149,10 +169,14 @@ function columnsFor() {
 }
 
 const columns = columnsFor();
+const sortableColumns = new Set(['nbr', 'event_id', 'actionable_item', 'owner', 'updated_at']);
 
 export default function View2Page() {
     const { data, isLoading, isError, refetch } = useGetActionItemsQuery();
     const [search, setSearch] = useState('');
+    const [sort, setSort] = useState({ key: 'nbr', direction: 'ascending' });
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
     const [activeItem, setActiveItem] = useState(undefined);
     const items = data?.items ?? EMPTY;
     const deferredSearch = useDeferredValue(search);
@@ -172,8 +196,20 @@ export default function View2Page() {
             : items,
         [items, searchIndex, term],
     );
+    const sorted = useMemo(() => [...filtered].sort((first, second) => {
+        const left = sort.key === 'updated_at' ? Date.parse(first.updated_at) || 0 : first[sort.key];
+        const right = sort.key === 'updated_at' ? Date.parse(second.updated_at) || 0 : second[sort.key];
+        const comparison = typeof left === 'number' && typeof right === 'number'
+            ? left - right : String(left ?? '').localeCompare(String(right ?? ''), undefined, { numeric: true });
+        return sort.direction === 'ascending' ? comparison : -comparison;
+    }), [filtered, sort]);
+    const currentPage = Math.min(page, Math.max(1, Math.ceil(sorted.length / pageSize)));
+    const visibleItems = useMemo(
+        () => sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+        [sorted, currentPage, pageSize],
+    );
     const table = useReactTable({
-        data: filtered,
+        data: visibleItems,
         columns,
         meta: { onEdit: setActiveItem },
         getRowId: (row) => String(row.nbr),
@@ -181,12 +217,27 @@ export default function View2Page() {
     });
     const rowModel = table.getRowModel();
 
+    function renderHeader(column) {
+        if (!sortableColumns.has(column.id)) return column.columnDef.header;
+        const direction = sort.key === column.id ? sort.direction : 'none';
+        const Icon = direction === 'ascending' ? ArrowUp : direction === 'descending' ? ArrowDown : ArrowDownUp;
+        return (
+            <button type="button" className="inline-flex items-center gap-1 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                onClick={() => {
+                    setSort({ key: column.id, direction: direction === 'ascending' ? 'descending' : 'ascending' });
+                    setPage(1);
+                }}>
+                {column.columnDef.header}<Icon aria-hidden="true" className="size-4 shrink-0" />
+            </button>
+        );
+    }
+
     return (
         <div className="flex min-w-0 flex-col gap-5 p-4 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h2 className="flex items-center gap-2 text-xl font-semibold">
-                        <ListChecksIcon className="size-5 text-slate-600" /> View 2
+                        <ListChecksIcon className="size-5 text-primary" /> View 2
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                         PYPCS action items · {isLoading ? 'Loading' : `${data?.count ?? items.length} items`}
@@ -204,10 +255,11 @@ export default function View2Page() {
                     aria-label="Search action items"
                     placeholder="Search action items"
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={(event) => { setSearch(event.target.value); setPage(1); }}
                     className="pl-9"
                 />
             </div>
+            <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{filtered.length} action items found</span>
 
             {isError ? (
                 <div role="alert" className="rounded-md border border-destructive/30 p-5 text-sm text-destructive">
@@ -225,31 +277,37 @@ export default function View2Page() {
                 </div>
             ) : (
                 <div className={`max-h-[72vh] min-w-0 max-w-full overflow-auto rounded-md border ${scrollbarClassName}`}>
-                    <Table style={{ width: table.getTotalSize() }} className="table-fixed border-collapse text-sm">
-                        <TableHeader className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-900">
-                            <TableRow className="h-10 border-b">
+                    <Table style={{ width: table.getTotalSize() }} className="table-fixed border-separate border-spacing-0 text-sm">
+                        <colgroup>
+                            {table.getAllLeafColumns().map((column) => (
+                                <col key={column.id} style={{ width: column.getSize() }} />
+                            ))}
+                        </colgroup>
+                        <TableHeader className="sticky top-0 z-20 bg-table-header text-table-header-foreground">
+                            <TableRow className="h-10 border-b bg-table-header hover:bg-table-header">
                                 {table.getAllLeafColumns().slice(0, 6).map((column) => (
                                     <TableHead
                                         key={column.id}
                                         rowSpan={2}
-                                        style={{ width: column.getSize() }}
-                                        className={`align-middle font-semibold text-slate-700 dark:text-slate-200 ${frozen[column.id] || ''} ${frozen[column.id] ? '!z-30 !bg-slate-100 dark:!bg-slate-900' : ''}`}
+                                        aria-sort={sortableColumns.has(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined}
+                                        style={columnStyle(column)}
+                                        className={`border-b border-r align-middle font-semibold text-table-header-foreground ${frozen[column.id] || ''} ${frozen[column.id] ? '!z-30 !bg-table-header' : ''}`}
                                     >
-                                        {column.columnDef.header}
+                                        {renderHeader(column)}
                                     </TableHead>
                                 ))}
-                                <TableHead colSpan={7} className="border-x text-center font-semibold text-slate-700 dark:text-slate-200">
+                                <TableHead colSpan={7} className="border-b border-r bg-table-subheader text-center font-semibold text-table-subheader-foreground">
                                     Applicability (Quality Matrix questions)
                                 </TableHead>
                                 {table.getAllLeafColumns().slice(13).map((column) => (
-                                    <TableHead key={column.id} rowSpan={2} style={{ width: column.getSize() }} className="align-middle font-semibold text-slate-700 dark:text-slate-200">
-                                        {column.columnDef.header}
+                                    <TableHead key={column.id} rowSpan={2} aria-sort={sortableColumns.has(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined} style={columnStyle(column)} className="border-b border-r align-middle font-semibold text-table-header-foreground">
+                                        {renderHeader(column)}
                                     </TableHead>
                                 ))}
                             </TableRow>
-                            <TableRow className="h-10 border-b">
+                            <TableRow className="h-10 border-b bg-table-header hover:bg-table-header">
                                 {table.getAllLeafColumns().slice(6, 13).map((column) => (
-                                    <TableHead key={column.id} style={{ width: column.getSize() }} className="border-l font-semibold text-slate-700 dark:text-slate-200">
+                                    <TableHead key={column.id} style={columnStyle(column)} className="border-b border-r font-semibold text-table-header-foreground">
                                         {column.columnDef.header}
                                     </TableHead>
                                 ))}
@@ -258,12 +316,12 @@ export default function View2Page() {
                         <TableBody>
                             {rowModel.rows.length ? (
                                 rowModel.rows.map((row) => (
-                                    <TableRow key={row.id} className="group border-b hover:bg-slate-50 dark:hover:bg-slate-900">
+                                    <TableRow key={row.id} className="group even:bg-table-stripe hover:bg-table-hover">
                                         {row.getVisibleCells().map((cell) => (
                                             <TableCell
                                                 key={cell.id}
-                                                style={{ width: cell.column.getSize() }}
-                                                className={`align-top border-r py-3 ${frozen[cell.column.id] || ''} ${frozen[cell.column.id] ? 'group-hover:bg-slate-50 dark:group-hover:bg-slate-900' : ''}`}
+                                                style={columnStyle(cell.column)}
+                                                className={`border-b border-r py-3 align-top [overflow-wrap:anywhere] ${frozen[cell.column.id] || ''}`}
                                             >
                                                 {flexRender(cell.column.columnDef.cell ?? DefaultCell, cell.getContext())}
                                             </TableCell>
@@ -273,7 +331,9 @@ export default function View2Page() {
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={18} className="h-32 text-center text-muted-foreground">
-                                        {term ? 'No action items match your search.' : 'No action items yet.'}
+                                        {term ? <>No matching action items.{' '}
+                                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setPage(1); }}>Clear filters</Button>
+                                        </> : 'No action items yet.'}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -281,6 +341,9 @@ export default function View2Page() {
                     </Table>
                 </div>
             )}
+
+            {!isLoading && !isError && <ClientPagination label="Action items" total={sorted.length} page={currentPage}
+                pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
 
             {activeItem !== undefined && (
                 <ActionItemForm

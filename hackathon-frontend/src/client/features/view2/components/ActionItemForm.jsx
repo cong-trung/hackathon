@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,10 @@ import {
     useGetActionItemOptionsQuery,
     useUpdateActionItemMutation,
 } from '@/app/api/pypcsActionItemsApi';
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/shared/components/ui/alert-dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import {
@@ -267,6 +271,8 @@ function ApplicabilityField({ control, setValue, name, label, options }) {
 }
 
 export default function ActionItemForm({ item, onClose }) {
+    const [confirmDiscard, setConfirmDiscard] = useState(false);
+    const cancelRef = useRef(null);
     const { data: options, isLoading, isError, refetch } =
         useGetActionItemOptionsQuery();
     const form = useForm({
@@ -284,6 +290,12 @@ export default function ActionItemForm({ item, onClose }) {
     const [createItem, { isLoading: isCreating }] = useCreateActionItemMutation();
     const [updateItem, { isLoading: isUpdating }] = useUpdateActionItemMutation();
     const saving = isCreating || isUpdating;
+
+    function requestClose() {
+        if (saving) return;
+        if (isDirty) setConfirmDiscard(true);
+        else onClose();
+    }
 
     async function onSubmit(values) {
         const { owner_other, ...fields } = values;
@@ -315,8 +327,10 @@ export default function ActionItemForm({ item, onClose }) {
     }
 
     return (
-        <Dialog open onOpenChange={(open) => !open && !saving && onClose()}>
-            <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-3xl flex-col overflow-hidden p-0">
+        <Dialog open onOpenChange={(open) => !open && requestClose()}>
+            <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-3xl flex-col overflow-hidden p-0"
+                onInteractOutside={(event) => { if (confirmDiscard) event.preventDefault(); }}
+                onEscapeKeyDown={(event) => { if (confirmDiscard) event.preventDefault(); }}>
                 <DialogHeader className="px-6 pt-6 pr-12">
                     <DialogTitle>
                         {item ? `Edit item NBr# ${item.nbr}` : 'Add new item'}
@@ -442,7 +456,7 @@ export default function ActionItemForm({ item, onClose }) {
                                 />
                             </div>
                             <div className="flex justify-end gap-2 border-t px-6 py-4">
-                                <Button type="button" variant="outline" disabled={saving} onClick={onClose}>
+                                <Button ref={cancelRef} type="button" variant="outline" disabled={saving} onClick={requestClose}>
                                     Cancel
                                 </Button>
                                 <Button type="submit" disabled={saving || isLoading || isError}>
@@ -453,6 +467,21 @@ export default function ActionItemForm({ item, onClose }) {
                     </Form>
                 )}
             </DialogContent>
+            <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+                <AlertDialogContent onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    cancelRef.current?.focus();
+                }}>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+                        <AlertDialogDescription>Your changes will be lost.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Keep editing</AlertDialogCancel>
+                        <AlertDialogAction onClick={onClose}>Discard</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Dialog>
     );
 }

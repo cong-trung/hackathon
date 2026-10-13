@@ -142,8 +142,8 @@ def update_pypcs_product_action_matrix_row(payload: Any = Body(...)):
                 "updated_at": timestamp,
             }
 
-    rebuild_product_action_matrix(decision_updates)
-    updated = get_product_action_matrix(module_group)
+    rebuild_product_action_matrix(decision_updates, built)
+    updated = get_product_action_matrix(module_group, built)
     return next(
         row
         for row in updated["rows"]
