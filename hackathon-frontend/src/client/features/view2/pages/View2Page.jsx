@@ -74,9 +74,9 @@ function BadgesCell({ values, comment }) {
 }
 
 const frozen = {
-    nbr: 'sticky z-10 bg-table-frozen group-hover:bg-table-hover',
-    event_id: 'sticky z-10 border-r-2 bg-table-frozen shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] group-hover:bg-table-hover lg:border-r lg:shadow-none',
-    ar_follow_up: 'lg:sticky lg:z-10 lg:bg-table-frozen lg:group-hover:bg-table-hover',
+    actions: 'sticky z-10 bg-table-frozen group-hover:bg-table-hover',
+    nbr: 'sticky z-10 border-r-2 bg-table-frozen shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] group-hover:bg-table-hover lg:border-r lg:shadow-none',
+    event_id: 'lg:sticky lg:z-10 lg:bg-table-frozen lg:group-hover:bg-table-hover',
     actionable_item: 'lg:sticky lg:z-10 lg:border-r-2 lg:bg-table-frozen lg:shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] lg:group-hover:bg-table-hover',
 };
 
@@ -117,10 +117,11 @@ function ActionCell({ row, table }) {
             type="button"
             size="sm"
             variant="outline"
+            className="gap-1 px-2"
+            aria-label={`Edit item NBr# ${row.original.nbr}`}
             onClick={() => table.options.meta.onEdit(row.original)}
         >
-            <PencilIcon className="mr-1 size-3.5" /> Edit
-            <span className="sr-only"> item NBr# {row.original.nbr}</span>
+            <PencilIcon aria-hidden="true" className="mr-1 size-3.5" /> Edit
         </Button>
     );
 }
@@ -138,9 +139,14 @@ function columnsFor() {
     });
 
     return [
+        {
+            id: 'actions',
+            header: <span className="sr-only">Actions</span>,
+            size: 80,
+            cell: ActionCell,
+        },
         { accessorKey: 'nbr', header: 'NBr#', size: 64 },
         text('event_id', 'Event ID', 144),
-        text('ar_follow_up', 'AR follow up', 144),
         text('actionable_item', 'Actionable item', 208),
         text('reference', 'Reference', 240),
         text('description', 'Description', 240),
@@ -158,12 +164,6 @@ function columnsFor() {
             header: 'Updated at',
             size: 180,
             cell: UpdatedAtCell,
-        },
-        {
-            id: 'actions',
-            header: 'Actions',
-            size: 100,
-            cell: ActionCell,
         },
     ];
 }
@@ -216,6 +216,9 @@ export default function View2Page() {
         getCoreRowModel: getCoreRowModel(),
     });
     const rowModel = table.getRowModel();
+    const leafColumns = table.getAllLeafColumns();
+    const applicabilityStart = leafColumns.findIndex((column) => column.id === applicability[0][0]);
+    const applicabilityEnd = applicabilityStart + applicability.length;
 
     function renderHeader(column) {
         if (!sortableColumns.has(column.id)) return column.columnDef.header;
@@ -233,7 +236,7 @@ export default function View2Page() {
     }
 
     return (
-        <div className="flex min-w-0 flex-col gap-5 p-4 sm:p-6">
+        <div className="flex min-w-0 flex-col gap-5 p-4 sm:p-6 md:h-full md:min-h-0 md:overflow-hidden">
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h2 className="flex items-center gap-2 text-xl font-semibold">
@@ -276,16 +279,16 @@ export default function View2Page() {
                     ))}
                 </div>
             ) : (
-                <div className={`max-h-[72vh] min-w-0 max-w-full overflow-auto rounded-md border ${scrollbarClassName}`}>
+                <div className={`min-h-[320px] min-w-0 max-w-full overflow-auto rounded-md border md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
                     <Table style={{ width: table.getTotalSize() }} className="table-fixed border-separate border-spacing-0 text-sm">
                         <colgroup>
-                            {table.getAllLeafColumns().map((column) => (
+                            {leafColumns.map((column) => (
                                 <col key={column.id} style={{ width: column.getSize() }} />
                             ))}
                         </colgroup>
                         <TableHeader className="sticky top-0 z-20 bg-table-header text-table-header-foreground">
                             <TableRow className="h-10 border-b bg-table-header hover:bg-table-header">
-                                {table.getAllLeafColumns().slice(0, 6).map((column) => (
+                                {leafColumns.slice(0, applicabilityStart).map((column) => (
                                     <TableHead
                                         key={column.id}
                                         rowSpan={2}
@@ -296,17 +299,17 @@ export default function View2Page() {
                                         {renderHeader(column)}
                                     </TableHead>
                                 ))}
-                                <TableHead colSpan={7} className="border-b border-r bg-table-subheader text-center font-semibold text-table-subheader-foreground">
+                                <TableHead colSpan={applicability.length} className="border-b border-r bg-table-subheader text-center font-semibold text-table-subheader-foreground">
                                     Applicability (Quality Matrix questions)
                                 </TableHead>
-                                {table.getAllLeafColumns().slice(13).map((column) => (
+                                {leafColumns.slice(applicabilityEnd).map((column) => (
                                     <TableHead key={column.id} rowSpan={2} aria-sort={sortableColumns.has(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined} style={columnStyle(column)} className="border-b border-r align-middle font-semibold text-table-header-foreground">
                                         {renderHeader(column)}
                                     </TableHead>
                                 ))}
                             </TableRow>
                             <TableRow className="h-10 border-b bg-table-header hover:bg-table-header">
-                                {table.getAllLeafColumns().slice(6, 13).map((column) => (
+                                {leafColumns.slice(applicabilityStart, applicabilityEnd).map((column) => (
                                     <TableHead key={column.id} style={columnStyle(column)} className="border-b border-r font-semibold text-table-header-foreground">
                                         {column.columnDef.header}
                                     </TableHead>
@@ -321,7 +324,7 @@ export default function View2Page() {
                                             <TableCell
                                                 key={cell.id}
                                                 style={columnStyle(cell.column)}
-                                                className={`border-b border-r py-3 align-top [overflow-wrap:anywhere] ${frozen[cell.column.id] || ''}`}
+                                                className={`border-b border-r py-3 align-top [overflow-wrap:anywhere] ${cell.column.id === 'actions' ? 'px-1' : ''} ${frozen[cell.column.id] || ''}`}
                                             >
                                                 {flexRender(cell.column.columnDef.cell ?? DefaultCell, cell.getContext())}
                                             </TableCell>
@@ -330,7 +333,7 @@ export default function View2Page() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={18} className="h-32 text-center text-muted-foreground">
+                                    <TableCell colSpan={leafColumns.length} className="h-32 text-center text-muted-foreground">
                                         {term ? <>No matching action items.{' '}
                                             <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setPage(1); }}>Clear filters</Button>
                                         </> : 'No action items yet.'}

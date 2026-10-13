@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { ArrowDown, ArrowDownUp, ArrowUp, DownloadIcon, Grid3x3Icon, PencilIcon, SearchIcon } from 'lucide-react';
+import { ArrowDown, ArrowDownUp, ArrowUp, CircleAlert, CircleCheck, DownloadIcon, Grid3x3Icon, PencilIcon, PencilLine, SearchIcon } from 'lucide-react';
 
 import { useGetProductActionMatrixQuery } from '@/app/api/productActionMatrixApi';
 import ClientPagination from '@/shared/components/data-table/ClientPagination';
@@ -50,12 +50,30 @@ function displayValue(value) {
     return value?.replaceAll('|', ', ') || '—';
 }
 
-function rowNeedsReview(row, actions) {
-    return actions.some((action) => !row.cells?.[action.nbr]?.status || row.cells?.[action.nbr]?.decision_state === 'draft');
+function reviewStatus(row, actions) {
+    if (actions.some((action) => !row.cells?.[action.nbr]?.status)) return 'needs_review';
+    if (actions.some((action) => row.cells?.[action.nbr]?.decision_state === 'draft')) return 'draft';
+    return 'reviewed';
 }
 
+function rowNeedsReview(row, actions) {
+    return reviewStatus(row, actions) !== 'reviewed';
+}
+
+const reviewBadges = {
+    needs_review: { label: 'Needs review', Icon: CircleAlert, color: 'border-status-warning-foreground bg-status-warning text-status-warning-foreground' },
+    draft: { label: 'In draft', Icon: PencilLine, color: 'border-status-info-foreground bg-status-info text-status-info-foreground' },
+    reviewed: { label: 'Reviewed', Icon: CircleCheck, color: 'border-status-success-foreground bg-status-success text-status-success-foreground' },
+};
+
 function ReviewStatusCell({ row }) {
-    return row.original.needsReview ? 'Needs review' : 'Reviewed';
+    const { label, Icon, color } = reviewBadges[row.original.reviewStatus];
+    return (
+        <Badge variant="outline" className={`gap-1 whitespace-nowrap px-1.5 py-0.5 text-[11px] ${color}`}>
+            <Icon aria-hidden="true" className="size-3 shrink-0" />
+            {label}
+        </Badge>
+    );
 }
 
 function ProductCell({ row, table }) {
@@ -172,10 +190,11 @@ export default function View3Page() {
             .some((value) => value?.toLowerCase().includes(term));
         return matches && (!needsReview || rowNeedsReview(row, actions));
     }), [rows, actions, term, needsReview]);
-    const sortedRows = useMemo(() => visibleRows.map((row) => ({ ...row, needsReview: rowNeedsReview(row, actions) }))
+    const sortedRows = useMemo(() => visibleRows.map((row) => ({ ...row, reviewStatus: reviewStatus(row, actions) }))
         .sort((first, second) => {
             const comparison = sort.key === 'review_status'
-                ? Number(first.needsReview) - Number(second.needsReview)
+                ? ['needs_review', 'draft', 'reviewed'].indexOf(first.reviewStatus)
+                    - ['needs_review', 'draft', 'reviewed'].indexOf(second.reviewStatus)
                 : String(first[sort.key] ?? '').localeCompare(String(second[sort.key] ?? ''), undefined, { numeric: true });
             return sort.direction === 'ascending' ? comparison : -comparison;
         }), [visibleRows, actions, sort]);
@@ -213,7 +232,7 @@ export default function View3Page() {
 
     return (
         <TooltipProvider>
-            <div className="flex min-w-0 flex-col gap-5 p-4 sm:p-6">
+            <div className="flex min-w-0 flex-col gap-5 p-4 sm:p-6 md:h-full md:min-h-0 md:overflow-hidden">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <h2 className="flex items-center gap-2 text-xl font-semibold"><Grid3x3Icon className="size-5 text-primary" /> View 3</h2>
@@ -265,7 +284,7 @@ export default function View3Page() {
                         {[1, 2, 3, 4].map((index) => <Skeleton key={index} className="h-14 w-full" />)}
                     </div>
                 ) : (
-                    <div aria-busy={query.isFetching} className={`max-h-[72vh] min-w-0 max-w-full overflow-auto rounded-md border ${scrollbarClassName}`}>
+                    <div aria-busy={query.isFetching} className={`min-h-[320px] min-w-0 max-w-full overflow-auto rounded-md border md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
                         {query.isFetching && <p className="sr-only" role="status">Updating matrix</p>}
                         <Table style={{ width: table.getTotalSize() }} className="table-fixed border-separate border-spacing-0 text-xs">
                             <colgroup>

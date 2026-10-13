@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownUp, ArrowDown, ArrowUp } from 'lucide-react';
 import ClientPagination from '@/shared/components/data-table/ClientPagination';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/shared/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 
 const API_BASE = '/api';
@@ -49,9 +56,13 @@ function displayAnswer(questionId, answer) {
 
 export default function PYPCSSubmissionsReview({
     onContinueEditing = () => {},
+    modeSwitch,
 } = {}) {
     const [submissions, setSubmissions] = useState([]);
     const [selectedDetail, setSelectedDetail] = useState(null);
+    const detailTrigger = useRef(null);
+    const refreshButton = useRef(null);
+    const [listError, setListError] = useState(false);
     const [loading, setLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState('');
     const [statusKind, setStatusKind] = useState('success');
@@ -88,7 +99,7 @@ export default function PYPCSSubmissionsReview({
         const direction = sort.key === key ? sort.direction : 'none';
         const Icon = direction === 'ascending' ? ArrowUp : direction === 'descending' ? ArrowDown : ArrowDownUp;
         return (
-            <th scope="col" aria-sort={direction} className="p-3 text-table-header-foreground">
+            <th scope="col" aria-sort={direction} className="sticky top-0 z-10 bg-table-header p-3 text-table-header-foreground">
                 <button type="button" onClick={() => changeSort(key)}
                     className="inline-flex items-center gap-1 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
                     {label}<Icon aria-hidden="true" className="size-4 shrink-0" />
@@ -108,8 +119,10 @@ export default function PYPCSSubmissionsReview({
         try {
             const result = await requestJson('/pypcs/submissions');
             setSubmissions(result.items || []);
+            setListError(false);
             return true;
         } catch (error) {
+            setListError(true);
             setStatusKind('error');
             setStatusMessage(`Failed to load submissions: ${error.message}`);
             return false;
@@ -129,6 +142,7 @@ export default function PYPCSSubmissionsReview({
 
             setSelectedDetail(result);
         } catch (error) {
+            detailTrigger.current = null;
             setStatusKind('error');
             setStatusMessage(
                 `Failed to load submission detail: ${error.message}`,
@@ -299,7 +313,7 @@ export default function PYPCSSubmissionsReview({
         }
 
         return (
-            <div className="mt-4 max-h-[420px] overflow-y-auto rounded-md border">
+            <div className="mt-4 overflow-x-auto rounded-md border">
                 <table className="w-full text-sm">
                     <thead className="bg-table-header text-left text-table-header-foreground">
                         <tr>
@@ -342,33 +356,26 @@ export default function PYPCSSubmissionsReview({
         const hasAnswers = (selectedDetail.answers || []).length > 0;
 
         return (
-            <div className="rounded-md border bg-card p-4">
-                <div className="mb-3 flex items-start justify-between">
-                    <div>
-                        <h3 className="text-lg font-semibold">
-                            Submission Detail
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                            ID: {selectedDetail.submission?.submission_id}
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
+            <div>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {selectedDetail.submission?.status === 'draft' ? (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => onContinueEditing(selectedDetail.submission.submission_id)}
+                            >
+                                Continue Editing
+                            </Button>
+                        ) : null}
                         {renderDeleteControl(
                             selectedDetail.submission?.submission_id,
                         )}
-
-                        <button
-                            type="button"
-                            className="rounded-md border px-3 py-1 text-sm"
-                            onClick={() => setSelectedDetail(null)}
-                        >
-                            Close
-                        </button>
                     </div>
                 </div>
 
-                <div className="mb-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="mb-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     <div>
                         <span className="font-medium">Status:</span>{' '}
                         {selectedDetail.submission?.status === 'draft'
@@ -413,82 +420,91 @@ export default function PYPCSSubmissionsReview({
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-xl font-semibold">
-                        PYPCS Submitted Events
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        ME can review submissions created by TI.
-                    </p>
-                </div>
-
-                <button
-                    type="button"
-                    className="rounded-md border px-3 py-2 text-sm"
-                    onClick={loadSubmissions}
-                    disabled={loading}
-                >
-                    Refresh
-                </button>
-            </div>
-
-            <div role="status" aria-live="polite" className="text-sm">
-                {loading ? 'Working...' : statusKind === 'success' ? statusMessage : ''}
-            </div>
-            <div role="alert" className="text-sm text-destructive">
-                {statusKind === 'error' ? statusMessage : ''}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-                <Input type="search" aria-label="Search submissions" placeholder="Search submissions"
-                    className="w-full max-w-sm" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} />
-                {statuses.length > 0 && (
+        <div className="flex min-w-0 flex-col gap-3 md:min-h-0 md:flex-1 md:overflow-hidden">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <h1 className="mr-2 text-lg font-semibold">Quality Matrix</h1>
+                {modeSwitch}
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                    <label htmlFor="review-search" className="text-sm font-medium">
+                        Search
+                    </label>
+                    <Input
+                        id="review-search"
+                        type="search"
+                        placeholder="Search submissions"
+                        className="w-44 sm:w-52"
+                        value={search}
+                        onChange={(event) => {
+                            setSearch(event.target.value);
+                            setPage(1);
+                        }}
+                    />
+                    <label htmlFor="review-status" className="text-sm font-medium">
+                        Status
+                    </label>
                     <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPage(1); }}>
-                        <SelectTrigger aria-label="Filter submissions by status" className="w-44"><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="review-status" className="w-36"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {statuses.map((status) => <SelectItem key={status} value={status}>{status === 'draft' ? 'Draft' : status === 'final' ? 'Final' : status}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                )}
-                <span role="status" aria-live="polite" className="text-sm text-muted-foreground">
-                    {filtered.length} submissions found
-                </span>
+                    <span role="status" aria-live="polite" className="whitespace-nowrap text-sm text-muted-foreground">
+                        {filtered.length} submissions found
+                    </span>
+                    <Button
+                        ref={refreshButton}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={loadSubmissions}
+                        disabled={loading}
+                    >
+                        Refresh
+                    </Button>
+                </div>
             </div>
-            <div className="overflow-hidden rounded-md border bg-card">
-                <div className="overflow-x-auto">
-                <table className="w-full min-w-[64rem] text-sm">
-                    <thead className="bg-table-header text-left text-table-header-foreground">
+
+            {(loading || statusMessage) ? (
+                <div className="shrink-0 text-sm" role={statusKind === 'error' && statusMessage ? 'alert' : 'status'} aria-live="polite">
+                    {statusMessage.length > 180 ? (
+                        <details className={statusKind === 'error' ? 'text-destructive' : ''}>
+                            <summary className="cursor-pointer">{statusKind === 'error' ? 'Request failed. Show details' : 'Show message'}</summary>
+                            <p className="mt-1 whitespace-pre-wrap break-words">{statusMessage}</p>
+                        </details>
+                    ) : (
+                        <span className={statusKind === 'error' ? 'text-destructive' : ''}>
+                            {loading ? 'Working... ' : ''}{statusMessage}
+                        </span>
+                    )}
+                </div>
+            ) : null}
+
+            <div className="min-h-[320px] min-w-0 overflow-auto rounded-md border bg-card md:min-h-0 md:flex-1">
+                {visibleSubmissions.length === 0 ? (
+                    <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted-foreground">
+                        <p>{loading ? 'Loading submissions...' : listError
+                            ? 'Unable to load submissions.' : submissions.length === 0
+                                ? 'No submissions found.' : 'No matching submissions.'}</p>
+                        {!loading && submissions.length > 0 && !filtered.length ? (
+                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setPage(1); }}>Clear filters</Button>
+                        ) : null}
+                    </div>
+                ) : (
+                    <table className="w-full min-w-[64rem] text-sm">
+                    <thead className="text-left text-table-header-foreground">
                         <tr>
                             {sortHeader('created_at', 'Created At')}
                             {sortHeader('status', 'Status')}
                             {sortHeader('product_name', 'Product')}
                             {sortHeader('prodgroup3', 'ProdGroup3')}
-                            <th className="p-3">Operation</th>
-                            <th className="p-3">Modules</th>
-                            <th className="p-3">Role</th>
-                            <th className="p-3">Submitted By</th>
-                            <th className="p-3">Action</th>
+                            {['Operation', 'Modules', 'Role', 'Submitted By', 'Action'].map((label) => (
+                                <th key={label} scope="col" className="sticky top-0 z-10 bg-table-header p-3">{label}</th>
+                            ))}
                         </tr>
                     </thead>
 
                     <tbody>
-                        {visibleSubmissions.length === 0 ? (
-                            <tr>
-                                <td
-                                    className="p-3 text-muted-foreground"
-                                    colSpan={9}
-                                >
-                                    {loading ? 'Loading submissions...' : submissions.length === 0
-                                        ? 'No submissions found.' : <>No matching submissions.{' '}
-                                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setPage(1); }}>Clear filters</Button>
-                                        </>}
-                                </td>
-                            </tr>
-                        ) : null}
-
                         {visibleSubmissions.map((item) => {
                             const isDraft = item.status === 'draft';
 
@@ -526,11 +542,10 @@ export default function PYPCSSubmissionsReview({
                                             <button
                                                 type="button"
                                                 className="rounded-md bg-primary px-3 py-1 text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                                                onClick={() =>
-                                                    loadSubmissionDetail(
-                                                        item.submission_id,
-                                                    )
-                                                }
+                                                onClick={(event) => {
+                                                    detailTrigger.current = event.currentTarget;
+                                                    loadSubmissionDetail(item.submission_id);
+                                                }}
                                             >
                                                 View
                                             </button>
@@ -558,14 +573,45 @@ export default function PYPCSSubmissionsReview({
                             );
                         })}
                     </tbody>
-                </table>
-                </div>
+                    </table>
+                )}
             </div>
 
             <ClientPagination label="Submissions" total={sorted.length} page={currentPage} pageSize={pageSize}
                 onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
 
-            {renderSubmissionDetail()}
+            <Sheet
+                open={Boolean(selectedDetail)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedDetail(null);
+                        setPendingDeleteId(null);
+                    }
+                }}
+            >
+                <SheetContent
+                    side="right"
+                    className="flex w-full max-w-none flex-col overflow-hidden p-4 sm:w-[min(90vw,60rem)] sm:max-w-none"
+                    onCloseAutoFocus={(event) => {
+                        event.preventDefault();
+                        const target = detailTrigger.current?.isConnected
+                            ? detailTrigger.current
+                            : refreshButton.current;
+                        target?.focus();
+                        detailTrigger.current = null;
+                    }}
+                >
+                    <SheetHeader className="shrink-0 pr-8 text-left">
+                        <SheetTitle>Submission Detail</SheetTitle>
+                        <SheetDescription>
+                            ID: {selectedDetail?.submission?.submission_id}
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="min-h-0 flex-1 overflow-auto">
+                        {renderSubmissionDetail()}
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
-import { ChevronsUpDown, X } from 'lucide-react';
+import { ChevronsUpDown, Info, X } from 'lucide-react';
 
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
@@ -26,7 +26,7 @@ const labelColumn = { width: 256, minWidth: 256, maxWidth: 256, left: 48 };
 // Editing the first selected module's answer auto-fills the rest of the row.
 const AUTO_FILL_FROM_FIRST_QUESTION_IDS = new Set(['nsb']);
 
-// These fields are the same across every module, so render one shared input per row.
+// Shared answers expand to every applicable selected module on save.
 const SHARED_ACROSS_MODULES_QUESTION_IDS = new Set([
     'product_name',
     'implementation_stage',
@@ -64,7 +64,54 @@ function getCellKey(questionId, moduleKey) {
 
 function isQuestionApplicableToModule(question, moduleKey) {
     return Array.isArray(question.applies_to)
-        && question.applies_to.includes(moduleKey);
+        && question.applies_to.some(
+            (key) => key.toUpperCase() === moduleKey.toUpperCase(),
+        );
+}
+
+function getFirstAnswerForQuestion(question, selectedModules, cells) {
+    for (const moduleKey of selectedModules) {
+        if (!isQuestionApplicableToModule(question, moduleKey)) {
+            continue;
+        }
+
+        const value = cells[getCellKey(question.question_id, moduleKey)];
+        if (value && String(value).trim() !== '') {
+            return value;
+        }
+    }
+
+    return '';
+}
+
+function expandMatrixCells(questions, selectedModules, cells) {
+    const expanded = { ...cells };
+
+    questions.forEach((question) => {
+        const shared = SHARED_ACROSS_MODULES_QUESTION_IDS.has(question.question_id);
+        const autoFill = AUTO_FILL_FROM_FIRST_QUESTION_IDS.has(question.question_id);
+
+        if (!shared && !autoFill) {
+            return;
+        }
+
+        const value = shared
+            ? getFirstAnswerForQuestion(question, selectedModules, cells)
+            : cells[getCellKey(question.question_id, selectedModules[0])] || '';
+
+        selectedModules.forEach((moduleKey) => {
+            if (!isQuestionApplicableToModule(question, moduleKey)) {
+                return;
+            }
+
+            const cellKey = getCellKey(question.question_id, moduleKey);
+            if (shared || (value && !expanded[cellKey])) {
+                expanded[cellKey] = value;
+            }
+        });
+    });
+
+    return expanded;
 }
 
 function OperationInput({ options, value, onChange, label, errorId, invalid }) {
@@ -194,6 +241,7 @@ function OperationInput({ options, value, onChange, label, errorId, invalid }) {
 export default function PYPCSMatrixSubmission({
     resumeSubmission = null,
     onResumeHandled = () => {},
+    modeSwitch,
 } = {}) {
     const [modules, setModules] = useState([]);
     const [selectedModules, setSelectedModules] = useState([]);
@@ -210,12 +258,22 @@ export default function PYPCSMatrixSubmission({
     const [submissionStatus, setSubmissionStatus] = useState(null);
     const [editingDescriptionId, setEditingDescriptionId] = useState(null);
     const [descriptionDrafts, setDescriptionDrafts] = useState({});
+    const [modulesOpen, setModulesOpen] = useState(false);
 
     const sortedModules = useMemo(() => {
         return [...modules].sort((a, b) => {
             return Number(a.sort_order || 0) - Number(b.sort_order || 0);
         });
     }, [modules]);
+    const selectedModuleDetails = sortedModules.filter((module) =>
+        selectedModules.includes(module.module_key),
+    );
+    const sharedQuestions = questions.filter((question) =>
+        SHARED_ACROSS_MODULES_QUESTION_IDS.has(question.question_id),
+    );
+    const tableQuestions = questions.filter((question) =>
+        !SHARED_ACROSS_MODULES_QUESTION_IDS.has(question.question_id),
+    );
 
     function backendRole(currentRole) {
         return currentRole === 'ALL' ? null : currentRole;
@@ -240,6 +298,19 @@ export default function PYPCSMatrixSubmission({
         try {
             const result = await requestJson('/pypcs/modules');
             setModules(result.items || []);
+            const availableModules = (result.items || [])
+                .filter((module) => module.enabled_default)
+                .map((module) => module.module_key);
+            if (availableModules.length) {
+                const preview = await requestJson('/pypcs/visible-questions', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        selected_modules: availableModules,
+                        role: 'TI',
+                    }),
+                });
+                setQuestions((previous) => previous.length ? previous : preview.items || []);
+            }
         } catch (error) {
             setStatusKind('error');
             setModuleLoadError(true);
@@ -255,10 +326,12 @@ export default function PYPCSMatrixSubmission({
 
     async function refreshQuestions(nextSelectedModules, nextRole = role) {
         if (nextSelectedModules.length === 0) {
-            setQuestions([]);
             setCells({});
             setErrors({});
-            return;
+            if (!modules.some((module) => module.enabled_default)) {
+                setQuestions([]);
+                return;
+            }
         }
 
         setLoading(true);
@@ -268,12 +341,18 @@ export default function PYPCSMatrixSubmission({
             const result = await requestJson('/pypcs/visible-questions', {
                 method: 'POST',
                 body: JSON.stringify({
-                    selected_modules: nextSelectedModules,
+                    selected_modules: nextSelectedModules.length
+                        ? nextSelectedModules
+                        : modules.filter((module) => module.enabled_default)
+                            .map((module) => module.module_key),
                     role: backendRole(nextRole),
                 }),
             });
 
             setQuestions(result.items || []);
+            setCells((previousCells) => expandMatrixCells(
+                result.items || [], nextSelectedModules, previousCells,
+            ));
             setErrors({});
         } catch (error) {
             setStatusKind('error');
@@ -312,9 +391,16 @@ export default function PYPCSMatrixSubmission({
     }, [resumeSubmission]);
 
     async function handleModuleToggle(moduleKey) {
+        const addingModule = !selectedModules.includes(moduleKey);
         const nextSelectedModules = selectedModules.includes(moduleKey)
             ? selectedModules.filter((item) => item !== moduleKey)
             : [...selectedModules, moduleKey];
+
+        if (addingModule) {
+            setCells((previousCells) => expandMatrixCells(
+                questions, nextSelectedModules, previousCells,
+            ));
+        }
 
         setSelectedModules(nextSelectedModules);
         await refreshQuestions(nextSelectedModules);
@@ -432,19 +518,6 @@ export default function PYPCSMatrixSubmission({
         }
     }
 
-    function getFirstAnswerForQuestion(question) {
-        for (const moduleKey of selectedModules) {
-            const cellKey = getCellKey(question.question_id, moduleKey);
-            const value = cells[cellKey];
-
-            if (value && String(value).trim() !== '') {
-                return value;
-            }
-        }
-
-        return '';
-    }
-
     function validateTpNameLength() {
         const nextErrors = {};
 
@@ -473,6 +546,7 @@ export default function PYPCSMatrixSubmission({
 
     function validateMatrix() {
         const nextErrors = {};
+        const expandedCells = expandMatrixCells(questions, selectedModules, cells);
 
         questions.forEach((question) => {
             if (!question.required || question.question_id === 'operation') {
@@ -485,7 +559,7 @@ export default function PYPCSMatrixSubmission({
                 }
 
                 const cellKey = getCellKey(question.question_id, moduleKey);
-                const value = cells[cellKey];
+                const value = expandedCells[cellKey];
 
                 return value && String(value).trim() !== '';
             });
@@ -536,6 +610,7 @@ export default function PYPCSMatrixSubmission({
 
     function collectSubmittedCells() {
         const submittedCells = [];
+        const expandedCells = expandMatrixCells(questions, selectedModules, cells);
 
         questions.forEach((question) => {
             selectedModules.forEach((moduleKey) => {
@@ -548,7 +623,7 @@ export default function PYPCSMatrixSubmission({
                 }
 
                 const cellKey = getCellKey(question.question_id, moduleKey);
-                const answer = cells[cellKey] || '';
+                const answer = expandedCells[cellKey] || '';
 
                 if (!answer || String(answer).trim() === '') {
                     return;
@@ -563,6 +638,75 @@ export default function PYPCSMatrixSubmission({
         });
 
         return submittedCells;
+    }
+
+    function showSaveError(error) {
+        let detail;
+
+        try {
+            detail = JSON.parse(error.message)?.detail;
+        } catch {
+            detail = error.message;
+        }
+
+        const missing = Array.isArray(detail?.missing_required)
+            ? detail.missing_required : [];
+        const invalid = Array.isArray(detail?.invalid_cells)
+            ? detail.invalid_cells : [];
+
+        if (missing.length || invalid.length) {
+            const grouped = new Map();
+            const cellErrors = {};
+
+            [...missing, ...invalid].forEach((item) => {
+                const module = modules.find(
+                    (entry) => entry.module_key.toUpperCase()
+                        === String(item.module_key).toUpperCase(),
+                );
+                const moduleKey = module?.module_key || item.module_key;
+                const question = questions.find(
+                    (entry) => entry.question_id === item.question_id,
+                );
+                const label = item.display_label || question?.display_label
+                    || question?.header || item.question_id;
+                const moduleLabel = module?.module_label || moduleKey;
+                const cellKey = getCellKey(item.question_id, moduleKey);
+
+                cellErrors[cellKey] = missing.includes(item)
+                    ? `${label} is required`
+                    : typeof detail.message === 'string'
+                        ? detail.message : `${label} is invalid`;
+                grouped.set(moduleLabel, [...(grouped.get(moduleLabel) || []), label]);
+            });
+
+            setErrors(cellErrors);
+            setStatusMessage(
+                <>
+                    {missing.length
+                        ? `Submit failed - ${missing.length} required cells are missing:`
+                        : typeof detail.message === 'string'
+                            ? detail.message : 'Matrix save failed. Please fix invalid cells.'}
+                    <ul className="list-disc pl-5">
+                        {[...grouped].map(([moduleLabel, labels]) => (
+                            <li key={moduleLabel}>
+                                {moduleLabel}: {labels.join(', ')}
+                            </li>
+                        ))}
+                    </ul>
+                </>,
+            );
+            return;
+        }
+
+        setStatusMessage(
+            `Matrix save failed: ${typeof detail === 'string' && detail
+                && !detail.startsWith('<') && !detail.startsWith('{')
+                ? detail === 'Failed to fetch'
+                    ? 'Unable to reach the server. Please try again.'
+                    : detail
+                : typeof detail?.message === 'string'
+                    ? detail.message : 'Please try again.'}`,
+        );
     }
 
     async function saveMatrix(nextStatus) {
@@ -582,8 +726,9 @@ export default function PYPCSMatrixSubmission({
             return;
         }
 
+        const expandedCells = expandMatrixCells(questions, selectedModules, cells);
         const hasProductName = selectedModules.some((moduleKey) => {
-            const value = cells[getCellKey('product_name', moduleKey)];
+            const value = expandedCells[getCellKey('product_name', moduleKey)];
             return value && String(value).trim() !== '';
         });
 
@@ -637,7 +782,7 @@ export default function PYPCSMatrixSubmission({
             );
         } catch (error) {
             setStatusKind('error');
-            setStatusMessage(`Matrix save failed: ${error.message}`);
+            showSaveError(error);
         } finally {
             setLoading(false);
         }
@@ -651,7 +796,7 @@ export default function PYPCSMatrixSubmission({
         await saveMatrix('final');
     }
 
-    function renderFieldInput(question, value, onChange, label, errorId, inputKey) {
+    function renderFieldInput(question, value, onChange, label, errorId, inputKey, disabled = false, inputId) {
         const options = question.options || [];
         const invalid = Boolean(errorId);
         const hasOtherOption = options.includes('Other');
@@ -670,6 +815,8 @@ export default function PYPCSMatrixSubmission({
                 <>
                     <select
                         className="w-full rounded border px-2 py-1 text-sm"
+                        id={inputId}
+                        disabled={disabled}
                         aria-label={label}
                         aria-invalid={invalid || undefined}
                         aria-describedby={errorId}
@@ -688,6 +835,7 @@ export default function PYPCSMatrixSubmission({
                         <input
                             className="mt-1 w-full rounded border px-2 py-1 text-sm"
                             type="text"
+                            disabled={disabled}
                             aria-label={`Specify other value for ${label}`}
                             aria-invalid={invalid || undefined}
                             aria-describedby={errorId}
@@ -704,6 +852,8 @@ export default function PYPCSMatrixSubmission({
             return (
                 <textarea
                     className="min-h-20 w-full rounded border px-2 py-1 text-sm"
+                    id={inputId}
+                    disabled={disabled}
                     aria-label={label}
                     aria-invalid={invalid || undefined}
                     aria-describedby={errorId}
@@ -717,6 +867,8 @@ export default function PYPCSMatrixSubmission({
             <input
                 className="w-full rounded border px-2 py-1 text-sm"
                 type="text"
+                id={inputId}
+                disabled={disabled}
                 aria-label={label}
                 aria-invalid={invalid || undefined}
                 aria-describedby={errorId}
@@ -782,151 +934,194 @@ export default function PYPCSMatrixSubmission({
         );
     }
 
-    function renderSharedFieldRow(question) {
+    function renderSharedField(question) {
         const applicableModules = selectedModules.filter((moduleKey) =>
             isQuestionApplicableToModule(question, moduleKey),
         );
-
-        if (applicableModules.length === 0) {
-            return (
-                <td
-                    colSpan={sortedModules.length}
-                    className="border bg-muted p-2 text-center text-xs text-muted-foreground"
-                >
-                    N/A
-                </td>
-            );
-        }
-
-        const editable = role === 'ALL' || question.role === role;
-
-        if (!editable) {
-            return (
-                <td
-                    colSpan={sortedModules.length}
-                    className="border bg-muted p-2 text-xs text-muted-foreground"
-                >
-                    Read only
-                </td>
-            );
-        }
-
-        const value = getFirstAnswerForQuestion(question);
-        const cellKey = getCellKey(question.question_id, applicableModules[0]);
+        const value = getFirstAnswerForQuestion(question, selectedModules, cells);
+        const cellKey = getCellKey(question.question_id, applicableModules[0] || 'shared');
         const error = applicableModules.map((moduleKey) => errors[getCellKey(question.question_id, moduleKey)]).find(Boolean);
         const errorId = error ? `${instanceId}-${cellKey}-error` : undefined;
-        const label = `${question.display_label || question.header || question.question_id} - ${sortedModules.filter((module) => applicableModules.includes(module.module_key)).map((module) => module.module_label || module.module_key).join(', ')}`;
+        const label = question.display_label || question.header || question.question_id;
+        const inputId = `${instanceId}-${question.question_id}`;
 
         return (
-            <td colSpan={sortedModules.length} className="border-b border-r bg-background p-2">
-                {renderFieldInput(question, value, (nextValue) =>
-                    handleSharedFieldChange(question, nextValue),
-                    label, errorId,
+            <div key={question.question_id} className="min-w-0 space-y-1">
+                <div className="flex items-center gap-1">
+                    <label htmlFor={inputId} className="min-w-0 break-words text-xs font-medium">
+                        {label}{question.required ? <span className="ml-1 text-destructive">*</span> : null}
+                    </label>
+                    {renderDescription(question)}
+                </div>
+                {renderFieldInput(
+                    question, value,
+                    (nextValue) => handleSharedFieldChange(question, nextValue),
+                    label, errorId, undefined, !applicableModules.length, inputId,
                 )}
-
                 {error ? (
                     <div id={errorId} className="mt-1 text-xs text-destructive">{error}</div>
                 ) : null}
-            </td>
+            </div>
+        );
+    }
+
+    function renderDescription(question, inverse = false) {
+        const label = question.display_label || question.header || question.question_id;
+        const hasDescription = Boolean(question.description?.trim());
+
+        return (
+            <Popover onOpenChange={(open) => {
+                if (!open && editingDescriptionId === question.question_id) {
+                    setEditingDescriptionId(null);
+                }
+            }}>
+                <PopoverTrigger asChild>
+                    <button
+                        type="button"
+                        aria-label={`${hasDescription ? 'Description' : 'Add description'} for ${label}`}
+                        title={`${hasDescription ? 'Description' : 'Add description'} for ${label}`}
+                        className={`shrink-0 rounded-sm p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${inverse ? 'text-white' : 'text-muted-foreground'}`}
+                    >
+                        <Info
+                            aria-hidden="true"
+                            className={`size-4 ${hasDescription ? inverse ? 'fill-white text-primary' : 'fill-foreground text-background' : ''}`}
+                        />
+                    </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 max-w-[calc(100vw-2rem)] space-y-2 text-sm" align="start">
+                    {editingDescriptionId === question.question_id ? (
+                        <>
+                            <label htmlFor={`${instanceId}-${question.question_id}-description`} className="font-medium">
+                                Description for {label}
+                            </label>
+                            <textarea
+                                id={`${instanceId}-${question.question_id}-description`}
+                                className="min-h-20 w-full rounded border px-2 py-1 text-sm"
+                                value={descriptionDrafts[question.question_id] ?? ''}
+                                onChange={(event) => setDescriptionDrafts((previous) => ({
+                                    ...previous,
+                                    [question.question_id]: event.target.value,
+                                }))}
+                            />
+                            <div className="flex gap-2">
+                                <Button type="button" size="sm" onClick={() => handleSaveDescription(question.question_id)} disabled={loading}>Save</Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => setEditingDescriptionId(null)}>Cancel</Button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <p className="whitespace-pre-wrap break-words">{question.description || 'No description yet'}</p>
+                            <Button type="button" size="sm" variant="outline" onClick={() => startEditingDescription(question)}>
+                                {hasDescription ? 'Edit description' : 'Add description'}
+                            </Button>
+                        </>
+                    )}
+                </PopoverContent>
+            </Popover>
         );
     }
 
     return (
-        <div className="space-y-4">
-            <div>
-                <h2 className="text-xl font-semibold">
-                    Matrix Submission
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                    Tick module columns, then input answers only in enabled
-                    cells.
-                </p>
+        <div className="flex min-w-0 flex-col gap-3 md:min-h-0 md:flex-1 md:overflow-hidden">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <h1 className="mr-2 text-lg font-semibold">Quality Matrix</h1>
+                {modeSwitch}
+                <label className="ml-1 text-sm font-medium" htmlFor="matrix-role">Role</label>
+                <select
+                    id="matrix-role"
+                    className="h-9 rounded-md border bg-background px-2 text-sm"
+                    value={role}
+                    onChange={(event) => handleRoleChange(event.target.value)}
+                    disabled={loading}
+                >
+                    <option value="TI">TI</option>
+                    <option value="ME">ME</option>
+                    <option value="ALL">View All (TI + ME)</option>
+                </select>
+                <Popover open={modulesOpen} onOpenChange={setModulesOpen}>
+                    <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" aria-label={`Modules (${selectedModules.length})`} disabled={loading && !modules.length}>
+                            Modules ({selectedModules.length}) <ChevronsUpDown aria-hidden="true" className="ml-2 size-4" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-0" align="start">
+                        <Command>
+                            <CommandInput placeholder="Search modules" aria-label="Search modules" />
+                            <CommandList>
+                                <CommandEmpty>No modules found.</CommandEmpty>
+                                <CommandGroup>
+                                    {sortedModules.map((module) => (
+                                        <CommandItem
+                                            key={module.module_key}
+                                            value={`${module.module_label || module.module_key} ${module.module_key}`}
+                                            disabled={!module.enabled_default || loading}
+                                            onSelect={() => handleModuleToggle(module.module_key)}
+                                        >
+                                            <Checkbox checked={selectedModules.includes(module.module_key)} tabIndex={-1} className="pointer-events-none mr-2" />
+                                            {module.module_label || module.module_key}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
+                <div className="ml-auto flex items-center gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={handleSaveDraft} disabled={loading || !selectedModules.length}>
+                        {loading ? 'Working...' : 'Save Draft'}
+                    </Button>
+                    <Button type="button" size="sm" onClick={handleSubmitFinal} disabled={loading || !selectedModules.length}>
+                        {loading ? 'Working...' : 'Submit Final'}
+                    </Button>
+                </div>
             </div>
 
+            {(statusMessage || loading || moduleLoadError) ? (
+                <div className="shrink-0 text-sm" role={statusKind === 'error' ? 'alert' : 'status'} aria-live="polite">
+                    {statusKind === 'error' && typeof statusMessage !== 'string' ? (
+                        <details className="rounded border border-destructive/30 px-2 py-1 text-destructive">
+                            <summary className="cursor-pointer">Submit failed. Show details</summary>
+                            <div className="mt-1">{statusMessage}</div>
+                        </details>
+                    ) : (
+                        <span className={statusKind === 'error' ? 'text-destructive' : ''}>
+                            {loading ? 'Working... ' : ''}{statusMessage}
+                        </span>
+                    )}
+                    {moduleLoadError ? <Button type="button" size="sm" variant="outline" className="ml-2" onClick={loadModules} disabled={loading}>Retry</Button> : null}
+                </div>
+            ) : null}
+
             {submissionId ? (
-                <div className="flex items-center justify-between rounded-md border bg-muted p-3 text-sm">
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-md border bg-muted px-3 py-1 text-sm">
                     <div className="flex items-center gap-2">
                         <span>Editing submission ID: {submissionId}</span>
-
-                        <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                                submissionStatus === 'draft'
-                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
-                                    : 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200'
-                            }`}
-                        >
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${submissionStatus === 'draft'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
+                            : 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200'}`}>
                             {submissionStatus === 'draft' ? 'Draft' : 'Final'}
                         </span>
                     </div>
-
-                    <button
-                        type="button"
-                        className="rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:ring-ring"
-                        onClick={resetForm}
-                    >
+                    <button type="button" className="rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:ring-ring" onClick={resetForm}>
                         New Submission
                     </button>
                 </div>
             ) : null}
 
-            <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium" htmlFor="matrix-role">
-                        Role
-                    </label>
-
-                    <select
-                        id="matrix-role"
-                        className="rounded-md border px-3 py-2"
-                        value={role}
-                        onChange={(event) =>
-                            handleRoleChange(event.target.value)
-                        }
-                        disabled={loading}
-                    >
-                        <option value="TI">TI</option>
-                        <option value="ME">ME</option>
-                        <option value="ALL">View All (TI + ME)</option>
-                    </select>
+            {sharedQuestions.length ? (
+                <div className="grid shrink-0 grid-cols-1 gap-x-3 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
+                    {sharedQuestions.map(renderSharedField)}
                 </div>
+            ) : null}
 
-                <div className="flex items-center gap-3">
-                    <div role="status" aria-live="polite" className="text-sm">
-                        {loading ? 'Working...' : statusKind === 'success' ? statusMessage : ''}
+            <div className={`min-h-[320px] min-w-0 overflow-auto rounded-md border bg-card md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
+                {selectedModules.length === 0 ? (
+                    <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 p-4 text-center text-sm text-muted-foreground">
+                        <p>Select one or more modules to start</p>
+                        <Button type="button" variant="outline" onClick={() => setModulesOpen(true)} disabled={!modules.length}>Select modules</Button>
                     </div>
-                    <div role="alert" className="text-sm text-destructive">
-                        {statusKind === 'error' ? statusMessage : ''}
-                    </div>
-                    {moduleLoadError ? (
-                        <Button type="button" variant="outline" onClick={loadModules} disabled={loading}>
-                            Retry
-                        </Button>
-                    ) : null}
-
-                    <button
-                        type="button"
-                        className="rounded-md border px-4 py-2 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-                        onClick={handleSaveDraft}
-                        disabled={loading || selectedModules.length === 0}
-                    >
-                        {loading ? 'Working...' : 'Save Draft'}
-                    </button>
-
-                    <button
-                        type="button"
-                        className="rounded-md bg-primary px-4 py-2 text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-                        onClick={handleSubmitFinal}
-                        disabled={loading || selectedModules.length === 0}
-                    >
-                        {loading ? 'Working...' : 'Submit Final'}
-                    </button>
-                </div>
-            </div>
-
-            <div
-                className={`overflow-auto rounded-md border bg-card max-h-[70vh] ${scrollbarClassName}`}
-            >
-                <table style={{ minWidth: 48 + 256 + 320 + 64 + sortedModules.length * 160 }}
+                ) : (
+                <table style={{ minWidth: 48 + 256 + 64 + selectedModuleDetails.length * 160 }}
                     className="w-full table-fixed border-separate border-spacing-0 text-sm">
                     <thead>
                         <tr className="bg-table-header text-table-header-foreground">
@@ -936,170 +1131,60 @@ export default function PYPCSMatrixSubmission({
                             <th style={labelColumn} className="sticky top-0 z-30 border-b-2 border-r-2 bg-table-header py-2 pl-2 pr-3 text-left shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]">
                                 Header
                             </th>
-                            <th className="sticky top-0 z-20 w-80 border-b border-r bg-table-header py-2 pl-4 pr-2">
-                                Description
-                            </th>
                             <th className="sticky top-0 z-20 w-16 border-b border-r bg-table-header p-2">
                                 Role
                             </th>
 
-                            {sortedModules.map((module) => (
+                            {selectedModuleDetails.map((module) => (
                                 <th
                                     key={module.module_key}
                                     scope="col"
                                     className="sticky top-0 z-20 w-40 border-b border-r bg-table-header p-2"
                                 >
-                                    <label className="flex flex-col items-center gap-1">
-                                        <input
-                                            type="checkbox"
-                                            className="size-4 accent-white outline outline-1 outline-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                                            checked={selectedModules.includes(
-                                                module.module_key,
-                                            )}
-                                            disabled={
-                                                !module.enabled_default || loading
-                                            }
-                                            onChange={() =>
-                                                handleModuleToggle(
-                                                    module.module_key,
-                                                )
-                                            }
-                                        />
-
-                                        <span>
-                                            {module.module_label ||
-                                                module.module_key}
-                                        </span>
-                                    </label>
+                                    {module.module_label || module.module_key}
                                 </th>
                             ))}
                         </tr>
                     </thead>
 
                     <tbody>
-                        {questions.length === 0 ? (
+                        {tableQuestions.length === 0 ? (
                             <tr>
                                 <td
                                     className="border p-3 text-muted-foreground"
-                                    colSpan={4 + sortedModules.length}
+                                    colSpan={3 + selectedModuleDetails.length}
                                 >
-                                    {selectedModules.length === 0
-                                        ? 'Tick at least one module to show matrix rows.'
-                                        : 'No matrix rows found.'}
+                                    No matrix rows found.
                                 </td>
                             </tr>
                         ) : null}
 
-                        {questions.map((question, index) => (
+                        {tableQuestions.map((question, index) => (
                             <tr key={question.question_id} className="group even:bg-table-stripe hover:bg-table-hover">
                                 <td style={numberColumn} className="sticky z-10 border-b border-r bg-table-frozen p-2 text-center group-hover:bg-table-hover">
                                     {index + 1}
                                 </td>
 
                                 <th scope="row" style={labelColumn} className="sticky z-10 border-b-2 border-r-2 bg-primary py-2 pl-2 pr-3 text-left align-top font-medium text-primary-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] [overflow-wrap:anywhere]">
-                                    {question.display_label ||
-                                        question.header ||
-                                        question.question_id}
+                                    <span className="flex items-start gap-1">
+                                        <span className="min-w-0 flex-1">
+                                            {question.display_label || question.header || question.question_id}
+                                            {question.required ? <span className="ml-1">*</span> : null}
+                                        </span>
+                                        {renderDescription(question, true)}
+                                    </span>
                                 </th>
-
-                                <td className="border-b border-r bg-table-subheader py-2 pl-4 pr-2 text-xs align-top text-table-subheader-foreground [overflow-wrap:anywhere]">
-                                    {editingDescriptionId ===
-                                    question.question_id ? (
-                                        <div className="flex flex-col gap-1">
-                                            <textarea
-                                                className="min-h-16 w-full rounded border px-2 py-1 text-xs"
-                                                value={
-                                                    descriptionDrafts[
-                                                        question.question_id
-                                                    ] ?? ''
-                                                }
-                                                onChange={(event) =>
-                                                    setDescriptionDrafts(
-                                                        (previous) => ({
-                                                            ...previous,
-                                                            [question.question_id]:
-                                                                event.target
-                                                                    .value,
-                                                        }),
-                                                    )
-                                                }
-                                            />
-
-                                            <div className="flex gap-2">
-                                                <button
-                                                    type="button"
-                                                    className="rounded bg-primary px-2 py-1 text-primary-foreground disabled:opacity-50"
-                                                    onClick={() =>
-                                                        handleSaveDescription(
-                                                            question.question_id,
-                                                        )
-                                                    }
-                                                    disabled={loading}
-                                                >
-                                                    Save
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    className="rounded border px-2 py-1"
-                                                    onClick={() =>
-                                                        setEditingDescriptionId(
-                                                            null,
-                                                        )
-                                                    }
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : question.description ? (
-                                        <div className="flex items-start justify-between gap-2">
-                                            <span className="min-w-0 break-words">
-                                                {question.description}
-                                            </span>
-
-                                            <button
-                                                type="button"
-                                                className="shrink-0 text-table-link underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-                                                onClick={() =>
-                                                    startEditingDescription(
-                                                        question,
-                                                    )
-                                                }
-                                            >
-                                                Edit
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            className="text-table-link underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-                                            onClick={() =>
-                                                startEditingDescription(
-                                                    question,
-                                                )
-                                            }
-                                        >
-                                            + Add description
-                                        </button>
-                                    )}
-                                </td>
 
                                 <td className="border p-2 text-center font-medium">
                                     {question.role}
                                 </td>
 
-                                {SHARED_ACROSS_MODULES_QUESTION_IDS.has(
-                                    question.question_id,
-                                )
-                                    ? renderSharedFieldRow(question)
-                                    : sortedModules.map((module) =>
-                                          renderCell(question, module),
-                                      )}
+                                {selectedModuleDetails.map((module) => renderCell(question, module))}
                             </tr>
                         ))}
                     </tbody>
                 </table>
+                )}
             </div>
         </div>
     );
