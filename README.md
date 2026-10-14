@@ -140,12 +140,12 @@ The stale Browserslist data warning at frontend startup is harmless.
 
 | Page | Browser route | Backend API | Data files |
 | --- | --- | --- | --- |
-| TI (STHI / LCBI) | `/ti/sthi`, `/ti/lcbi` | `/product-basis/{module}` | `ProductBasisInfo_STHI.csv`, `ProductBasicInfo_LCBI.csv` |
-| PdO (STHI / LCBI) | `/pdo/sthi`, `/pdo/lcbi` | `/product-basis/{module}`; matrix/catalog APIs: `/pdsolutions/{module}`, `/solutions` | Product-basis files above; `ProductSolutionMatrix_STHI.csv`, `ProductSolutionMatrix_LCBI.csv`, `Solution.csv` |
-| GL-MQR (STHI / LCBI) | `/gl-mqr/sthi`, `/gl-mqr/lcbi` | Proxy requests `/solutions/sthi` and `/solutions/lcbi`; FastAPI currently exposes `/solutions` with a `module` query parameter | `Solution.csv` |
-| Quality Matrix (PYPCS) | `/pypcs` | `/pypcs/modules`, `/pypcs/questions`, `/pypcs/submissions`, `/pypcs/matrix-submission`, and related `/pypcs/*` endpoints | `PYPCS_Modules.csv`, `PYPCS_Questions.csv`, `PYPCS_QuestionModuleMap.csv`, `PYPCS_Submissions.csv`, `PYPCS_SubmissionAnswers.csv`, `PYPCS_SubmissionCells.csv`, `Operation_Process_Step.csv` |
-| View 2 | `/view-2` | `/pypcs/action-items` and `/pypcs/action-items/options` | `PYPCS_ActionItems.csv` |
-| View 3 | `/view-3` | `/pypcs/product-action-matrix`, `/pypcs/product-action-matrix/rows`, `/pypcs/product-action-matrix/export` | PYPCS submission files, `PYPCS_Modules.csv`, `PYPCS_ActionItems.csv`, `PYPCS_ProductActionMatrix.csv` |
+| TI (STHI / LCBI, hidden in UI) | `/ti/sthi`, `/ti/lcbi` | `/product-basis/{module}` (API kept) | `TI/ProductBasisInfo_STHI.csv`, `TI/ProductBasisInfo_LCBI.csv` |
+| PdO (STHI / LCBI, hidden in UI) | `/pdo/sthi`, `/pdo/lcbi` | `/product-basis/{module}`, `/pdsolutions/{module}`, `/solutions` (APIs kept) | `PdO/ProductSolutionMatrix_STHI.csv`, `PdO/ProductSolutionMatrix_LCBI.csv` |
+| GL-MQR (STHI / LCBI, hidden in UI) | `/gl-mqr/sthi`, `/gl-mqr/lcbi` | Solutions API and proxy routes kept | `GL-MQR/Solution.csv` |
+| Quality Matrix (PYPCS; matrix mode, form mode removed) | `/pypcs` | `/pypcs/modules`, `/pypcs/questions`, `/pypcs/submissions`, `/pypcs/matrix-submission`, and related `/pypcs/*` endpoints | `QualityMatrix/PYPCS_Submissions.csv`, `QualityMatrix/PYPCS_SubmissionCells.csv`, `QualityMatrix/Settings/PYPCS_Modules.csv`, `QualityMatrix/Settings/PYPCS_Questions.csv`, `QualityMatrix/Settings/PYPCS_QuestionModuleMap.csv`, `QualityMatrix/Settings/Operation_Process_Step.csv` |
+| View 2 | `/view-2` | `/pypcs/action-items` and `/pypcs/action-items/options` | `View2/PYPCS_ActionItems.csv` |
+| View 3 | `/view-3` | `/pypcs/product-action-matrix`, `/pypcs/product-action-matrix/rows`, `/pypcs/product-action-matrix/export` | `View3/PYPCS_ProductActionDecisions.csv` plus Quality Matrix submissions/cells, Quality Matrix module settings, and `View2/PYPCS_ActionItems.csv` |
 | Chat | `/chat` | `/chat` (health: `/chat/health`) | No local data file; requires NYRA configuration and `nyra-services` (not in `requirements.txt`) |
 
 The GL-MQR proxy path and FastAPI route do not currently match; see the API
@@ -164,18 +164,35 @@ appropriate trusted environment.
 When `QUALITY_MATRIX_DATA_DIR` is not overridden, the backend reads the share
 configured in `hackathon-backend/.env.production`:
 `\\VNATSHFS.intel.com\VNATAnalysis$\MAOATM\VN\Applications\TE\Quality`.
-View 2 needs `PYPCS_ActionItems.csv` (and `PYPCS_Questions.csv` for its options
-endpoint). View 3 needs `PYPCS_Modules.csv`, `PYPCS_Submissions.csv`,
-`PYPCS_SubmissionCells.csv`, `PYPCS_SubmissionAnswers.csv`,
-`PYPCS_ActionItems.csv`, and `PYPCS_ProductActionMatrix.csv` to retain decisions.
-Nothing has been copied to the network share.
+Data is grouped by owning tab: `QualityMatrix/PYPCS_Submissions.csv`,
+`QualityMatrix/PYPCS_SubmissionCells.csv`, and `QualityMatrix/Settings/` for
+modules, questions, question/module mappings, and operation steps;
+`View2/PYPCS_ActionItems.csv`; `View3/PYPCS_ProductActionDecisions.csv`;
+`TI/ProductBasisInfo_STHI.csv` and `TI/ProductBasisInfo_LCBI.csv`;
+`PdO/ProductSolutionMatrix_STHI.csv` and `PdO/ProductSolutionMatrix_LCBI.csv`;
+and `GL-MQR/Solution.csv`. TI, PdO, and GL-MQR are hidden in the UI, but their
+data and APIs remain supported. At startup, the backend rejects any of the old
+data files left directly in the share root.
+
+### Migrate data layout
+
+Stop the backend before migrating. From `hackathon-backend`, preview first,
+then apply; the default backup is created under the data directory with a UTC
+timestamp. Start the backend again after migration.
+
+```powershell
+cd hackathon-backend
+.\.venv\Scripts\python.exe scripts\migrate_data_layout.py --data-dir "\\VNATSHFS.intel.com\VNATAnalysis$\MAOATM\VN\Applications\TE\Quality"
+.\.venv\Scripts\python.exe scripts\migrate_data_layout.py --data-dir "\\VNATSHFS.intel.com\VNATAnalysis$\MAOATM\VN\Applications\TE\Quality" --apply
+```
 
 ## View 3
 
 View 3 merges the latest submission for each product with all View 2 actions,
-groups selected modules, and suggests status from package compatibility. Decisions
-are stored in the flat matrix file and preserved when source products or actions
-are removed.
+groups selected modules, and suggests status from package compatibility. Only
+decisions and their identifying labels are stored in
+`View3/PYPCS_ProductActionDecisions.csv`; orphaned decisions are retained when
+source products or actions are removed.
 
 ## Further Documentation
 

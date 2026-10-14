@@ -5,7 +5,7 @@
 ## Project
 
 FastAPI backend ("Quality Matrix Multi-Module API") that serves/edits product data for two
-modules, STHI and LCBI, backed directly by CSV/XLSX files in [data/](data) — no database.
+modules, STHI and LCBI, backed directly by CSV/XLSX files grouped under [data/](data) — no database.
 Code lives under the [app/](app) package; root [main.py](main.py) is only a thin
 `from app.main import app` shim kept so `uvicorn main:app` keeps working.
 
@@ -40,7 +40,7 @@ No test suite or lint config exists yet.
   `yn_to_bool`.
 - [app/services/pypcs_service.py](app/services/pypcs_service.py) — PYPCS CSV filenames, row
   normalization, and `build_pypcs_visible_questions()`.
-- `data/PYPCS_ActionItems.csv` (View 2) uses `nbr` as its key; applicability fields mirror
+- `data/View2/PYPCS_ActionItems.csv` (View 2) uses `nbr` as its key; applicability fields mirror
   PYPCS_Questions `question_id`s and are `|`-joined, with `All`/`NA`/`Multiple` semantics.
   Action items support add/edit only through the `/pypcs/action-items` endpoints.
 - [app/services/chat_service.py](app/services/chat_service.py) — `get_nyra_client()` for the AI
@@ -59,22 +59,43 @@ No test suite or lint config exists yet.
 
 - `DATA_DIR` (env `QUALITY_MATRIX_DATA_DIR`, default `data`) and `ALLOWED_ORIGINS` (env, comma
   separated, default covers Vite `:5173` and CRA `:3000`) are the only configurable settings.
+- The app refuses to import if any legacy data file remains directly in `DATA_DIR`; migrate the
+  files before starting the backend.
 - Endpoints are no-auth by design (see app description in [app/main.py](app/main.py)); don't add
   auth without being asked.
-- New module-scoped endpoints should follow the existing pattern: add them to the relevant
-  router in [app/routers/](app/routers) (or create a new router + include it in
-  [app/main.py](app/main.py)), resolve config via `get_module_config(module)`, read all rows,
-  mutate the list, then `write_data(...)` the whole file back (no partial/streaming writes).
+- Wrap every read-modify-write in `locked_files(...)` for all touched files; writes use atomic replace.
+- Keep a single uvicorn worker; editable flows accept optional `expected_version` and return 409 `{"code": "conflict"}`.
 
 ## PYPCS Views
 
-- View 2 `PYPCS_ActionItems.csv` has an optional `event_id` column immediately after `nbr`.
+- View 2 `data/View2/PYPCS_ActionItems.csv` has an optional `event_id` column immediately after `nbr`.
   It is trimmed, limited to 50 characters, and cannot contain `|`; old files read it as blank.
 - View 1 matrix `operation` cell answers are validated per module and stored as trimmed,
   de-duplicated `|`-joined values. `Other` uses the existing custom-text convention.
-- View 3 is a flat `PYPCS_ProductActionMatrix.csv`, one row per product/module-group/action.
+- View 3 builds one API row per product/module-group. Its decisions-only file is
+  `data/View3/PYPCS_ProductActionDecisions.csv` and retains labels for orphaned decisions.
   Product keys are `lower(trim(prodgroup3))||lower(trim(product_name))`; HDMx modules group
   under `HDMx`. Package suggestions set `Y` for a match and `NA` for a non-match; empty,
   `All`, or only-`NA` action packages and blank product packages produce no suggestion.
 - View 3 rows expose `decision_state` (`draft`/`final`); legacy nonblank decisions default to `final`,
   and rebuilds preserve it while export includes it. PUT `mode` defaults to `final`; final statuses require comments, drafts allow optional comments, and blank draft cells clear.
+
+## Data Layout and Migration
+
+- Quality Matrix submissions and slim cells live under `data/QualityMatrix/`; modules,
+  questions, question/module mappings, and operation steps live under `data/QualityMatrix/Settings/`.
+- Cells have exactly `submission_id, question_id, module_key, role, answer, updated_at,
+  updated_by`. Blank `module_key` marks a submission-wide legacy answer. Matrix saves preserve
+  these rows; deleting a submission removes them.
+- View 2 action items live at `data/View2/PYPCS_ActionItems.csv`.
+- View 3 decisions live at `data/View3/PYPCS_ProductActionDecisions.csv`; only decisions and
+  identifying labels are stored. Active labels refresh during rebuilds; orphan labels persist.
+- TI files live under `data/TI/`, PdO files under `data/PdO/`, and the solution catalog under
+  `data/GL-MQR/`. Their APIs remain enabled when the corresponding UI tabs are hidden.
+- Stop the backend before migration. From `hackathon-backend`, preview and then apply with an
+  explicit data directory; apply backs up and verifies files before removing root-level sources:
+
+  ```powershell
+  .\.venv\Scripts\python.exe scripts\migrate_data_layout.py --data-dir "<data-dir>"
+  .\.venv\Scripts\python.exe scripts\migrate_data_layout.py --data-dir "<data-dir>" --apply
+  ```

@@ -50,4 +50,4 @@ COPY . /app
 EXPOSE 8004
 
 # Run the application
-CMD ["uvicorn", "main:app", "--port", "8004", "--host", "0.0.0.0", "--workers", "4", "--env-file", ".env.production"]
+CMD ["uvicorn", "main:app", "--port", "8004", "--host", "0.0.0.0", "--workers", "1", "--env-file", ".env.production"]
