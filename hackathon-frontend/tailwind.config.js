@@ -13,6 +13,7 @@ export default {
   		},
   		colors: {
 			table: {
+				border: 'hsl(var(--table-border))',
 				header: 'hsl(var(--table-header))',
 				'header-foreground': 'hsl(var(--table-header-foreground))',
 				subheader: 'hsl(var(--table-subheader))',

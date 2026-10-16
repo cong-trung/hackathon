@@ -49,6 +49,7 @@ services:
     ports:
       - "8004:8004"
     environment:
+      QUALITY_MATRIX_DATA_DIR: /app/data
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       FTP_PROXY: ${FTP_PROXY:-}

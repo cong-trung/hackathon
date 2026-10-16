@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { ArrowDown, ArrowDownUp, ArrowUp, CircleAlert, CircleCheck, DownloadIcon, Grid3x3Icon, PencilIcon, PencilLine, SearchIcon } from 'lucide-react';
+import { ArrowDown, ArrowDownUp, ArrowUp, CircleAlert, CircleCheck, DownloadIcon, PencilIcon, PencilLine, SearchIcon } from 'lucide-react';
 
 import { useGetProductActionMatrixQuery } from '@/app/api/productActionMatrixApi';
 import ClientPagination from '@/shared/components/data-table/ClientPagination';
@@ -8,6 +8,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Input } from '@/shared/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -117,8 +118,7 @@ function StatusCell({ row, column, table }) {
     const cell = row.original.cells?.[action.nbr];
     const status = cell?.status;
     const draft = cell?.decision_state === 'draft';
-    const suggested = !status && cell?.suggested_status;
-        const label = draft ? `${status || (cell.comment ? 'note' : 'not reviewed')} draft` : status || 'not reviewed';
+        const label = draft ? `${status || 'N (default)'} draft` : status || 'N (default), not reviewed';
         const style = draft ? `${status === 'Y' ? 'bg-green-200 text-green-900 dark:bg-green-900 dark:text-green-100'
                 : status === 'N' ? 'bg-red-200 text-red-900 dark:bg-red-900 dark:text-red-100'
                     : status === 'NA' ? 'bg-muted text-foreground'
@@ -126,13 +126,12 @@ function StatusCell({ row, column, table }) {
                 : status === 'Y' ? 'bg-green-600 text-white hover:bg-green-700'
                 : status === 'N' ? 'bg-red-600 text-white hover:bg-red-700'
                     : status === 'NA' ? 'bg-muted text-foreground hover:bg-accent'
-                        : suggested ? 'border border-dashed border-border text-muted-foreground italic hover:bg-muted'
-                            : 'hover:bg-muted';
+                        : 'text-muted-foreground hover:bg-muted';
         const description = draft
                 ? `Draft · ${cell.comment || '—'} · ${cell.updated_by || '—'} · ${cell.updated_at || '—'}`
                 : status
         ? `${cell.comment || ''}${cell.updated_by ? `\nUpdated by: ${cell.updated_by}` : ''}${cell.updated_at ? `\nUpdated at: ${cell.updated_at}` : ''}`
-        : suggested ? cell.suggested_comment : '';
+        : '';
 
     return (
         <Tooltip>
@@ -141,8 +140,8 @@ function StatusCell({ row, column, table }) {
                     aria-label={`${row.original.product_name} ${action.event_id || `#${action.nbr}`}: ${label}`}
                     onClick={() => table.options.meta.onEdit(row.original, action.nbr)}>
                     {draft ? <span className="flex items-center gap-1 truncate">
-                        <span className="truncate">{status || 'note'}</span><span className="shrink-0 text-[9px]">draft</span>
-                    </span> : status ? `${status}${cell.comment ? ` (${cell.comment})` : ''}` : suggested ? `${suggested}?` : ''}
+                        <span className="truncate">{status || 'N (default)'}</span><span className="shrink-0 text-[9px]">draft</span>
+                    </span> : status ? `${status}${cell.comment ? ` (${cell.comment})` : ''}` : 'N (default)'}
                 </button>
             </TooltipTrigger>
             {description && <TooltipContent className="max-w-xs whitespace-pre-line break-words">{description}</TooltipContent>}
@@ -177,6 +176,7 @@ export default function View3Page() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
     const [editor, setEditor] = useState(null);
+    const [activeDescription, setActiveDescription] = useState(null);
     const allQuery = useGetProductActionMatrixQuery({});
     const filteredQuery = useGetProductActionMatrixQuery({ moduleGroup }, { skip: !moduleGroup });
     const query = moduleGroup ? filteredQuery : allQuery;
@@ -232,23 +232,14 @@ export default function View3Page() {
 
     return (
         <TooltipProvider>
-            <div className="flex min-w-0 flex-col gap-5 p-4 sm:p-6 md:h-full md:min-h-0 md:overflow-hidden">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <h2 className="flex items-center gap-2 text-xl font-semibold"><Grid3x3Icon className="size-5 text-primary" /> View 3</h2>
-                        <p className="mt-1 text-sm text-muted-foreground">Product × Excursion/FMEA action matrix</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{rows.length} products · {actions.length} actions</p>
-                    </div>
-                    <Button asChild variant="outline" size="sm" className="ml-auto shrink-0">
-                        <a href={exportUrl} download><DownloadIcon className="mr-2 size-4" /> Export CSV</a>
-                    </Button>
-                </div>
+            <div className="flex min-w-0 flex-col gap-3 md:h-full md:min-h-0 md:overflow-hidden">
+                <h1 className="sr-only">View 3</h1>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Decision legend">
                     <span><span className="mr-1 inline-block size-3 bg-green-600 align-middle" />Y</span>
                     <span><span className="mr-1 inline-block size-3 bg-red-600 align-middle" />N</span>
                     <span><span className="mr-1 inline-block size-3 border bg-muted align-middle" />NA</span>
                     <span><span className="mr-1 inline-block size-3 border border-dashed border-border bg-green-200 align-middle dark:bg-green-900" />Draft</span>
-                    <span><span className="mr-1 inline-block size-3 border border-dashed border-border align-middle" />Y? / NA? suggested</span>
+                    <span>N (default) = not reviewed yet</span>
                 </div>
                 <Tabs value={moduleGroup || '__all__'} onValueChange={(value) => { setModuleGroup(value === '__all__' ? '' : value); setPage(1); }} className="min-w-0">
                     <div className={`overflow-x-auto ${scrollbarClassName}`}>
@@ -271,8 +262,11 @@ export default function View3Page() {
                         <Checkbox checked={needsReview} onCheckedChange={(value) => { setNeedsReview(value === true); setPage(1); }} />
                         Needs review only
                     </label>
+                    <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{visibleRows.length} products found · {actions.length} actions</span>
+                    <Button asChild variant="outline" size="sm" className="ml-auto shrink-0">
+                        <a href={exportUrl} download><DownloadIcon className="mr-2 size-4" /> Export CSV</a>
+                    </Button>
                 </div>
-                <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{visibleRows.length} products found</span>
                 {query.isError ? (
                     <div role="alert" className="rounded-md border border-destructive/30 p-5 text-sm text-destructive">
                         Could not load the product action matrix.{' '}
@@ -284,7 +278,7 @@ export default function View3Page() {
                         {[1, 2, 3, 4].map((index) => <Skeleton key={index} className="h-14 w-full" />)}
                     </div>
                 ) : (
-                    <div aria-busy={query.isFetching} className={`min-h-[320px] min-w-0 max-w-full overflow-auto rounded-md border md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
+                    <div aria-busy={query.isFetching} className={`min-h-[320px] min-w-0 max-w-full overflow-auto rounded-md border border-table-border md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
                         {query.isFetching && <p className="sr-only" role="status">Updating matrix</p>}
                         <Table style={{ width: table.getTotalSize() }} className="table-fixed border-separate border-spacing-0 text-xs">
                             <colgroup>
@@ -294,13 +288,13 @@ export default function View3Page() {
                                 <TableRow className="bg-table-header hover:bg-table-header">
                                     {productColumns.map((column, index) => (
                                         <TableHead key={column.id} style={columnStyle(column)}
-                                            className={`border-b border-r bg-table-header text-table-header-foreground ${stickyClass(column, true)} ${index === productColumns.length - 1 ? 'text-right' : ''}`}>
+                                            className={`border-b border-r border-white/20 bg-table-header text-table-header-foreground ${stickyClass(column, true)} ${index === productColumns.length - 1 ? 'text-right' : ''}`}>
                                             {index === productColumns.length - 1 ? 'Excursion/FMEA IDN' : null}
                                         </TableHead>
                                     ))}
                                     {actions.map((action, index) => (
                                         <TableHead key={action.nbr} style={columnStyle(leafColumns[productColumns.length + index])}
-                                            className="border-b border-r bg-table-header text-center font-semibold text-table-header-foreground [overflow-wrap:anywhere]">
+                                            className="border-b border-r border-white/20 bg-table-header text-center font-semibold text-table-header-foreground [overflow-wrap:anywhere]">
                                             {action.event_id || `#${action.nbr}`}
                                         </TableHead>
                                     ))}
@@ -308,7 +302,7 @@ export default function View3Page() {
                                 <TableRow className="bg-table-header hover:bg-table-header">
                                     {leafColumns.map((column) => (
                                         <TableHead key={column.id} aria-sort={['product_name', 'review_status'].includes(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined} style={columnStyle(column)}
-                                            className={`border-b border-r bg-table-header align-top font-semibold text-table-header-foreground ${stickyClass(column, true)}`}>
+                                            className={`border-b border-r border-white/20 bg-table-header align-top font-semibold text-table-header-foreground ${stickyClass(column, true)}`}>
                                             {column.columnDef.meta?.action ? (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
@@ -324,13 +318,48 @@ export default function View3Page() {
                                         </TableHead>
                                     ))}
                                 </TableRow>
+                                <TableRow className="bg-table-subheader hover:bg-table-subheader">
+                                    {productColumns.map((column) => (
+                                        <TableHead key={column.id} style={columnStyle(column)}
+                                            className={`h-16 border-b border-r border-table-border bg-table-subheader text-table-subheader-foreground ${stickyColumns.has(column.id) ? 'sticky z-30' : ''} ${column.id === 'module_group' ? 'border-r-2' : ''}`} />
+                                    ))}
+                                    {actions.map((action, index) => {
+                                        const reference = String(action.reference || '').trim();
+                                        const isWebLink = /^https?:\/\//i.test(reference);
+                                        return (
+                                            <TableHead key={action.nbr} style={columnStyle(leafColumns[productColumns.length + index])}
+                                                className="h-16 border-b border-r border-table-border bg-table-subheader align-top text-table-subheader-foreground">
+                                                <Popover open={activeDescription === action.nbr}
+                                                    onOpenChange={(open) => setActiveDescription(open ? action.nbr : null)}>
+                                                    <PopoverTrigger asChild>
+                                                        <button type="button" className="line-clamp-3 w-full rounded-sm text-left text-xs font-normal [overflow-wrap:anywhere] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                                                            onFocus={(event) => {
+                                                                if (event.currentTarget.matches(':focus-visible')) setActiveDescription(action.nbr);
+                                                            }}
+                                                            aria-label={`Details for ${action.event_id || `#${action.nbr}`}`}>
+                                                            {action.description?.trim() || action.actionable_item || '—'}
+                                                        </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="max-h-[min(70vh,28rem)] w-80 max-w-[calc(100vw-2rem)] overflow-auto text-sm" align="start">
+                                                        <p className="font-medium">Actionable item</p>
+                                                        <p className="whitespace-pre-wrap break-words">{action.actionable_item || '—'}</p>
+                                                        <p className="mt-2 font-medium">Reference</p>
+                                                        <p className="break-words">{isWebLink ? <a className="text-table-link underline" href={reference} target="_blank" rel="noopener noreferrer">{reference}</a> : reference || '—'}</p>
+                                                        <p className="mt-2 font-medium">Description</p>
+                                                        <p className="whitespace-pre-wrap break-words">{action.description || '—'}</p>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </TableHead>
+                                        );
+                                    })}
+                                </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {rowModel.rows.length ? rowModel.rows.map((row) => (
                                     <TableRow key={row.id} className="group even:bg-table-stripe hover:bg-table-hover">
                                         {row.getVisibleCells().map((cell) => (
                                             <TableCell key={cell.id} style={columnStyle(cell.column)}
-                                                className={`border-b border-r align-top [overflow-wrap:anywhere] ${stickyClass(cell.column)}`}>
+                                                className={`border-b border-r border-table-border align-top [overflow-wrap:anywhere] ${stickyClass(cell.column)}`}>
                                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                             </TableCell>
                                         ))}

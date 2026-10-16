@@ -1,6 +1,6 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
-import { ArrowDown, ArrowDownUp, ArrowUp, ListChecksIcon, PencilIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { ArrowDown, ArrowDownUp, ArrowUp, PencilIcon, PlusIcon, SearchIcon } from 'lucide-react';
 
 import { useGetActionItemsQuery } from '@/app/api/pypcsActionItemsApi';
 import ClientPagination from '@/shared/components/data-table/ClientPagination';
@@ -236,22 +236,10 @@ export default function View2Page() {
     }
 
     return (
-        <div className="flex min-w-0 flex-col gap-5 p-4 sm:p-6 md:h-full md:min-h-0 md:overflow-hidden">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h2 className="flex items-center gap-2 text-xl font-semibold">
-                        <ListChecksIcon className="size-5 text-primary" /> View 2
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        PYPCS action items · {isLoading ? 'Loading' : `${data?.count ?? items.length} items`}
-                    </p>
-                </div>
-                <Button onClick={() => setActiveItem(null)}>
-                    <PlusIcon className="mr-2 size-4" /> Add new item
-                </Button>
-            </div>
-
-            <div className="relative w-full max-w-sm">
+        <div className="flex min-w-0 flex-col gap-3 md:h-full md:min-h-0 md:overflow-hidden">
+            <h1 className="sr-only">View 2</h1>
+            <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-full max-w-sm">
                 <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                     type="search"
@@ -261,8 +249,12 @@ export default function View2Page() {
                     onChange={(event) => { setSearch(event.target.value); setPage(1); }}
                     className="pl-9"
                 />
+                </div>
+                <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{filtered.length} action items found</span>
+                <Button size="sm" className="ml-auto" onClick={() => setActiveItem(null)}>
+                    <PlusIcon className="mr-2 size-4" /> Add new item
+                </Button>
             </div>
-            <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{filtered.length} action items found</span>
 
             {isError ? (
                 <div role="alert" className="rounded-md border border-destructive/30 p-5 text-sm text-destructive">
@@ -279,7 +271,7 @@ export default function View2Page() {
                     ))}
                 </div>
             ) : (
-                <div className={`min-h-[320px] min-w-0 max-w-full overflow-auto rounded-md border md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
+                <div className={`min-h-[320px] min-w-0 max-w-full overflow-auto rounded-md border border-table-border md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
                     <Table style={{ width: table.getTotalSize() }} className="table-fixed border-separate border-spacing-0 text-sm">
                         <colgroup>
                             {leafColumns.map((column) => (
@@ -294,23 +286,23 @@ export default function View2Page() {
                                         rowSpan={2}
                                         aria-sort={sortableColumns.has(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined}
                                         style={columnStyle(column)}
-                                        className={`border-b border-r align-middle font-semibold text-table-header-foreground ${frozen[column.id] || ''} ${frozen[column.id] ? '!z-30 !bg-table-header' : ''}`}
+                                        className={`border-b border-r border-white/20 align-middle font-semibold text-table-header-foreground ${frozen[column.id] || ''} ${frozen[column.id] ? '!z-30 !bg-table-header' : ''}`}
                                     >
                                         {renderHeader(column)}
                                     </TableHead>
                                 ))}
-                                <TableHead colSpan={applicability.length} className="border-b border-r bg-table-subheader text-center font-semibold text-table-subheader-foreground">
+                                <TableHead colSpan={applicability.length} className="border-b border-r border-table-border bg-table-subheader text-center font-semibold text-table-subheader-foreground">
                                     Applicability (Quality Matrix questions)
                                 </TableHead>
                                 {leafColumns.slice(applicabilityEnd).map((column) => (
-                                    <TableHead key={column.id} rowSpan={2} aria-sort={sortableColumns.has(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined} style={columnStyle(column)} className="border-b border-r align-middle font-semibold text-table-header-foreground">
+                                    <TableHead key={column.id} rowSpan={2} aria-sort={sortableColumns.has(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined} style={columnStyle(column)} className="border-b border-r border-white/20 align-middle font-semibold text-table-header-foreground">
                                         {renderHeader(column)}
                                     </TableHead>
                                 ))}
                             </TableRow>
                             <TableRow className="h-10 border-b bg-table-header hover:bg-table-header">
                                 {leafColumns.slice(applicabilityStart, applicabilityEnd).map((column) => (
-                                    <TableHead key={column.id} style={columnStyle(column)} className="border-b border-r font-semibold text-table-header-foreground">
+                                    <TableHead key={column.id} style={columnStyle(column)} className="border-b border-r border-white/20 font-semibold text-table-header-foreground">
                                         {column.columnDef.header}
                                     </TableHead>
                                 ))}
@@ -324,7 +316,7 @@ export default function View2Page() {
                                             <TableCell
                                                 key={cell.id}
                                                 style={columnStyle(cell.column)}
-                                                className={`border-b border-r py-3 align-top [overflow-wrap:anywhere] ${cell.column.id === 'actions' ? 'px-1' : ''} ${frozen[cell.column.id] || ''}`}
+                                                className={`border-b border-r border-table-border py-3 align-top [overflow-wrap:anywhere] ${cell.column.id === 'actions' ? 'px-1' : ''} ${frozen[cell.column.id] || ''}`}
                                             >
                                                 {flexRender(cell.column.columnDef.cell ?? DefaultCell, cell.getContext())}
                                             </TableCell>

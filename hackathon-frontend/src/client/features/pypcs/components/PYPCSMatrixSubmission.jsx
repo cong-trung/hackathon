@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
-import { ChevronsUpDown, Info, X } from 'lucide-react';
+import { ChevronsUpDown, CopyCheck, Info, X } from 'lucide-react';
 
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/shared/components/ui/alert-dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import {
@@ -23,9 +27,6 @@ const MIN_TP_NAME_LENGTH = 7;
 const numberColumn = { width: 48, minWidth: 48, maxWidth: 48, left: 0 };
 const labelColumn = { width: 256, minWidth: 256, maxWidth: 256, left: 48 };
 
-// Editing the first selected module's answer auto-fills the rest of the row.
-const AUTO_FILL_FROM_FIRST_QUESTION_IDS = new Set(['nsb']);
-
 // Shared answers expand to every applicable selected module on save.
 const SHARED_ACROSS_MODULES_QUESTION_IDS = new Set([
     'product_name',
@@ -34,6 +35,13 @@ const SHARED_ACROSS_MODULES_QUESTION_IDS = new Set([
     'fab_technology',
     'segment',
     'lts_ball',
+    'nsb',
+    'nsb_comment',
+    'foveros',
+    'mcp',
+]);
+const APPLY_TO_ALL_QUESTION_IDS = new Set([
+    'prodgroup3', 'backend_test_process_flow', 'package', 'bare_die_lid',
 ]);
 
 async function requestJson(path, options = {}) {
@@ -96,15 +104,11 @@ function expandMatrixCells(questions, selectedModules, cells) {
 
     questions.forEach((question) => {
         const shared = SHARED_ACROSS_MODULES_QUESTION_IDS.has(question.question_id);
-        const autoFill = AUTO_FILL_FROM_FIRST_QUESTION_IDS.has(question.question_id);
-
-        if (!shared && !autoFill) {
+        if (!shared) {
             return;
         }
 
-        const value = shared
-            ? getFirstAnswerForQuestion(question, selectedModules, cells)
-            : cells[getCellKey(question.question_id, selectedModules[0])] || '';
+        const value = getFirstAnswerForQuestion(question, selectedModules, cells);
 
         selectedModules.forEach((moduleKey) => {
             if (!isQuestionApplicableToModule(question, moduleKey)) {
@@ -112,9 +116,7 @@ function expandMatrixCells(questions, selectedModules, cells) {
             }
 
             const cellKey = getCellKey(question.question_id, moduleKey);
-            if (shared || (value && !expanded[cellKey])) {
-                expanded[cellKey] = value;
-            }
+            expanded[cellKey] = value;
         });
     });
 
@@ -268,6 +270,7 @@ export default function PYPCSMatrixSubmission({
     const [editingDescriptionId, setEditingDescriptionId] = useState(null);
     const [descriptionDrafts, setDescriptionDrafts] = useState({});
     const [modulesOpen, setModulesOpen] = useState(false);
+    const [pendingApply, setPendingApply] = useState(null);
 
     const sortedModules = useMemo(() => {
         return [...modules].sort((a, b) => {
@@ -277,8 +280,13 @@ export default function PYPCSMatrixSubmission({
     const selectedModuleDetails = sortedModules.filter((module) =>
         selectedModules.includes(module.module_key),
     );
+    const nsbQuestion = questions.find((question) => question.question_id === 'nsb');
+    const showNsbReason = nsbQuestion && String(getFirstAnswerForQuestion(
+        nsbQuestion, selectedModules, cells,
+    )).trim().toUpperCase() === 'Y';
     const sharedQuestions = questions.filter((question) =>
-        SHARED_ACROSS_MODULES_QUESTION_IDS.has(question.question_id),
+        SHARED_ACROSS_MODULES_QUESTION_IDS.has(question.question_id)
+        && (question.question_id !== 'nsb_comment' || showNsbReason),
     );
     const tableQuestions = questions.filter((question) =>
         !SHARED_ACROSS_MODULES_QUESTION_IDS.has(question.question_id),
@@ -299,6 +307,7 @@ export default function PYPCSMatrixSubmission({
         setVersions({});
         setConflict(null);
         setStatusMessage('');
+        setPendingApply(null);
     }
 
     const loadModules = useCallback(async () => {
@@ -428,50 +437,18 @@ export default function PYPCSMatrixSubmission({
 
     function handleCellChange(questionId, moduleKey, value) {
         const cellKey = getCellKey(questionId, moduleKey);
-        const isFirstModule = selectedModules[0] === moduleKey;
-        const shouldAutoFill =
-            isFirstModule && AUTO_FILL_FROM_FIRST_QUESTION_IDS.has(questionId);
-        const question = questions.find(
-            (item) => item.question_id === questionId,
-        );
-
-        setCells((previousCells) => {
-            const nextCells = { ...previousCells, [cellKey]: value };
-
-            if (shouldAutoFill && question) {
-                selectedModules.forEach((otherModuleKey) => {
-                    if (otherModuleKey === moduleKey) {
-                        return;
-                    }
-
-                    if (
-                        !isQuestionApplicableToModule(question, otherModuleKey)
-                    ) {
-                        return;
-                    }
-
-                    nextCells[getCellKey(questionId, otherModuleKey)] = value;
-                });
-            }
-
-            return nextCells;
-        });
+        setCells((previousCells) => ({ ...previousCells, [cellKey]: value }));
 
         setErrors((previousErrors) => {
             const nextErrors = { ...previousErrors };
             delete nextErrors[cellKey];
-
-            if (shouldAutoFill && question) {
-                selectedModules.forEach((otherModuleKey) => {
-                    delete nextErrors[getCellKey(questionId, otherModuleKey)];
-                });
-            }
 
             return nextErrors;
         });
     }
 
     function handleSharedFieldChange(question, value) {
+        const clearReason = question.question_id === 'nsb' && value.trim().toUpperCase() !== 'Y';
         setCells((previousCells) => {
             const nextCells = { ...previousCells };
 
@@ -483,6 +460,12 @@ export default function PYPCSMatrixSubmission({
                 nextCells[getCellKey(question.question_id, moduleKey)] = value;
             });
 
+            if (clearReason) {
+                Object.keys(nextCells).forEach((cellKey) => {
+                    if (cellKey.startsWith('nsb_comment__')) nextCells[cellKey] = '';
+                });
+            }
+
             return nextCells;
         });
 
@@ -493,8 +476,66 @@ export default function PYPCSMatrixSubmission({
                 delete nextErrors[getCellKey(question.question_id, moduleKey)];
             });
 
+            if (clearReason) {
+                Object.keys(nextErrors).forEach((cellKey) => {
+                    if (cellKey.startsWith('nsb_comment__')) delete nextErrors[cellKey];
+                });
+            }
+
             return nextErrors;
         });
+    }
+
+    function applyTargets(question) {
+        const applicable = selectedModuleDetails.filter((module) =>
+            isQuestionApplicableToModule(question, module.module_key)
+            && (role === 'ALL' || question.role === role)
+            && (question.question_id !== 'backend_test_process_flow'
+                || module.module_key.toUpperCase().startsWith('HDMX')),
+        );
+        const source = applicable.find((module) =>
+            String(cells[getCellKey(question.question_id, module.module_key)] || '').trim(),
+        );
+        return { source, targets: source
+            ? applicable.filter((module) => module.module_key !== source.module_key)
+            : [] };
+    }
+
+    function commitApply(question, source, targets) {
+        const value = cells[getCellKey(question.question_id, source.module_key)];
+        setCells((previous) => {
+            const next = { ...previous };
+            targets.forEach((module) => {
+                next[getCellKey(question.question_id, module.module_key)] = value;
+            });
+            return next;
+        });
+        setErrors((previous) => {
+            const next = { ...previous };
+            targets.forEach((module) => {
+                delete next[getCellKey(question.question_id, module.module_key)];
+            });
+            delete next[getCellKey(question.question_id, source.module_key)];
+            return next;
+        });
+        setStatusKind('success');
+        setStatusMessage(`${question.display_label || question.header || question.question_id} applied to ${targets.length} modules`);
+        setPendingApply(null);
+    }
+
+    function handleApply(question) {
+        const { source, targets } = applyTargets(question);
+        if (!source || !targets.length) return;
+        const value = cells[getCellKey(question.question_id, source.module_key)];
+        const overwriteCount = targets.filter((module) => {
+            const existing = cells[getCellKey(question.question_id, module.module_key)];
+            return String(existing || '').trim() && existing !== value;
+        }).length;
+        if (overwriteCount) {
+            setPendingApply({ question, source, targets, overwriteCount });
+        } else {
+            commitApply(question, source, targets);
+        }
     }
 
     function startEditingDescription(question) {
@@ -562,6 +603,19 @@ export default function PYPCSMatrixSubmission({
     function validateMatrix() {
         const nextErrors = {};
         const expandedCells = expandMatrixCells(questions, selectedModules, cells);
+
+        const nsbQuestion = questions.find((item) => item.question_id === 'nsb');
+        const reasonQuestion = questions.find((item) => item.question_id === 'nsb_comment');
+        if (nsbQuestion && reasonQuestion) {
+            selectedModules.forEach((moduleKey) => {
+                if (isQuestionApplicableToModule(nsbQuestion, moduleKey)
+                    && isQuestionApplicableToModule(reasonQuestion, moduleKey)
+                    && String(expandedCells[getCellKey('nsb', moduleKey)] || '').trim().toUpperCase() === 'Y'
+                    && !String(expandedCells[getCellKey('nsb_comment', moduleKey)] || '').trim()) {
+                    nextErrors[getCellKey('nsb_comment', moduleKey)] = 'NSB reason is required';
+                }
+            });
+        }
 
         questions.forEach((question) => {
             if (!question.required || question.question_id === 'operation') {
@@ -909,6 +963,7 @@ export default function PYPCSMatrixSubmission({
                     aria-label={label}
                     aria-invalid={invalid || undefined}
                     aria-describedby={errorId}
+                    placeholder={question.question_id === 'nsb_comment' ? 'Explain why this is Non-Synergy-Build' : undefined}
                     value={value}
                     onChange={(event) => onChange(event.target.value)}
                 />
@@ -924,6 +979,7 @@ export default function PYPCSMatrixSubmission({
                 aria-label={label}
                 aria-invalid={invalid || undefined}
                 aria-describedby={errorId}
+                placeholder={question.question_id === 'nsb_comment' ? 'Explain why this is Non-Synergy-Build' : undefined}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
             />
@@ -946,7 +1002,7 @@ export default function PYPCSMatrixSubmission({
             return (
                 <td
                     key={moduleKey}
-                    className="min-w-32 border bg-muted p-2 text-center text-xs text-muted-foreground"
+                    className="min-w-32 border-b border-r border-table-border bg-muted p-2 text-center text-xs text-muted-foreground"
                 >
                     {!selected ? 'Disabled' : 'N/A'}
                 </td>
@@ -957,7 +1013,7 @@ export default function PYPCSMatrixSubmission({
             return (
                 <td
                     key={moduleKey}
-                    className="min-w-32 border bg-muted p-2 text-xs text-muted-foreground"
+                    className="min-w-32 border-b border-r border-table-border bg-muted p-2 text-xs text-muted-foreground"
                 >
                     Read only
                 </td>
@@ -969,7 +1025,7 @@ export default function PYPCSMatrixSubmission({
             : question;
 
         return (
-            <td key={moduleKey} className="min-w-40 border-b border-r bg-background p-2">
+            <td key={moduleKey} className="min-w-40 border-b border-r border-table-border bg-background p-2">
                 {renderFieldInput(
                     cellQuestion,
                     value,
@@ -1001,7 +1057,7 @@ export default function PYPCSMatrixSubmission({
             <div key={question.question_id} className="min-w-0 space-y-1">
                 <div className="flex items-center gap-1">
                     <label htmlFor={inputId} className="min-w-0 break-words text-xs font-medium">
-                        {label}{question.required ? <span className="ml-1 text-destructive">*</span> : null}
+                        {label}{(question.required || question.question_id === 'nsb_comment') ? <span className="ml-1 text-destructive">*</span> : null}
                     </label>
                     {renderDescription(question)}
                 </div>
@@ -1076,7 +1132,7 @@ export default function PYPCSMatrixSubmission({
     return (
         <div className="flex min-w-0 flex-col gap-3 md:min-h-0 md:flex-1 md:overflow-hidden">
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <h1 className="mr-2 text-lg font-semibold">Quality Matrix</h1>
+                <h1 className="sr-only">Quality Matrix</h1>
                 {modeSwitch}
                 <label className="ml-1 text-sm font-medium" htmlFor="matrix-role">Role</label>
                 <select
@@ -1174,7 +1230,7 @@ export default function PYPCSMatrixSubmission({
                 </div>
             ) : null}
 
-            <div className={`min-h-[320px] min-w-0 overflow-auto rounded-md border bg-card md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
+            <div className={`min-h-[320px] min-w-0 overflow-auto rounded-md border border-table-border bg-card md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
                 {selectedModules.length === 0 ? (
                     <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 p-4 text-center text-sm text-muted-foreground">
                         <p>Select one or more modules to start</p>
@@ -1185,13 +1241,13 @@ export default function PYPCSMatrixSubmission({
                     className="w-full table-fixed border-separate border-spacing-0 text-sm">
                     <thead>
                         <tr className="bg-table-header text-table-header-foreground">
-                            <th style={numberColumn} className="sticky top-0 z-30 border-b border-r bg-table-header p-2">
+                            <th style={numberColumn} className="sticky top-0 z-30 border-b border-r border-white/20 bg-table-header p-2">
                                 No
                             </th>
-                            <th style={labelColumn} className="sticky top-0 z-30 border-b-2 border-r-2 bg-table-header py-2 pl-2 pr-3 text-left shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]">
+                            <th style={labelColumn} className="sticky top-0 z-30 border-b-2 border-r-2 border-white/20 bg-table-header py-2 pl-2 pr-3 text-left shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]">
                                 Header
                             </th>
-                            <th className="sticky top-0 z-20 w-16 border-b border-r bg-table-header p-2">
+                            <th className="sticky top-0 z-20 w-16 border-b border-r border-white/20 bg-table-header p-2">
                                 Role
                             </th>
 
@@ -1199,7 +1255,7 @@ export default function PYPCSMatrixSubmission({
                                 <th
                                     key={module.module_key}
                                     scope="col"
-                                    className="sticky top-0 z-20 w-40 border-b border-r bg-table-header p-2"
+                                    className="sticky top-0 z-20 w-40 border-b border-r border-white/20 bg-table-header p-2"
                                 >
                                     {module.module_label || module.module_key}
                                 </th>
@@ -1211,7 +1267,7 @@ export default function PYPCSMatrixSubmission({
                         {tableQuestions.length === 0 ? (
                             <tr>
                                 <td
-                                    className="border p-3 text-muted-foreground"
+                                    className="border-b border-r border-table-border p-3 text-muted-foreground"
                                     colSpan={3 + selectedModuleDetails.length}
                                 >
                                     No matrix rows found.
@@ -1221,11 +1277,11 @@ export default function PYPCSMatrixSubmission({
 
                         {tableQuestions.map((question, index) => (
                             <tr key={question.question_id} className="group even:bg-table-stripe hover:bg-table-hover">
-                                <td style={numberColumn} className="sticky z-10 border-b border-r bg-table-frozen p-2 text-center group-hover:bg-table-hover">
+                                <td style={numberColumn} className="sticky z-10 border-b border-r border-table-border bg-table-frozen p-2 text-center group-hover:bg-table-hover">
                                     {index + 1}
                                 </td>
 
-                                <th scope="row" style={labelColumn} className="sticky z-10 border-b-2 border-r-2 bg-primary py-2 pl-2 pr-3 text-left align-top font-medium text-primary-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] [overflow-wrap:anywhere]">
+                                <th scope="row" style={labelColumn} className="sticky z-10 border-b-2 border-r-2 border-table-border bg-primary py-2 pl-2 pr-3 text-left align-top font-medium text-primary-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] [overflow-wrap:anywhere]">
                                     <span className="flex items-start gap-1">
                                         <span className="min-w-0 flex-1">
                                             {question.display_label || question.header || question.question_id}
@@ -1233,9 +1289,19 @@ export default function PYPCSMatrixSubmission({
                                         </span>
                                         {renderDescription(question, true)}
                                     </span>
+                                    {APPLY_TO_ALL_QUESTION_IDS.has(question.question_id) && (() => {
+                                        const { source, targets } = applyTargets(question);
+                                        return <Button type="button" size="sm" variant="outline"
+                                            className="mt-1 h-7 border-white bg-white px-1.5 text-xs text-primary hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white"
+                                            aria-label={`Apply ${question.display_label || question.header || question.question_id} to all selected modules`}
+                                            disabled={!source || !targets.length || loading}
+                                            onClick={() => handleApply(question)}>
+                                            <CopyCheck aria-hidden="true" className="mr-1 size-3.5" /> Apply to all
+                                        </Button>;
+                                    })()}
                                 </th>
 
-                                <td className="border p-2 text-center font-medium">
+                                <td className="border-b border-r border-table-border p-2 text-center font-medium">
                                     {question.role}
                                 </td>
 
@@ -1246,6 +1312,18 @@ export default function PYPCSMatrixSubmission({
                 </table>
                 )}
             </div>
+            <AlertDialog open={Boolean(pendingApply)} onOpenChange={(open) => !open && setPendingApply(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Overwrite {pendingApply?.overwriteCount} cells?</AlertDialogTitle>
+                        <AlertDialogDescription>Existing answers in these modules will be replaced.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => commitApply(pendingApply.question, pendingApply.source, pendingApply.targets)}>Overwrite</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

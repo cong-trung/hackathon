@@ -78,7 +78,6 @@ function mapError(error, form, sentIndices) {
 }
 
 function ActionEditor({ action, index, cell, form, focusRef, focused }) {
-    const suggestion = cell?.status ? '' : cell?.suggested_status;
     return (
         <div className="grid gap-3 border-b py-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
             <div className="min-w-0">
@@ -87,15 +86,6 @@ function ActionEditor({ action, index, cell, form, focusRef, focused }) {
                     {cell?.decision_state === 'draft' && <Badge variant="outline" className="ml-2 text-[10px]">Draft</Badge>}
                 </p>
                 <p className="mt-1 line-clamp-3 text-sm" title={action.actionable_item}>{action.actionable_item}</p>
-                {suggestion && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                        Suggested: {suggestion} — {cell.suggested_comment}{' '}
-                        <Button type="button" variant="link" className="h-auto px-1 py-0 text-xs" onClick={() => {
-                            form.setValue(`cells.${index}.status`, suggestion, { shouldDirty: true, shouldValidate: true });
-                            form.setValue(`cells.${index}.comment`, cell.suggested_comment, { shouldDirty: true, shouldValidate: true });
-                        }}>Use</Button>
-                    </div>
-                )}
             </div>
             <FormField control={form.control} name={`cells.${index}.status`} render={({ field }) => (
                 <FormItem>
@@ -112,6 +102,7 @@ function ActionEditor({ action, index, cell, form, focusRef, focused }) {
                             <SelectItem value="NA">NA</SelectItem>
                         </SelectContent>
                     </Select>
+                    {!field.value && <p className="text-xs text-muted-foreground">Default N if not reviewed</p>}
                     <FormMessage />
                 </FormItem>
             )} />
@@ -167,16 +158,6 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
         } finally {
             setReloading(false);
         }
-    }
-
-    function acceptSuggestions() {
-        actions.forEach((action, index) => {
-            const cell = loadedRow.cells?.[action.nbr];
-            if (!cell?.status && !cells?.[index]?.status && cell?.suggested_status) {
-                form.setValue(`cells.${index}.status`, cell.suggested_status, { shouldDirty: true, shouldValidate: true });
-                form.setValue(`cells.${index}.comment`, cell.suggested_comment, { shouldDirty: true, shouldValidate: true });
-            }
-        });
     }
 
     function onInvalid(errors) {
@@ -283,9 +264,6 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <Button type="button" variant="outline" className="mt-4" onClick={acceptSuggestions}>
-                                Accept all suggestions
-                            </Button>
                             {actions.map((action, index) => (
                                 <ActionEditor key={action.nbr} action={action} index={index}
                                     cell={loadedRow.cells?.[action.nbr]} form={form} focusRef={focusRef}

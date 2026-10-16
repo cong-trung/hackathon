@@ -1012,6 +1012,42 @@ def create_pypcs_matrix_submission(req: PYPCSMatrixSubmissionRequest):
                     }
                 )
 
+        nsb_question = questions_by_id.get("nsb")
+        nsb_comment_question = questions_by_id.get("nsb_comment")
+        if nsb_question and nsb_comment_question:
+            for module_key in selected_modules_ordered:
+                if ("nsb_comment", module_key) not in applicable_pairs:
+                    continue
+
+                if req.role:
+                    role_filter = value_to_str(req.role).upper()
+                    if (
+                        nsb_question.get("role", "").upper() != role_filter
+                        or nsb_comment_question.get("role", "").upper()
+                        != role_filter
+                    ):
+                        continue
+
+                nsb_answer = value_to_str(
+                    submitted_pair_to_answer.get(("nsb", module_key), "")
+                ).strip().upper()
+                comment_answer = value_to_str(
+                    submitted_pair_to_answer.get(("nsb_comment", module_key), "")
+                ).strip()
+
+                if nsb_answer == "Y" and not comment_answer:
+                    missing_required.append(
+                        {
+                            "question_id": "nsb_comment",
+                            "module_key": module_key,
+                            "display_label": nsb_comment_question.get(
+                                "display_label",
+                                "nsb_comment",
+                            ),
+                            "role": nsb_comment_question.get("role", ""),
+                        }
+                    )
+
     if missing_required:
         raise HTTPException(
             status_code=400,

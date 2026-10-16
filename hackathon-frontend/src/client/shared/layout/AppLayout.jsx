@@ -63,7 +63,7 @@ function AppLayout() {
                         </Breadcrumb>
                     </div>
                 </header>
-                <div className={`min-h-0 w-full flex-1 bg-muted-foreground/5 p-4 overflow-auto ${viewportPage ? 'md:overflow-hidden' : ''}`}>
+                <div className={`min-h-0 w-full flex-1 overflow-auto ${viewportPage ? 'bg-background p-2 md:overflow-hidden md:p-3' : 'bg-muted-foreground/5 p-4'}`}>
                     <Outlet />
                 </div>
             </SidebarInset>

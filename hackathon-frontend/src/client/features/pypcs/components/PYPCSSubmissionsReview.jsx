@@ -99,7 +99,7 @@ export default function PYPCSSubmissionsReview({
         const direction = sort.key === key ? sort.direction : 'none';
         const Icon = direction === 'ascending' ? ArrowUp : direction === 'descending' ? ArrowDown : ArrowDownUp;
         return (
-            <th scope="col" aria-sort={direction} className="sticky top-0 z-10 bg-table-header p-3 text-table-header-foreground">
+            <th scope="col" aria-sort={direction} className="sticky top-0 z-10 border-b border-r border-white/20 bg-table-header p-3 text-table-header-foreground">
                 <button type="button" onClick={() => changeSort(key)}
                     className="inline-flex items-center gap-1 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
                     {label}<Icon aria-hidden="true" className="size-4 shrink-0" />
@@ -238,20 +238,20 @@ export default function PYPCSSubmissionsReview({
         }
 
         return (
-            <div className="mt-4 overflow-x-auto rounded-md border">
-                <table className="w-full border-collapse text-sm">
+            <div className="mt-4 overflow-x-auto rounded-md border border-table-border">
+                <table className="w-full border-separate border-spacing-0 text-sm">
                     <thead className="bg-table-header text-left text-table-header-foreground">
                         <tr>
-                            <th className="min-w-64 border p-3">Question</th>
-                            <th className="min-w-80 border p-3">
+                            <th className="min-w-64 border-b border-r border-white/20 p-3">Question</th>
+                            <th className="min-w-80 border-b border-r border-white/20 p-3">
                                 Description
                             </th>
-                            <th className="min-w-20 border p-3">Role</th>
+                            <th className="min-w-20 border-b border-r border-white/20 p-3">Role</th>
 
                             {selectedModules.map((moduleKey) => (
                                 <th
                                     key={moduleKey}
-                                    className="min-w-40 border p-3 text-center"
+                                    className="min-w-40 border-b border-r border-white/20 p-3 text-center"
                                 >
                                     {moduleKey}
                                 </th>
@@ -262,15 +262,15 @@ export default function PYPCSSubmissionsReview({
                     <tbody>
                         {matrixRows.map((row) => (
                             <tr key={row.question_id} className="even:bg-table-stripe hover:bg-table-hover">
-                                <td className="border bg-primary p-3 font-medium text-primary-foreground">
+                                <td className="border-b border-r border-table-border bg-primary p-3 font-medium text-primary-foreground">
                                     {row.display_label}
                                 </td>
 
-                                <td className="border bg-table-subheader p-3 text-xs text-table-subheader-foreground">
+                                <td className="border-b border-r border-table-border bg-table-subheader p-3 text-xs text-table-subheader-foreground">
                                     {row.description}
                                 </td>
 
-                                <td className="border p-3 text-center font-medium">
+                                <td className="border-b border-r border-table-border p-3 text-center font-medium">
                                     {row.role}
                                 </td>
 
@@ -281,7 +281,7 @@ export default function PYPCSSubmissionsReview({
                                         return (
                                             <td
                                                 key={moduleKey}
-                                                className="border bg-muted p-3 text-center text-xs text-muted-foreground"
+                                                className="border-b border-r border-table-border bg-muted p-3 text-center text-xs text-muted-foreground"
                                             >
                                                 N/A
                                             </td>
@@ -291,7 +291,7 @@ export default function PYPCSSubmissionsReview({
                                     return (
                                         <td
                                             key={moduleKey}
-                                            className="border bg-background p-3"
+                                            className="border-b border-r border-table-border bg-background p-3"
                                         >
                                             {displayAnswer(row.question_id, cell.answer)}
                                         </td>
@@ -313,14 +313,14 @@ export default function PYPCSSubmissionsReview({
         }
 
         return (
-            <div className="mt-4 overflow-x-auto rounded-md border">
-                <table className="w-full text-sm">
+            <div className="mt-4 overflow-x-auto rounded-md border border-table-border">
+                <table className="w-full border-separate border-spacing-0 text-sm">
                     <thead className="bg-table-header text-left text-table-header-foreground">
                         <tr>
-                            <th className="p-3">Question</th>
-                            <th className="p-3">Answer</th>
-                            <th className="p-3">Role</th>
-                            <th className="p-3">Applies To</th>
+                            <th className="border-b border-r border-white/20 p-3">Question</th>
+                            <th className="border-b border-r border-white/20 p-3">Answer</th>
+                            <th className="border-b border-r border-white/20 p-3">Role</th>
+                            <th className="border-b border-r border-white/20 p-3">Applies To</th>
                         </tr>
                     </thead>
 
@@ -330,13 +330,13 @@ export default function PYPCSSubmissionsReview({
                                 key={`${answer.submission_id}-${answer.question_id}`}
                                 className="border-t even:bg-table-stripe hover:bg-table-hover"
                             >
-                                <td className="p-3">
+                                <td className="border-b border-r border-table-border p-3">
                                     {answer.display_label ||
                                         answer.question_id}
                                 </td>
-                                <td className="p-3">{displayAnswer(answer.question_id, answer.answer)}</td>
-                                <td className="p-3">{answer.role}</td>
-                                <td className="p-3">
+                                <td className="border-b border-r border-table-border p-3">{displayAnswer(answer.question_id, answer.answer)}</td>
+                                <td className="border-b border-r border-table-border p-3">{answer.role}</td>
+                                <td className="border-b border-r border-table-border p-3">
                                     {(answer.applies_to || []).join(', ')}
                                 </td>
                             </tr>
@@ -422,7 +422,7 @@ export default function PYPCSSubmissionsReview({
     return (
         <div className="flex min-w-0 flex-col gap-3 md:min-h-0 md:flex-1 md:overflow-hidden">
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <h1 className="mr-2 text-lg font-semibold">Quality Matrix</h1>
+                <h1 className="sr-only">Quality Matrix</h1>
                 {modeSwitch}
                 <div className="ml-auto flex flex-wrap items-center gap-2">
                     <label htmlFor="review-search" className="text-sm font-medium">
@@ -480,7 +480,7 @@ export default function PYPCSSubmissionsReview({
                 </div>
             ) : null}
 
-            <div className="min-h-[320px] min-w-0 overflow-auto rounded-md border bg-card md:min-h-0 md:flex-1">
+            <div className="min-h-[320px] min-w-0 overflow-auto rounded-md border border-table-border bg-card md:min-h-0 md:flex-1">
                 {visibleSubmissions.length === 0 ? (
                     <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted-foreground">
                         <p>{loading ? 'Loading submissions...' : listError
@@ -491,7 +491,7 @@ export default function PYPCSSubmissionsReview({
                         ) : null}
                     </div>
                 ) : (
-                    <table className="w-full min-w-[64rem] text-sm">
+                    <table className="w-full min-w-[64rem] border-separate border-spacing-0 text-sm">
                     <thead className="text-left text-table-header-foreground">
                         <tr>
                             {sortHeader('created_at', 'Created At')}
@@ -499,7 +499,7 @@ export default function PYPCSSubmissionsReview({
                             {sortHeader('product_name', 'Product')}
                             {sortHeader('prodgroup3', 'ProdGroup3')}
                             {['Operation', 'Modules', 'Role', 'Submitted By', 'Action'].map((label) => (
-                                <th key={label} scope="col" className="sticky top-0 z-10 bg-table-header p-3">{label}</th>
+                                <th key={label} scope="col" className="sticky top-0 z-10 border-b border-r border-white/20 bg-table-header p-3">{label}</th>
                             ))}
                         </tr>
                     </thead>
@@ -513,8 +513,8 @@ export default function PYPCSSubmissionsReview({
                                     key={item.submission_id}
                                     className="border-t even:bg-table-stripe hover:bg-table-hover"
                                 >
-                                    <td className="p-3">{item.created_at}</td>
-                                    <td className="p-3">
+                                    <td className="border-b border-r border-table-border p-3">{item.created_at}</td>
+                                    <td className="border-b border-r border-table-border p-3">
                                         <span
                                             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                                                 isDraft
@@ -525,19 +525,19 @@ export default function PYPCSSubmissionsReview({
                                             {isDraft ? 'Draft' : 'Final'}
                                         </span>
                                     </td>
-                                    <td className="p-3">{item.product_name}</td>
-                                    <td className="p-3">{item.prodgroup3}</td>
-                                    <td className="p-3">{displayAnswer('operation', item.operation)}</td>
-                                    <td className="p-3">
+                                    <td className="border-b border-r border-table-border p-3">{item.product_name}</td>
+                                    <td className="border-b border-r border-table-border p-3">{item.prodgroup3}</td>
+                                    <td className="border-b border-r border-table-border p-3">{displayAnswer('operation', item.operation)}</td>
+                                    <td className="border-b border-r border-table-border p-3">
                                         {(item.selected_modules || []).join(
                                             ', ',
                                         )}
                                     </td>
-                                    <td className="p-3">{item.role}</td>
-                                    <td className="p-3">
+                                    <td className="border-b border-r border-table-border p-3">{item.role}</td>
+                                    <td className="border-b border-r border-table-border p-3">
                                         {item.submitted_by}
                                     </td>
-                                    <td className="p-3">
+                                    <td className="border-b border-r border-table-border p-3">
                                         <div className="flex gap-2">
                                             <button
                                                 type="button"

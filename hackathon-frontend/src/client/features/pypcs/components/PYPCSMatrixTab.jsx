@@ -83,7 +83,7 @@ export default function PYPCSMatrixTab() {
     );
 
     return (
-        <div className="p-4 md:flex md:h-full md:min-h-0 md:flex-col md:overflow-hidden">
+        <div className="md:flex md:h-full md:min-h-0 md:flex-col md:overflow-hidden">
             {statusMessage ? <div role="alert">{statusMessage}</div> : null}
             {activeMode === 'review' ? (
                 <PYPCSSubmissionsReview

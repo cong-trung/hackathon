@@ -23,6 +23,7 @@
         --input: 240 5.9% 90%;
         --ring: 205 100% 35%;
         --table-header: 207 100% 21%;
+        --table-border: 210 20% 80%;
         --table-header-foreground: 0 0% 100%;
         --table-subheader: 205 70% 93%;
         --table-subheader-foreground: 240 10% 3.9%;
@@ -72,6 +73,7 @@
         --input: 240 3.7% 15.9%;
         --ring: 205 100% 38%;
         --table-header: 207 60% 18%;
+        --table-border: 207 25% 28%;
         --table-header-foreground: 0 0% 100%;
         --table-subheader: 207 40% 20%;
         --table-subheader-foreground: 0 0% 98%;
