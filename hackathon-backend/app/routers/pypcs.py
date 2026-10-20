@@ -1,16 +1,23 @@
 """PYPCS dynamic questionnaire/matrix endpoints: modules, questions, submissions."""
 
-import uuid
+import hmac
+import ipaddress
 import json
+import re
+import threading
+import time
+import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
 
+from app.config import QUALITY_MATRIX_EDIT_PIN
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
 from app.io.generic_csv import (
     delete_rows_from_csv,
     read_generic_csv,
+    read_generic_csv_headers,
     read_optional_csv,
     safe_int,
     split_pipe_value,
@@ -19,6 +26,7 @@ from app.io.generic_csv import (
 )
 from app.models.pypcs import (
     PYPCSMatrixSubmissionRequest,
+    PYPCSEditPinVerificationRequest,
     PYPCSActionItemRequest,
     PYPCSQuestionDescriptionUpdate,
     PYPCSVisibleQuestionsRequest,
@@ -53,12 +61,118 @@ PYPCS_SUBMISSION_CELL_HEADERS = [
     "updated_at",
     "updated_by",
 ]
+PYPCS_SUBMISSION_HISTORY_FILE = "QualityMatrix/History/PYPCS_SubmissionHistory.csv"
+PYPCS_SUBMISSION_HISTORY_HEADERS = [
+    "history_id",
+    "submission_id",
+    "action",
+    "changed_at",
+    "changed_by",
+    "reason",
+    "previous_submission_json",
+    "previous_cells_json",
+]
+_PIN_FAILURE_WINDOW_SECONDS = 600
+_PIN_FAILURE_LIMIT = 5
+_PIN_FAILURES: dict[str, list[float]] = {}
+_PIN_FAILURES_LOCK = threading.Lock()
 
 
 def action_item_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace(
         "+00:00", "Z"
     )
+
+
+def _request_client_ip(request: Request) -> str:
+    peer = request.client.host if request.client else "unknown"
+    try:
+        is_local_proxy = ipaddress.ip_address(peer).is_loopback
+    except ValueError:
+        is_local_proxy = False
+    # Trust only the first forwarded hop when the direct peer is loopback.
+    if is_local_proxy:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        if forwarded.strip():
+            return forwarded.split(",", 1)[0].strip()
+    return peer
+
+
+def _is_valid_edit_pin(pin: str | None, request: Request) -> bool:
+    if not QUALITY_MATRIX_EDIT_PIN:
+        return False
+    if pin is None:
+        return False
+
+    client_ip = _request_client_ip(request)
+    now = time.monotonic()
+    with _PIN_FAILURES_LOCK:
+        attempts = [
+            attempt
+            for attempt in _PIN_FAILURES.get(client_ip, [])
+            if now - attempt < _PIN_FAILURE_WINDOW_SECONDS
+        ]
+        if len(attempts) >= _PIN_FAILURE_LIMIT:
+            _PIN_FAILURES[client_ip] = attempts
+            raise HTTPException(
+                status_code=429,
+                detail={"code": "pin_rate_limited"},
+            )
+
+        valid = hmac.compare_digest(pin, QUALITY_MATRIX_EDIT_PIN)
+        if not valid:
+            attempts.append(now)
+        _PIN_FAILURES[client_ip] = attempts
+        return valid
+
+
+def _require_final_edit_pin(pin: str | None, request: Request) -> None:
+    if not QUALITY_MATRIX_EDIT_PIN:
+        raise HTTPException(
+            status_code=423,
+            detail={
+                "message": "Final submission is locked. Enter the edit PIN to modify it.",
+                "code": "final_edit_disabled",
+            },
+        )
+    if not _is_valid_edit_pin(pin, request):
+        raise HTTPException(
+            status_code=423,
+            detail={
+                "message": "Final submission is locked. Enter the edit PIN to modify it.",
+                "code": "final_locked",
+            },
+        )
+
+
+def _append_submission_history(
+    submission: dict[str, str],
+    cells: list[dict[str, str]],
+    action: str,
+    changed_by: str,
+    reason: str,
+) -> None:
+    history_rows = read_optional_csv(PYPCS_SUBMISSION_HISTORY_FILE)
+    headers = read_generic_csv_headers(PYPCS_SUBMISSION_HISTORY_FILE)
+    if not headers:
+        headers = PYPCS_SUBMISSION_HISTORY_HEADERS
+    history_rows.append(
+        {
+            "history_id": str(uuid.uuid4()),
+            "submission_id": value_to_str(submission.get("submission_id", "")),
+            "action": action,
+            "changed_at": action_item_timestamp(),
+            "changed_by": changed_by,
+            "reason": reason,
+            "previous_submission_json": json.dumps(
+                submission, ensure_ascii=False, separators=(",", ":")
+            ),
+            "previous_cells_json": json.dumps(
+                cells, ensure_ascii=False, separators=(",", ":")
+            ),
+        }
+    )
+    write_rows_to_csv(PYPCS_SUBMISSION_HISTORY_FILE, history_rows, headers)
 
 
 def validate_action_item(payload: PYPCSActionItemRequest) -> None:
@@ -278,8 +392,14 @@ def _persist_matrix_submission(
     submitted_cells: list[dict[str, str]],
     selected_modules_ordered: list[str],
     question_rows: list[dict[str, str]],
+    request: Request,
+    edit_pin: str | None,
 ) -> dict:
-    with locked_files(PYPCS_SUBMISSIONS_FILE, PYPCS_SUBMISSION_CELLS_FILE):
+    with locked_files(
+        PYPCS_SUBMISSIONS_FILE,
+        PYPCS_SUBMISSION_CELLS_FILE,
+        PYPCS_SUBMISSION_HISTORY_FILE,
+    ):
         submissions = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
         existing_submission = next(
             (
@@ -299,6 +419,11 @@ def _persist_matrix_submission(
             if value_to_str(row.get("submission_id", "")) == submission_id
         ]
         scope = req.role.strip().upper() if req.role and req.role.strip() else "ALL"
+
+        if existing_submission and normalize_status(
+            existing_submission.get("status", "")
+        ) == "final":
+            _require_final_edit_pin(edit_pin, request)
 
         if req.expected_version is not None:
             if not existing_submission:
@@ -422,6 +547,16 @@ def _persist_matrix_submission(
                 for row in merged_cells
             )
         )
+        if existing_submission and normalize_status(
+            existing_submission.get("status", "")
+        ) == "final":
+            _append_submission_history(
+                existing_submission,
+                scoped_existing_cells,
+                "edit",
+                value_to_str(req.submitted_by),
+                value_to_str(req.edit_reason),
+            )
         submission_headers = [
             "submission_id", "created_at", "updated_at", "submitted_by", "role",
             "selected_modules", "product_name", "prodgroup3", "operation",
@@ -799,13 +934,89 @@ def get_pypcs_submission_detail(submission_id: str):
     }
 
 
+@router.post(
+    "/pypcs/submissions/{submission_id}/verify-edit-pin",
+    status_code=204,
+)
+def verify_pypcs_edit_pin(
+    submission_id: str,
+    payload: PYPCSEditPinVerificationRequest,
+    request: Request,
+):
+    if not QUALITY_MATRIX_EDIT_PIN:
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "final_edit_disabled"},
+        )
+    if not _is_valid_edit_pin(payload.pin, request):
+        raise HTTPException(
+            status_code=403,
+            detail={"message": "Invalid edit PIN.", "code": "invalid_edit_pin"},
+        )
+    return Response(status_code=204)
+
+
+@router.get("/pypcs/submissions/{submission_id}/history")
+def get_pypcs_submission_history(submission_id: str):
+    target_id = value_to_str(submission_id)
+    rows = [
+        row
+        for row in read_optional_csv(PYPCS_SUBMISSION_HISTORY_FILE)
+        if value_to_str(row.get("submission_id", "")) == target_id
+    ]
+    rows.sort(key=lambda row: value_to_str(row.get("changed_at", "")), reverse=True)
+    return [
+        {
+            "history_id": value_to_str(row.get("history_id", "")),
+            "action": value_to_str(row.get("action", "")),
+            "changed_at": value_to_str(row.get("changed_at", "")),
+            "changed_by": value_to_str(row.get("changed_by", "")),
+            "reason": value_to_str(row.get("reason", "")),
+        }
+        for row in rows
+    ]
+
+
 @router.delete("/pypcs/submissions/{submission_id}")
-def delete_pypcs_submission(submission_id: str):
+def delete_pypcs_submission(
+    submission_id: str,
+    request: Request,
+    edit_pin: str | None = Header(default=None, alias="X-Edit-Pin"),
+    edit_reason: str | None = None,
+    submitted_by: str | None = None,
+):
     target_id = value_to_str(submission_id)
     with locked_files(
         PYPCS_SUBMISSIONS_FILE,
         PYPCS_SUBMISSION_CELLS_FILE,
+        PYPCS_SUBMISSION_HISTORY_FILE,
     ):
+        submissions = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
+        previous_submission = next(
+            (
+                row
+                for row in submissions
+                if value_to_str(row.get("submission_id", "")) == target_id
+            ),
+            None,
+        )
+        if not previous_submission:
+            raise HTTPException(status_code=404, detail="PYPCS submission not found.")
+        previous_cells = [
+            row
+            for row in read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE)
+            if value_to_str(row.get("submission_id", "")) == target_id
+        ]
+        is_final = normalize_status(previous_submission.get("status", "")) == "final"
+        if is_final:
+            _require_final_edit_pin(edit_pin, request)
+            _append_submission_history(
+                previous_submission,
+                previous_cells,
+                "delete",
+                value_to_str(submitted_by),
+                value_to_str(edit_reason),
+            )
         deleted = delete_rows_from_csv(
             PYPCS_SUBMISSIONS_FILE, "submission_id", target_id
         )
@@ -821,7 +1032,11 @@ def delete_pypcs_submission(submission_id: str):
 
 
 @router.post("/pypcs/matrix-submission")
-def create_pypcs_matrix_submission(req: PYPCSMatrixSubmissionRequest):
+def create_pypcs_matrix_submission(
+    req: PYPCSMatrixSubmissionRequest,
+    request: Request,
+    edit_pin: str | None = Header(default=None, alias="X-Edit-Pin"),
+):
     if not req.selected_modules:
         raise HTTPException(
             status_code=400,
@@ -978,6 +1193,28 @@ def create_pypcs_matrix_submission(req: PYPCSMatrixSubmissionRequest):
             },
         )
 
+    invalid_pdo_owners = [
+        {
+            "question_id": "pdo_owner",
+            "module_key": cell["module_key"],
+            "display_label": questions_by_id["pdo_owner"].get(
+                "display_label", "PdO owner (email)"
+            ),
+        }
+        for cell in submitted_cells
+        if cell["question_id"] == "pdo_owner"
+        and cell["answer"]
+        and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", cell["answer"])
+    ]
+    if invalid_pdo_owners:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Invalid PdO owner email.",
+                "invalid_cells": invalid_pdo_owners,
+            },
+        )
+
     missing_required = []
 
     if req.status == "final":
@@ -1058,5 +1295,10 @@ def create_pypcs_matrix_submission(req: PYPCSMatrixSubmissionRequest):
         )
 
     return _persist_matrix_submission(
-        req, submitted_cells, selected_modules_ordered, question_rows
+        req,
+        submitted_cells,
+        selected_modules_ordered,
+        question_rows,
+        request,
+        edit_pin,
     )

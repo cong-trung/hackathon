@@ -20,6 +20,7 @@ def load_env_file(path: Path) -> None:
 load_env_file(BACKEND_ROOT / ".env.production")
 
 DATA_DIR = Path(os.getenv("QUALITY_MATRIX_DATA_DIR", "data"))
+QUALITY_MATRIX_EDIT_PIN = os.getenv("QUALITY_MATRIX_EDIT_PIN", "").strip()
 ALLOWED_ORIGINS = [
     x.strip()
     for x in os.getenv(

@@ -134,22 +134,52 @@ export async function getPypcsSubmissionDetail(req, res) {
     );
 }
 
-export async function deletePypcsSubmission(req, res) {
+export async function getPypcsSubmissionHistory(req, res) {
     const { submissionId } = req.params;
 
     return proxyRequest(
         res,
-        `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}`,
-        { method: 'DELETE' },
+        `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}/history`,
+    );
+}
+
+export async function verifyPypcsEditPin(req, res) {
+    const { submissionId } = req.params;
+
+    return proxyRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}/verify-edit-pin`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body),
+        },
+    );
+}
+
+export async function deletePypcsSubmission(req, res) {
+    const { submissionId } = req.params;
+    const queryString = new URLSearchParams(req.query).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    const headers = {};
+    const editPin = req.get('x-edit-pin');
+    if (editPin) headers['X-Edit-Pin'] = editPin;
+
+    return proxyRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}${suffix}`,
+        { method: 'DELETE', headers },
     );
 }
 
 export async function submitPypcsMatrixSubmission(req, res) {
+    const headers = { 'Content-Type': 'application/json' };
+    const editPin = req.get('x-edit-pin');
+    if (editPin) headers['X-Edit-Pin'] = editPin;
+
     return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/matrix-submission`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(req.body),
     });
 }

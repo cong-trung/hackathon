@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 
 import AppLayout from '@/shared/layout/AppLayout';
 import { routes } from '@/routes/routes';
@@ -47,6 +47,7 @@ const router = createBrowserRouter([
     {
         element: <AppLayout />,
         children: [
+            { index: true, element: <Navigate to="/pypcs" replace /> },
             ...buildRouteObjects(routes),
             {
                 path: '*',

@@ -1,4 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useBlocker } from 'react-router-dom';
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/shared/components/ui/alert-dialog';
 
 import PYPCSSubmissionsReview from './PYPCSSubmissionsReview';
 
@@ -35,6 +40,26 @@ export default function PYPCSMatrixTab() {
     const [activeMode, setActiveMode] = useState('matrix');
     const [resumeSubmission, setResumeSubmission] = useState(null);
     const [statusMessage, setStatusMessage] = useState('');
+    const [dirty, setDirty] = useState(false);
+    const [pendingMode, setPendingMode] = useState(null);
+    const blocker = useBlocker(dirty);
+    const onDirtyChange = useCallback((value) => setDirty(value), []);
+
+    useEffect(() => {
+        const warn = (event) => {
+            if (!dirty) return;
+            event.preventDefault();
+            event.returnValue = '';
+        };
+        window.addEventListener('beforeunload', warn);
+        return () => window.removeEventListener('beforeunload', warn);
+    }, [dirty]);
+
+    function changeMode(mode) {
+        if (mode === activeMode) return;
+        if (dirty) setPendingMode(mode);
+        else setActiveMode(mode);
+    }
 
     async function handleContinueEditing(submissionId) {
         setStatusMessage('');
@@ -62,7 +87,7 @@ export default function PYPCSMatrixTab() {
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-card'
                     }`}
-                    onClick={() => setActiveMode('matrix')}
+                    onClick={() => changeMode('matrix')}
                 >
                     Matrix Submission
                 </button>
@@ -75,7 +100,7 @@ export default function PYPCSMatrixTab() {
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-card'
                     }`}
-                    onClick={() => setActiveMode('review')}
+                    onClick={() => changeMode('review')}
                 >
                     Review Submissions
                 </button>
@@ -95,8 +120,32 @@ export default function PYPCSMatrixTab() {
                     resumeSubmission={resumeSubmission}
                     onResumeHandled={() => setResumeSubmission(null)}
                     modeSwitch={modeSwitch}
+                    onDirtyChange={onDirtyChange}
                 />
             )}
+            <AlertDialog open={Boolean(pendingMode) || blocker.state === 'blocked'}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingMode(null);
+                        if (blocker.state === 'blocked') blocker.reset();
+                    }
+                }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Leave without saving?</AlertDialogTitle>
+                        <AlertDialogDescription>Your changes will be lost.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Stay</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                            if (blocker.state === 'blocked') blocker.proceed();
+                            if (pendingMode) setActiveMode(pendingMode);
+                            setPendingMode(null);
+                            setDirty(false);
+                        }}>Leave</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

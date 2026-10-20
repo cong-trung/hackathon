@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
-import { ChevronsUpDown, CopyCheck, Info, X } from 'lucide-react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Check, ChevronsUpDown, CopyCheck, Info, X } from 'lucide-react';
 
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -7,6 +7,10 @@ import {
 } from '@/shared/components/ui/alert-dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
+import {
+    Dialog, DialogContent, DialogDescription, DialogFooter,
+    DialogHeader, DialogTitle,
+} from '@/shared/components/ui/dialog';
 import {
     Command,
     CommandEmpty,
@@ -24,6 +28,7 @@ import { scrollbarClassName } from '@/shared/utils/scrollbar';
 
 const API_BASE = '/api';
 const MIN_TP_NAME_LENGTH = 7;
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const numberColumn = { width: 48, minWidth: 48, maxWidth: 48, left: 0 };
 const labelColumn = { width: 256, minWidth: 256, maxWidth: 256, left: 48 };
 
@@ -46,11 +51,11 @@ const APPLY_TO_ALL_QUESTION_IDS = new Set([
 
 async function requestJson(path, options = {}) {
     const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
         headers: {
             'Content-Type': 'application/json',
             ...(options.headers || {}),
         },
-        ...options,
     });
 
     const text = await response.text();
@@ -75,6 +80,16 @@ async function requestJson(path, options = {}) {
 
 function getCellKey(questionId, moduleKey) {
     return `${questionId}__${moduleKey}`;
+}
+
+function formSnapshot(selectedModules, role, cells) {
+    return JSON.stringify({
+        selectedModules,
+        role,
+        cells: Object.fromEntries(Object.entries(cells)
+            .filter(([, value]) => String(value || '').trim())
+            .sort(([left], [right]) => left.localeCompare(right))),
+    });
 }
 
 function isQuestionApplicableToModule(question, moduleKey) {
@@ -123,7 +138,7 @@ function expandMatrixCells(questions, selectedModules, cells) {
     return expanded;
 }
 
-function OperationInput({ options, value, onChange, label, errorId, invalid }) {
+function OperationInput({ options, value, onChange, label, errorId, invalid, disabled }) {
     const values = value ? value.split('|') : [];
     const known = values.filter((item) => item !== 'Other' && options.includes(item));
     const unknown = values.filter((item) => item !== 'Other' && !options.includes(item));
@@ -167,6 +182,7 @@ function OperationInput({ options, value, onChange, label, errorId, invalid }) {
                         aria-label={label}
                         aria-invalid={invalid || undefined}
                         aria-describedby={errorId}
+                        disabled={disabled}
                         className="w-full justify-between font-normal"
                     >
                         <span className="truncate">
@@ -213,6 +229,7 @@ function OperationInput({ options, value, onChange, label, errorId, invalid }) {
                 <input
                     className="w-full rounded border px-2 py-1 text-sm"
                     type="text"
+                    disabled={disabled}
                     aria-label={`Specify other operation for ${label}`}
                     aria-invalid={invalid || undefined}
                     aria-describedby={errorId}
@@ -229,6 +246,7 @@ function OperationInput({ options, value, onChange, label, errorId, invalid }) {
                             <span className="truncate" title={item}>{item}</span>
                             <button
                                 type="button"
+                                disabled={disabled}
                                 aria-label={`Remove ${item}`}
                                 title={`Remove ${item}`}
                                 className="focus-visible:ring-2 focus-visible:ring-ring"
@@ -251,9 +269,11 @@ export default function PYPCSMatrixSubmission({
     resumeSubmission = null,
     onResumeHandled = () => {},
     modeSwitch,
+    onDirtyChange = () => {},
 } = {}) {
     const [modules, setModules] = useState([]);
     const [selectedModules, setSelectedModules] = useState([]);
+    const [visibleModules, setVisibleModules] = useState([]);
     const [role, setRole] = useState('TI');
     const [questions, setQuestions] = useState([]);
     const [cells, setCells] = useState({});
@@ -270,7 +290,20 @@ export default function PYPCSMatrixSubmission({
     const [editingDescriptionId, setEditingDescriptionId] = useState(null);
     const [descriptionDrafts, setDescriptionDrafts] = useState({});
     const [modulesOpen, setModulesOpen] = useState(false);
+    const [applicableOpen, setApplicableOpen] = useState(false);
+    const [pendingRemove, setPendingRemove] = useState(null);
     const [pendingApply, setPendingApply] = useState(null);
+    const [editPin, setEditPin] = useState('');
+    const [pinDraft, setPinDraft] = useState('');
+    const [editReason, setEditReason] = useState('');
+    const [pinError, setPinError] = useState('');
+    const [pinOpen, setPinOpen] = useState(false);
+    const [verifying, setVerifying] = useState(false);
+    const [missingIndex, setMissingIndex] = useState(-1);
+    const [pulseKey, setPulseKey] = useState(null);
+    const baseline = useRef(formSnapshot([], 'TI', {}));
+    const tableRef = useRef(null);
+    const fieldRefs = useRef(new Map());
 
     const sortedModules = useMemo(() => {
         return [...modules].sort((a, b) => {
@@ -278,8 +311,9 @@ export default function PYPCSMatrixSubmission({
         });
     }, [modules]);
     const selectedModuleDetails = sortedModules.filter((module) =>
-        selectedModules.includes(module.module_key),
+        visibleModules.includes(module.module_key),
     );
+    const locked = submissionStatus === 'final' && !editPin;
     const nsbQuestion = questions.find((question) => question.question_id === 'nsb');
     const showNsbReason = nsbQuestion && String(getFirstAnswerForQuestion(
         nsbQuestion, selectedModules, cells,
@@ -291,6 +325,79 @@ export default function PYPCSMatrixSubmission({
     const tableQuestions = questions.filter((question) =>
         !SHARED_ACROSS_MODULES_QUESTION_IDS.has(question.question_id),
     );
+    const expanded = expandMatrixCells(questions, selectedModules, cells);
+    const isRequired = (question, moduleKey) =>
+        selectedModules.includes(moduleKey)
+        && isQuestionApplicableToModule(question, moduleKey)
+        && (role === 'ALL' || question.role === role)
+        && (question.required || (question.question_id === 'nsb_comment'
+            && String(expanded[getCellKey('nsb', moduleKey)] || '')
+                .trim().toUpperCase() === 'Y'));
+    const missingKeys = [
+        ...sharedQuestions.flatMap((question) => selectedModules
+            .filter((key) => isRequired(question, key)
+                && !String(expanded[getCellKey(question.question_id, key)] || '').trim())
+            .map((key) => getCellKey(question.question_id, key))),
+        ...tableQuestions.flatMap((question) => sortedModules
+            .filter((module) => isRequired(question, module.module_key)
+                && !String(expanded[getCellKey(question.question_id, module.module_key)] || '').trim())
+            .map((module) => getCellKey(question.question_id, module.module_key))),
+    ];
+    const hiddenApplicable = selectedModules.filter((key) => !visibleModules.includes(key));
+    const currentSnapshot = formSnapshot(selectedModules, role, cells);
+
+    useEffect(() => {
+        if (baseline.current !== null) {
+            onDirtyChange(currentSnapshot !== baseline.current);
+        }
+    }, [currentSnapshot, onDirtyChange]);
+
+    useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
+
+    function nextMissing() {
+        if (!missingKeys.length) return;
+        const next = (missingIndex + 1) % missingKeys.length;
+        const key = missingKeys[next];
+        const moduleKey = key.slice(key.lastIndexOf('__') + 2);
+        setMissingIndex(next);
+        if (!SHARED_ACROSS_MODULES_QUESTION_IDS.has(key.split('__')[0])) {
+            setVisibleModules((previous) => [...new Set([...previous, moduleKey])]);
+        }
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            const target = fieldRefs.current.get(key);
+            target?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            target?.querySelector('input, select, textarea, button')?.focus();
+            setPulseKey(key);
+        }));
+    }
+
+    useEffect(() => {
+        if (!pulseKey) return undefined;
+        const timer = setTimeout(() => setPulseKey(null), 1200);
+        return () => clearTimeout(timer);
+    }, [pulseKey]);
+
+    async function verifyPin(event) {
+        event.preventDefault();
+        setVerifying(true);
+        setPinError('');
+        try {
+            await requestJson(`/pypcs/submissions/${submissionId}/verify-edit-pin`, {
+                method: 'POST',
+                body: JSON.stringify({ pin: pinDraft }),
+            });
+            setEditPin(pinDraft);
+            setPinDraft('');
+            setPinOpen(false);
+        } catch (error) {
+            setPinError(error.status === 429
+                ? 'Too many attempts. Try again in a few minutes.'
+                : error.status === 403 ? 'Incorrect PIN'
+                    : error.detail?.message || 'Unable to verify PIN.');
+        } finally {
+            setVerifying(false);
+        }
+    }
 
     function backendRole(currentRole) {
         return currentRole === 'ALL' ? null : currentRole;
@@ -298,6 +405,7 @@ export default function PYPCSMatrixSubmission({
 
     function resetForm() {
         setSelectedModules([]);
+        setVisibleModules([]);
         setRole('TI');
         setQuestions([]);
         setCells({});
@@ -308,6 +416,9 @@ export default function PYPCSMatrixSubmission({
         setConflict(null);
         setStatusMessage('');
         setPendingApply(null);
+        setEditPin('');
+        setEditReason('');
+        baseline.current = formSnapshot([], 'TI', {});
     }
 
     const loadModules = useCallback(async () => {
@@ -400,8 +511,12 @@ export default function PYPCSMatrixSubmission({
         });
 
         setSelectedModules(nextModules);
+        setVisibleModules(nextModules);
         setRole(nextRole);
         setCells(nextCells);
+        baseline.current = formSnapshot(nextModules, nextRole, nextCells);
+        setEditPin('');
+        setEditReason('');
         setErrors({});
         setSubmissionId(sub.submission_id || null);
         setSubmissionStatus(sub.status || 'final');
@@ -414,20 +529,32 @@ export default function PYPCSMatrixSubmission({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [resumeSubmission]);
 
-    async function handleModuleToggle(moduleKey) {
-        const addingModule = !selectedModules.includes(moduleKey);
-        const nextSelectedModules = selectedModules.includes(moduleKey)
-            ? selectedModules.filter((item) => item !== moduleKey)
+    async function changeApplicable(moduleKey, removing = false) {
+        const next = removing
+            ? selectedModules.filter((key) => key !== moduleKey)
             : [...selectedModules, moduleKey];
-
-        if (addingModule) {
-            setCells((previousCells) => expandMatrixCells(
-                questions, nextSelectedModules, previousCells,
-            ));
+        if (removing) {
+            setCells((previous) => Object.fromEntries(Object.entries(previous)
+                .filter(([key]) => !key.endsWith(`__${moduleKey}`))));
+            setErrors((previous) => Object.fromEntries(Object.entries(previous)
+                .filter(([key]) => !key.endsWith(`__${moduleKey}`))));
+        } else {
+            setVisibleModules((previous) => [...new Set([...previous, moduleKey])]);
         }
+        setSelectedModules(next);
+        setPendingRemove(null);
+        await refreshQuestions(next);
+    }
 
-        setSelectedModules(nextSelectedModules);
-        await refreshQuestions(nextSelectedModules);
+    function handleModuleToggle(moduleKey) {
+        if (!selectedModules.includes(moduleKey)) {
+            changeApplicable(moduleKey);
+            return;
+        }
+        const count = Object.entries(cells).filter(([key, value]) =>
+            key.endsWith(`__${moduleKey}`) && String(value || '').trim()).length;
+        if (count) setPendingRemove({ moduleKey, count });
+        else changeApplicable(moduleKey, true);
     }
 
     async function handleRoleChange(nextRole) {
@@ -602,50 +729,13 @@ export default function PYPCSMatrixSubmission({
 
     function validateMatrix() {
         const nextErrors = {};
-        const expandedCells = expandMatrixCells(questions, selectedModules, cells);
-
-        const nsbQuestion = questions.find((item) => item.question_id === 'nsb');
-        const reasonQuestion = questions.find((item) => item.question_id === 'nsb_comment');
-        if (nsbQuestion && reasonQuestion) {
-            selectedModules.forEach((moduleKey) => {
-                if (isQuestionApplicableToModule(nsbQuestion, moduleKey)
-                    && isQuestionApplicableToModule(reasonQuestion, moduleKey)
-                    && String(expandedCells[getCellKey('nsb', moduleKey)] || '').trim().toUpperCase() === 'Y'
-                    && !String(expandedCells[getCellKey('nsb_comment', moduleKey)] || '').trim()) {
-                    nextErrors[getCellKey('nsb_comment', moduleKey)] = 'NSB reason is required';
-                }
-            });
-        }
-
         questions.forEach((question) => {
-            if (!question.required || question.question_id === 'operation') {
-                return;
-            }
-
-            const hasAnswer = selectedModules.some((moduleKey) => {
-                if (!isQuestionApplicableToModule(question, moduleKey)) {
-                    return false;
-                }
-
+            selectedModules.forEach((moduleKey) => {
                 const cellKey = getCellKey(question.question_id, moduleKey);
-                const value = expandedCells[cellKey];
-
-                return value && String(value).trim() !== '';
+                if (isRequired(question, moduleKey) && !String(expanded[cellKey] || '').trim()) {
+                    nextErrors[cellKey] = `${question.display_label || question.header || question.question_id} is required`;
+                }
             });
-
-            if (!hasAnswer) {
-                selectedModules.forEach((moduleKey) => {
-                    if (isQuestionApplicableToModule(question, moduleKey)) {
-                        const cellKey = getCellKey(
-                            question.question_id,
-                            moduleKey,
-                        );
-
-                        nextErrors[cellKey] =
-                            `${question.display_label || question.header || question.question_id} is required`;
-                    }
-                });
-            }
         });
 
         return nextErrors;
@@ -672,6 +762,18 @@ export default function PYPCSMatrixSubmission({
                         && (!options.includes('Other') || trimmed.length > 100));
             })) {
                 nextErrors[cellKey] = 'Select valid operations or specify Other (max 100 characters, no |).';
+            }
+        });
+        return nextErrors;
+    }
+
+    function validateEmails() {
+        const nextErrors = {};
+        selectedModules.forEach((moduleKey) => {
+            const key = getCellKey('pdo_owner', moduleKey);
+            const value = String(cells[key] || '').trim();
+            if (value && !EMAIL_PATTERN.test(value)) {
+                nextErrors[key] = 'Invalid PdO owner email.';
             }
         });
         return nextErrors;
@@ -781,16 +883,18 @@ export default function PYPCSMatrixSubmission({
     }
 
     async function saveMatrix(nextStatus) {
+        if (locked) return;
         const tpNameErrors = validateTpNameLength();
         const requiredErrors =
             nextStatus === 'final' ? validateMatrix() : {};
-        const nextErrors = { ...requiredErrors, ...validateOperations(nextStatus === 'final'), ...tpNameErrors };
+        const emailErrors = validateEmails();
+        const nextErrors = { ...requiredErrors, ...validateOperations(nextStatus === 'final'), ...tpNameErrors, ...emailErrors };
 
         if (Object.keys(nextErrors).length > 0) {
             setErrors(nextErrors);
             setStatusKind('error');
             setStatusMessage(
-                Object.keys(tpNameErrors).length > 0
+                Object.keys(tpNameErrors).length > 0 || Object.keys(emailErrors).length > 0
                     ? 'Please fix invalid matrix cells.'
                     : 'Please complete required matrix cells.',
             );
@@ -832,6 +936,7 @@ export default function PYPCSMatrixSubmission({
             cells: submittedCells,
             submission_id: submissionId,
             status: nextStatus,
+            ...(submissionStatus === 'final' ? { edit_reason: editReason } : {}),
             ...(submissionId && versions[role]
                 ? { expected_version: versions[role] } : {}),
         };
@@ -842,12 +947,17 @@ export default function PYPCSMatrixSubmission({
         try {
             const result = await requestJson('/pypcs/matrix-submission', {
                 method: 'POST',
+                headers: editPin ? { 'X-Edit-Pin': editPin } : {},
                 body: JSON.stringify(payload),
             });
 
             setSubmissionId(result.submission_id || null);
             setSubmissionStatus(result.status || nextStatus);
             setVersions(result.versions || {});
+            baseline.current = currentSnapshot;
+            onDirtyChange(false);
+            setEditPin('');
+            setEditReason('');
             setStatusKind('success');
             setStatusMessage(
                 nextStatus === 'draft'
@@ -856,7 +966,13 @@ export default function PYPCSMatrixSubmission({
             );
         } catch (error) {
             setStatusKind('error');
-            if (error.status === 409 && error.detail?.code === 'conflict') {
+            if (error.status === 423) {
+                setEditPin('');
+                setEditReason('');
+                setStatusMessage(error.detail?.code === 'final_edit_disabled'
+                    ? 'Editing final submissions is disabled on this server'
+                    : error.detail?.message || 'Final submission is locked.');
+            } else if (error.status === 409 && error.detail?.code === 'conflict') {
                 setConflict(error.detail);
             } else {
                 showSaveError(error);
@@ -879,10 +995,15 @@ export default function PYPCSMatrixSubmission({
             });
             if (!await refreshQuestions(nextModules, nextRole)) return;
             setSelectedModules(nextModules);
+            setVisibleModules(nextModules);
             setRole(nextRole);
             setSubmissionStatus(sub.status || 'final');
             setVersions(sub.versions || {});
             setCells(nextCells);
+            baseline.current = formSnapshot(nextModules, nextRole, nextCells);
+            onDirtyChange(false);
+            setEditPin('');
+            setEditReason('');
             setErrors({});
             setConflict(null);
             setStatusMessage('');
@@ -913,7 +1034,7 @@ export default function PYPCSMatrixSubmission({
 
         if (question.question_id === 'operation') {
             return <OperationInput key={inputKey} options={options} value={value} onChange={onChange}
-                label={label} errorId={errorId} invalid={invalid} />;
+                label={label} errorId={errorId} invalid={invalid} disabled={disabled} />;
         }
 
         if (question.field_type === 'select') {
@@ -973,13 +1094,14 @@ export default function PYPCSMatrixSubmission({
         return (
             <input
                 className="w-full rounded border px-2 py-1 text-sm"
-                type="text"
+                type={question.question_id === 'pdo_owner' ? 'email' : 'text'}
                 id={inputId}
                 disabled={disabled}
                 aria-label={label}
                 aria-invalid={invalid || undefined}
                 aria-describedby={errorId}
-                placeholder={question.question_id === 'nsb_comment' ? 'Explain why this is Non-Synergy-Build' : undefined}
+                placeholder={question.question_id === 'pdo_owner' ? 'name@intel.com'
+                    : question.question_id === 'nsb_comment' ? 'Explain why this is Non-Synergy-Build' : undefined}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
             />
@@ -996,6 +1118,7 @@ export default function PYPCSMatrixSubmission({
         const value = cells[cellKey] || '';
         const error = errors[cellKey];
         const errorId = error ? `${instanceId}-${cellKey}-error` : undefined;
+        const missing = isRequired(question, moduleKey) && !String(value).trim();
         const label = `${question.display_label || question.header || question.question_id} - ${module.module_label || moduleKey}`;
 
         if (!selected || !applicable) {
@@ -1004,12 +1127,12 @@ export default function PYPCSMatrixSubmission({
                     key={moduleKey}
                     className="min-w-32 border-b border-r border-table-border bg-muted p-2 text-center text-xs text-muted-foreground"
                 >
-                    {!selected ? 'Disabled' : 'N/A'}
+                    {!selected ? <span className="sr-only">Not applicable</span> : 'N/A'}
                 </td>
             );
         }
 
-        if (!editable) {
+        if (!editable && !locked) {
             return (
                 <td
                     key={moduleKey}
@@ -1025,7 +1148,10 @@ export default function PYPCSMatrixSubmission({
             : question;
 
         return (
-            <td key={moduleKey} className="min-w-40 border-b border-r border-table-border bg-background p-2">
+            <td key={moduleKey}
+                ref={(node) => { if (node) fieldRefs.current.set(cellKey, node); else fieldRefs.current.delete(cellKey); }}
+                className={`min-w-40 border-b border-r border-table-border p-2 ${missing ? 'border-l-4 border-l-status-warning-foreground bg-status-warning/50' : 'bg-background'} ${pulseKey === cellKey ? 'ring-2 ring-status-warning-foreground motion-safe:animate-pulse' : ''}`}>
+                {missing ? <span className="sr-only">Required</span> : null}
                 {renderFieldInput(
                     cellQuestion,
                     value,
@@ -1033,6 +1159,7 @@ export default function PYPCSMatrixSubmission({
                     label,
                     errorId,
                     `${submissionId || 'new'}-${cellKey}`,
+                    locked,
                 )}
 
                 {error ? (
@@ -1052,9 +1179,18 @@ export default function PYPCSMatrixSubmission({
         const errorId = error ? `${instanceId}-${cellKey}-error` : undefined;
         const label = question.display_label || question.header || question.question_id;
         const inputId = `${instanceId}-${question.question_id}`;
+        const missing = applicableModules.some((key) => isRequired(question, key))
+            && !String(value).trim();
 
         return (
-            <div key={question.question_id} className="min-w-0 space-y-1">
+            <div key={question.question_id}
+                ref={(node) => { applicableModules.forEach((key) => {
+                    const fieldKey = getCellKey(question.question_id, key);
+                    if (node) fieldRefs.current.set(fieldKey, node);
+                    else fieldRefs.current.delete(fieldKey);
+                }); }}
+                className={`min-w-0 space-y-1 ${missing ? 'border-l-4 border-l-status-warning-foreground bg-status-warning/50 pl-2' : ''} ${pulseKey?.startsWith(`${question.question_id}__`) ? 'ring-2 ring-status-warning-foreground motion-safe:animate-pulse' : ''}`}>
+                {missing ? <span className="sr-only">Required</span> : null}
                 <div className="flex items-center gap-1">
                     <label htmlFor={inputId} className="min-w-0 break-words text-xs font-medium">
                         {label}{(question.required || question.question_id === 'nsb_comment') ? <span className="ml-1 text-destructive">*</span> : null}
@@ -1064,7 +1200,7 @@ export default function PYPCSMatrixSubmission({
                 {renderFieldInput(
                     question, value,
                     (nextValue) => handleSharedFieldChange(question, nextValue),
-                    label, errorId, undefined, !applicableModules.length, inputId,
+                    label, errorId, undefined, locked || !applicableModules.length, inputId,
                 )}
                 {error ? (
                     <div id={errorId} className="mt-1 text-xs text-destructive">{error}</div>
@@ -1112,14 +1248,14 @@ export default function PYPCSMatrixSubmission({
                                 }))}
                             />
                             <div className="flex gap-2">
-                                <Button type="button" size="sm" onClick={() => handleSaveDescription(question.question_id)} disabled={loading}>Save</Button>
+                                <Button type="button" size="sm" onClick={() => handleSaveDescription(question.question_id)} disabled={loading || locked}>Save</Button>
                                 <Button type="button" size="sm" variant="outline" onClick={() => setEditingDescriptionId(null)}>Cancel</Button>
                             </div>
                         </>
                     ) : (
                         <>
                             <p className="whitespace-pre-wrap break-words">{question.description || 'No description yet'}</p>
-                            <Button type="button" size="sm" variant="outline" onClick={() => startEditingDescription(question)}>
+                            <Button type="button" size="sm" variant="outline" disabled={locked} onClick={() => startEditingDescription(question)}>
                                 {hasDescription ? 'Edit description' : 'Add description'}
                             </Button>
                         </>
@@ -1140,7 +1276,7 @@ export default function PYPCSMatrixSubmission({
                     className="h-9 rounded-md border bg-background px-2 text-sm"
                     value={role}
                     onChange={(event) => handleRoleChange(event.target.value)}
-                    disabled={loading}
+                    disabled={loading || locked}
                 >
                     <option value="TI">TI</option>
                     <option value="ME">ME</option>
@@ -1148,8 +1284,8 @@ export default function PYPCSMatrixSubmission({
                 </select>
                 <Popover open={modulesOpen} onOpenChange={setModulesOpen}>
                     <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" size="sm" aria-label={`Modules (${selectedModules.length})`} disabled={loading && !modules.length}>
-                            Modules ({selectedModules.length}) <ChevronsUpDown aria-hidden="true" className="ml-2 size-4" />
+                        <Button type="button" variant="outline" size="sm" aria-label={`Show columns (${visibleModules.length})`} disabled={!modules.length}>
+                            Show columns ({visibleModules.length}) <ChevronsUpDown aria-hidden="true" className="ml-2 size-4" />
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-64 p-0" align="start">
@@ -1162,10 +1298,12 @@ export default function PYPCSMatrixSubmission({
                                         <CommandItem
                                             key={module.module_key}
                                             value={`${module.module_label || module.module_key} ${module.module_key}`}
-                                            disabled={!module.enabled_default || loading}
-                                            onSelect={() => handleModuleToggle(module.module_key)}
+                                            disabled={!module.enabled_default}
+                                            onSelect={() => setVisibleModules((previous) => previous.includes(module.module_key)
+                                                ? previous.filter((key) => key !== module.module_key)
+                                                : [...previous, module.module_key])}
                                         >
-                                            <Checkbox checked={selectedModules.includes(module.module_key)} tabIndex={-1} className="pointer-events-none mr-2" />
+                                            <Checkbox checked={visibleModules.includes(module.module_key)} tabIndex={-1} className="pointer-events-none mr-2" />
                                             {module.module_label || module.module_key}
                                         </CommandItem>
                                     ))}
@@ -1174,15 +1312,30 @@ export default function PYPCSMatrixSubmission({
                         </Command>
                     </PopoverContent>
                 </Popover>
+                <Button type="button" size="sm" variant="outline"
+                    className={missingKeys.length ? 'border-status-warning-foreground text-status-warning-foreground' : ''}
+                    onClick={nextMissing} disabled={!missingKeys.length || locked}>
+                    {missingKeys.length ? `Next missing (${missingKeys.length})` : 'All required filled'}
+                </Button>
                 <div className="ml-auto flex items-center gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={handleSaveDraft} disabled={loading || Boolean(conflict) || !selectedModules.length}>
+                    <Button type="button" size="sm" variant="outline" onClick={handleSaveDraft} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>
                         {loading ? 'Working...' : 'Save Draft'}
                     </Button>
-                    <Button type="button" size="sm" onClick={handleSubmitFinal} disabled={loading || Boolean(conflict) || !selectedModules.length}>
+                    <Button type="button" size="sm" onClick={handleSubmitFinal} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>
                         {loading ? 'Working...' : 'Submit Final'}
                     </Button>
                 </div>
             </div>
+
+            {submissionStatus === 'final' ? (
+                <div className="flex shrink-0 items-center justify-between gap-2 rounded border border-table-border bg-muted px-3 py-2 text-sm">
+                    <span>{locked ? 'Final submission — read-only' : 'Editing final submission (unlocked)'}</span>
+                    <Button type="button" size="sm" variant="outline" onClick={() => {
+                        if (locked) setPinOpen(true);
+                        else { setEditPin(''); setEditReason(''); }
+                    }}>{locked ? 'Edit final submission' : 'Lock again'}</Button>
+                </div>
+            ) : null}
 
             {conflict && (
                 <div role="alert" className="shrink-0 rounded border border-destructive/30 p-3 text-sm text-destructive">
@@ -1224,17 +1377,62 @@ export default function PYPCSMatrixSubmission({
                 </div>
             ) : null}
 
-            {sharedQuestions.length ? (
+            {sharedQuestions.length || modules.length ? (
                 <div className="grid shrink-0 grid-cols-1 gap-x-3 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="min-w-0 space-y-1">
+                        <span id={`${instanceId}-applicable-label`} className="text-xs font-medium">Applicable modules</span>
+                        <Popover open={applicableOpen} onOpenChange={setApplicableOpen}>
+                            <PopoverTrigger asChild>
+                                <Button type="button" variant="outline" className="w-full min-w-0 justify-between font-normal"
+                                    aria-labelledby={`${instanceId}-applicable-label`}
+                                    disabled={locked || loading || !modules.length}>
+                                    <span className="truncate">{selectedModules.length
+                                        ? `${selectedModules.length} applicable: ${selectedModules.join(', ')}`
+                                        : 'Select applicable modules'}</span>
+                                    <ChevronsUpDown className="ml-2 size-4 shrink-0" aria-hidden="true" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="start" className="w-64 p-0">
+                                <Command>
+                                    <CommandInput placeholder="Search applicable modules" />
+                                    <CommandList>
+                                        <CommandEmpty>No modules found.</CommandEmpty>
+                                        <CommandGroup>
+                                            {sortedModules.map((module) => (
+                                                <CommandItem key={module.module_key}
+                                                    value={`${module.module_label || module.module_key} ${module.module_key}`}
+                                                    disabled={!module.enabled_default || loading}
+                                                    onSelect={() => handleModuleToggle(module.module_key)}>
+                                                    <Checkbox checked={selectedModules.includes(module.module_key)} tabIndex={-1} className="pointer-events-none mr-2" />
+                                                    {module.module_label || module.module_key}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                        {selectedModules.length ? <div className="flex flex-wrap gap-1">{selectedModules.map((key) =>
+                            <span key={key} className="rounded border px-1 text-xs">{key}</span>)}</div> : null}
+                    </div>
                     {sharedQuestions.map(renderSharedField)}
                 </div>
             ) : null}
 
-            <div className={`min-h-[320px] min-w-0 overflow-auto rounded-md border border-table-border bg-card md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
+            {hiddenApplicable.length ? (
+                <div className="flex shrink-0 items-center gap-2 text-xs" role="status">
+                    {hiddenApplicable.length} applicable modules hidden · {missingKeys.length} required cells missing
+                    <Button type="button" variant="outline" size="sm" onClick={() => setVisibleModules((previous) => [...new Set([...previous, ...selectedModules])])}>
+                        Show all applicable
+                    </Button>
+                </div>
+            ) : null}
+
+            <div ref={tableRef} className={`min-h-[320px] min-w-0 overflow-auto rounded-md border border-table-border bg-card md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
                 {selectedModules.length === 0 ? (
                     <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 p-4 text-center text-sm text-muted-foreground">
-                        <p>Select one or more modules to start</p>
-                        <Button type="button" variant="outline" onClick={() => setModulesOpen(true)} disabled={!modules.length}>Select modules</Button>
+                        <p>Select applicable modules to start</p>
+                        <Button type="button" variant="outline" onClick={() => setApplicableOpen(true)} disabled={!modules.length || locked}>Select applicable modules</Button>
                     </div>
                 ) : (
                 <table style={{ minWidth: 48 + 256 + 64 + selectedModuleDetails.length * 160 }}
@@ -1258,6 +1456,14 @@ export default function PYPCSMatrixSubmission({
                                     className="sticky top-0 z-20 w-40 border-b border-r border-white/20 bg-table-header p-2"
                                 >
                                     {module.module_label || module.module_key}
+                                    {selectedModules.includes(module.module_key) ? (() => {
+                                        const required = questions.filter((question) => isRequired(question, module.module_key));
+                                        const filled = required.filter((question) => String(expanded[getCellKey(question.question_id, module.module_key)] || '').trim()).length;
+                                        return <span className="mt-1 flex items-center justify-center gap-1 text-xs"
+                                            aria-label={`${module.module_key}: ${filled} of ${required.length} required filled`}>
+                                            {filled}/{required.length} {filled === required.length ? <Check className="size-3" aria-hidden="true" /> : null}
+                                        </span>;
+                                    })() : null}
                                 </th>
                             ))}
                         </tr>
@@ -1294,7 +1500,7 @@ export default function PYPCSMatrixSubmission({
                                         return <Button type="button" size="sm" variant="outline"
                                             className="mt-1 h-7 border-white bg-white px-1.5 text-xs text-primary hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white"
                                             aria-label={`Apply ${question.display_label || question.header || question.question_id} to all selected modules`}
-                                            disabled={!source || !targets.length || loading}
+                                            disabled={!source || !targets.length || loading || locked}
                                             onClick={() => handleApply(question)}>
                                             <CopyCheck aria-hidden="true" className="mr-1 size-3.5" /> Apply to all
                                         </Button>;
@@ -1324,6 +1530,41 @@ export default function PYPCSMatrixSubmission({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <AlertDialog open={Boolean(pendingRemove)} onOpenChange={(open) => !open && setPendingRemove(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove {pendingRemove?.moduleKey}?</AlertDialogTitle>
+                        <AlertDialogDescription>Its {pendingRemove?.count} filled cells will be deleted.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => changeApplicable(pendingRemove.moduleKey, true)}>Remove</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Dialog open={pinOpen} onOpenChange={(open) => {
+                setPinOpen(open);
+                if (!open) { setPinDraft(''); setPinError(''); }
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit final submission</DialogTitle>
+                        <DialogDescription>Enter the edit PIN to unlock this submission.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={verifyPin} className="space-y-3">
+                        <label className="block text-sm font-medium" htmlFor={`${instanceId}-pin`}>Edit PIN</label>
+                        <input id={`${instanceId}-pin`} type="password" inputMode="numeric" autoComplete="off"
+                            required value={pinDraft} onChange={(event) => setPinDraft(event.target.value)}
+                            aria-invalid={Boolean(pinError)} aria-describedby={pinError ? `${instanceId}-pin-error` : undefined}
+                            className="w-full rounded border bg-background p-2" />
+                        {pinError ? <p id={`${instanceId}-pin-error`} role="alert" className="text-sm text-destructive">{pinError}</p> : null}
+                        <label className="block text-sm font-medium" htmlFor={`${instanceId}-reason`}>Reason for edit (optional)</label>
+                        <textarea id={`${instanceId}-reason`} value={editReason}
+                            onChange={(event) => setEditReason(event.target.value)} className="w-full rounded border bg-background p-2" />
+                        <DialogFooter><Button type="submit" disabled={verifying}>{verifying ? 'Verifying...' : 'Unlock'}</Button></DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

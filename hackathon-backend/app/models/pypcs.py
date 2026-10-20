@@ -28,6 +28,11 @@ class PYPCSMatrixSubmissionRequest(BaseModel):
     submission_id: str | None = None
     status: Literal["draft", "final"] = "final"
     expected_version: str | None = None
+    edit_reason: str | None = None
+
+
+class PYPCSEditPinVerificationRequest(BaseModel):
+    pin: str
 
 
 class PYPCSQuestionDescriptionUpdate(BaseModel):

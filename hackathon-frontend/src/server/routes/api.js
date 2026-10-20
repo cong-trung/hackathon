@@ -14,6 +14,8 @@ import {
     getPypcsVisibleQuestions,
     getPypcsSubmissions,
     getPypcsSubmissionDetail,
+    getPypcsSubmissionHistory,
+    verifyPypcsEditPin,
     deletePypcsSubmission,
     submitPypcsMatrixSubmission,
     getPypcsActionItems,
@@ -43,6 +45,8 @@ router.get('/pypcs/questions', getPypcsQuestions);
 router.patch('/pypcs/questions/:questionId', updatePypcsQuestionDescription);
 router.post('/pypcs/visible-questions', getPypcsVisibleQuestions);
 router.get('/pypcs/submissions', getPypcsSubmissions);
+router.post('/pypcs/submissions/:submissionId/verify-edit-pin', verifyPypcsEditPin);
+router.get('/pypcs/submissions/:submissionId/history', getPypcsSubmissionHistory);
 router.get('/pypcs/submissions/:submissionId', getPypcsSubmissionDetail);
 router.delete('/pypcs/submissions/:submissionId', deletePypcsSubmission);
 router.post('/pypcs/matrix-submission', submitPypcsMatrixSubmission);
