@@ -2,9 +2,10 @@
 
 from fastapi import APIRouter
 
-from app.io.csv_excel import get_path, read_data, write_data
-from app.io.concurrency import locked_files
 from app.models.common import PdSolutionItem
+from app.repositories import pdsolutions as pdsolutions_repository
+from app.repositories import solutions as solutions_repository
+from app.repositories import transaction
 from app.schema_config import SOLUTION_CONFIG, get_module_solution_config
 
 router = APIRouter()
@@ -13,9 +14,9 @@ router = APIRouter()
 @router.get("/pdsolutions/{module}")
 def list_pdsolutions(module: str, q: str | None = None):
     config = get_module_solution_config(module)
-    _headers, rows = read_data(config)
+    _headers, rows = pdsolutions_repository.list_pdsolutions(config)
 
-    _sol_headers, sol_rows = read_data(SOLUTION_CONFIG)
+    _sol_headers, sol_rows = solutions_repository.list_solutions(SOLUTION_CONFIG)
     sol_map = {r["id"]: r.get("solution", "") for r in sol_rows}
 
     if q:
@@ -48,8 +49,8 @@ def list_pdsolutions(module: str, q: str | None = None):
 @router.post("/pdsolutions/{module}")
 def update_pdsolutions(module: str, payload: list[PdSolutionItem]):
     config = get_module_solution_config(module)
-    with locked_files(get_path(config)):
-        headers, rows = read_data(config)
+    with transaction(pdsolutions_repository.resource_for(config)):
+        headers, rows = pdsolutions_repository.list_pdsolutions(config)
         for item in payload:
             idx = next(
                 (
@@ -72,5 +73,5 @@ def update_pdsolutions(module: str, payload: list[PdSolutionItem]):
                         "note": item.note,
                     }
                 )
-        write_data(config, rows, headers)
+        pdsolutions_repository.save_pdsolutions(config, rows, headers)
     return {"message": "updated", "module": module.upper(), "count": len(payload)}

@@ -20,17 +20,33 @@ if (result.error) {
     console.warn(`Failed to load ${envFile}: ${result.error}`);
 }
 
+const sessionSecret = process.env.SESSION_SECRET;
+const proxySharedSecret = process.env.PROXY_SHARED_SECRET;
+const missingSecrets = [
+    !sessionSecret && 'SESSION_SECRET',
+    !proxySharedSecret && 'PROXY_SHARED_SECRET',
+].filter(Boolean);
+
+if (missingSecrets.length) {
+    throw new Error(
+        `Missing required environment variables: ${missingSecrets.join(', ')}. ` +
+            `Set them in ${envFile} or the process environment.`,
+    );
+}
+
 export const config = {
     port: process.env.PORT,
-    nodeEnv: process.env.NODE_ENV,
+    nodeEnv,
     djangoBaseUrl: process.env.DJANGO_BASE_URL,
-    encryptionKey: process.env.VITE_ENCRYPTION_KEY,
+    sessionSecret,
+    proxySharedSecret,
+    sessionCookieSecure:
+        process.env.SESSION_COOKIE_SECURE?.toLowerCase() === 'true',
 };
 
-// Log to confirm variables are loaded
 console.log('Environment config loaded:', {
     port: config.port,
     nodeEnv: config.nodeEnv,
-    djangoBaseUrl: config.djangoBaseUrl,
-    encryptionKey: config.encryptionKey,
+    sessionSecretConfigured: Boolean(config.sessionSecret),
+    proxySharedSecretConfigured: Boolean(config.proxySharedSecret),
 });

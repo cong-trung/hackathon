@@ -9,6 +9,12 @@ import {
 import { routesConfig } from './constants';
 
 export const routes = [
+    {
+        route_name: routesConfig.login,
+        key: 'login',
+        hideInSidebar: true,
+        component: lazy(() => import('@/features/auth/pages/LoginPage')),
+    },
     // {
     //     route_name: routesConfig.homepage,
     //     key: 'homepage',

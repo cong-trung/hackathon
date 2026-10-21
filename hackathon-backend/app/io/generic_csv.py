@@ -78,8 +78,8 @@ def read_optional_csv(file_name: str) -> list[dict[str, str]]:
     return read_generic_csv(file_name)
 
 
-def read_generic_csv_headers(file_name: str) -> list[str]:
-    path = DATA_DIR / file_name
+def read_generic_csv_headers(file_name: str, data_dir: Path | None = None) -> list[str]:
+    path = (data_dir or DATA_DIR) / file_name
     if not path.exists():
         return []
     return pl.read_csv(
@@ -94,8 +94,9 @@ def write_rows_to_csv(
     file_name: str,
     rows: list[dict[str, Any]],
     headers: list[str],
+    data_dir: Path | None = None,
 ) -> None:
-    path = DATA_DIR / file_name
+    path = (data_dir or DATA_DIR) / file_name
     path.parent.mkdir(parents=True, exist_ok=True)
 
     normalized_rows = []

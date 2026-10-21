@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownUp, ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDownUp, ArrowDown, ArrowUp, Lock } from 'lucide-react';
 import ClientPagination from '@/shared/components/data-table/ClientPagination';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -424,12 +424,27 @@ export default function PYPCSSubmissionsReview({
                             >
                                 Continue Editing
                             </Button>
+                        ) : selectedDetail.submission?.status === 'final' ? (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                aria-label={`Open final submission ${selectedDetail.submission.product_name} (read-only)`}
+                                onClick={() => onContinueEditing(selectedDetail.submission.submission_id)}
+                            >
+                                <Lock aria-hidden="true" /> Open
+                            </Button>
                         ) : null}
                         {renderDeleteControl(
                             selectedDetail.submission?.submission_id,
                         )}
                     </div>
                 </div>
+                {selectedDetail.submission?.status === 'final' ? (
+                    <p className="mb-3 text-sm text-muted-foreground">
+                        Opens read-only. Use “Edit final submission” and the PIN to change it.
+                    </p>
+                ) : null}
 
                 <div className="mb-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     <div>
@@ -630,6 +645,15 @@ export default function PYPCSSubmissionsReview({
                                                     }
                                                 >
                                                     Continue Editing
+                                                </button>
+                                            ) : item.status === 'final' ? (
+                                                <button
+                                                    type="button"
+                                                    className="rounded-md border border-input bg-background px-3 py-1 text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+                                                    aria-label={`Open final submission ${item.product_name} (read-only)`}
+                                                    onClick={() => onContinueEditing(item.submission_id)}
+                                                >
+                                                    <Lock aria-hidden="true" className="mr-1 inline size-4" /> Open
                                                 </button>
                                             ) : null}
 

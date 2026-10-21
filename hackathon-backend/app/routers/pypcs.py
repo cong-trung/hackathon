@@ -11,19 +11,8 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
 
+from app.auth import get_actor
 from app.config import QUALITY_MATRIX_EDIT_PIN
-from app.io.csv_excel import value_to_str
-from app.io.concurrency import locked_files, record_version
-from app.io.generic_csv import (
-    delete_rows_from_csv,
-    read_generic_csv,
-    read_generic_csv_headers,
-    read_optional_csv,
-    safe_int,
-    split_pipe_value,
-    upsert_rows_to_csv,
-    write_rows_to_csv,
-)
 from app.models.pypcs import (
     PYPCSMatrixSubmissionRequest,
     PYPCSEditPinVerificationRequest,
@@ -31,15 +20,13 @@ from app.models.pypcs import (
     PYPCSQuestionDescriptionUpdate,
     PYPCSVisibleQuestionsRequest,
 )
+from app.repositories import Resource, transaction
+from app.repositories import action_items as action_items_repository
+from app.repositories import settings as settings_repository
+from app.repositories import submissions as submissions_repository
+from app.repositories.common import record_version, safe_int, split_pipe_value, value_to_str
 from app.services.pypcs_service import (
-    PYPCS_QUESTION_MODULE_MAP_FILE,
-    PYPCS_QUESTIONS_FILE,
-    PYPCS_MODULES_FILE,
-    PYPCS_SUBMISSION_CELLS_FILE,
-    PYPCS_SUBMISSIONS_FILE,
     ACTION_ITEM_APPLICABILITY_FIELDS,
-    ACTION_ITEM_HEADERS,
-    PYPCS_ACTION_ITEMS_FILE,
     build_action_item_options,
     build_pypcs_visible_questions,
     normalize_pypcs_map,
@@ -52,26 +39,6 @@ router = APIRouter()
 
 # TP name must be a real identifier, not a short placeholder.
 MIN_TP_NAME_LENGTH = 7
-PYPCS_SUBMISSION_CELL_HEADERS = [
-    "submission_id",
-    "question_id",
-    "module_key",
-    "role",
-    "answer",
-    "updated_at",
-    "updated_by",
-]
-PYPCS_SUBMISSION_HISTORY_FILE = "QualityMatrix/History/PYPCS_SubmissionHistory.csv"
-PYPCS_SUBMISSION_HISTORY_HEADERS = [
-    "history_id",
-    "submission_id",
-    "action",
-    "changed_at",
-    "changed_by",
-    "reason",
-    "previous_submission_json",
-    "previous_cells_json",
-]
 _PIN_FAILURE_WINDOW_SECONDS = 600
 _PIN_FAILURE_LIMIT = 5
 _PIN_FAILURES: dict[str, list[float]] = {}
@@ -152,11 +119,7 @@ def _append_submission_history(
     changed_by: str,
     reason: str,
 ) -> None:
-    history_rows = read_optional_csv(PYPCS_SUBMISSION_HISTORY_FILE)
-    headers = read_generic_csv_headers(PYPCS_SUBMISSION_HISTORY_FILE)
-    if not headers:
-        headers = PYPCS_SUBMISSION_HISTORY_HEADERS
-    history_rows.append(
+    submissions_repository.append_history(
         {
             "history_id": str(uuid.uuid4()),
             "submission_id": value_to_str(submission.get("submission_id", "")),
@@ -172,7 +135,6 @@ def _append_submission_history(
             ),
         }
     )
-    write_rows_to_csv(PYPCS_SUBMISSION_HISTORY_FILE, history_rows, headers)
 
 
 def validate_action_item(payload: PYPCSActionItemRequest) -> None:
@@ -260,7 +222,7 @@ def action_item_row(
 def normalize_action_item(row: dict[str, str]) -> dict:
     item = {
         key: value_to_str(row.get(key, ""))
-        for key in ACTION_ITEM_HEADERS
+        for key in action_items_repository.HEADERS
         if key not in ACTION_ITEM_APPLICABILITY_FIELDS
         and key not in {"nbr", "updated_at"}
     }
@@ -269,14 +231,17 @@ def normalize_action_item(row: dict[str, str]) -> dict:
     for field in ACTION_ITEM_APPLICABILITY_FIELDS:
         item[field] = split_pipe_value(row.get(field, ""))
     item["version"] = record_version(
-        {header: value_to_str(row.get(header, "")) for header in ACTION_ITEM_HEADERS}
+        {
+            header: value_to_str(row.get(header, ""))
+            for header in action_items_repository.HEADERS
+        }
     )
     return item
 
 
 @router.get("/pypcs/action-items")
 def get_pypcs_action_items():
-    rows = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
+    rows = action_items_repository.list_action_items()
     rows.sort(key=lambda row: safe_int(row.get("nbr", "")))
     items = [normalize_action_item(row) for row in rows]
     return {"count": len(items), "items": items}
@@ -288,26 +253,36 @@ def get_pypcs_action_item_options():
 
 
 @router.post("/pypcs/action-items", status_code=201)
-def create_pypcs_action_item(payload: PYPCSActionItemRequest):
+def create_pypcs_action_item(
+    payload: PYPCSActionItemRequest, request: Request
+):
+    actor = get_actor(request)
+    if actor:
+        payload.update_by = actor.label
     validate_action_item(payload)
-    with locked_files(PYPCS_ACTION_ITEMS_FILE):
-        rows = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
+    with transaction(Resource.ACTION_ITEMS):
+        rows = action_items_repository.list_action_items()
         next_nbr = max(
             (safe_int(row.get("nbr", "")) for row in rows),
             default=0,
         ) + 1
         created = action_item_row(next_nbr, payload, action_item_timestamp())
         rows.append(created)
-        write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+        action_items_repository.save_action_items(rows)
     invalidate_product_action_matrix_cache()
     return normalize_action_item(created)
 
 
 @router.put("/pypcs/action-items/{nbr}")
-def update_pypcs_action_item(nbr: int, payload: PYPCSActionItemRequest):
+def update_pypcs_action_item(
+    nbr: int, payload: PYPCSActionItemRequest, request: Request
+):
+    actor = get_actor(request)
+    if actor:
+        payload.update_by = actor.label
     validate_action_item(payload)
-    with locked_files(PYPCS_ACTION_ITEMS_FILE):
-        rows = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
+    with transaction(Resource.ACTION_ITEMS):
+        rows = action_items_repository.list_action_items()
         target_index = next(
             (
                 index
@@ -333,7 +308,7 @@ def update_pypcs_action_item(nbr: int, payload: PYPCSActionItemRequest):
             )
         updated = action_item_row(nbr, payload, action_item_timestamp())
         rows[target_index] = updated
-        write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+        action_items_repository.save_action_items(rows)
     invalidate_product_action_matrix_cache()
     return normalize_action_item(updated)
 
@@ -395,12 +370,8 @@ def _persist_matrix_submission(
     request: Request,
     edit_pin: str | None,
 ) -> dict:
-    with locked_files(
-        PYPCS_SUBMISSIONS_FILE,
-        PYPCS_SUBMISSION_CELLS_FILE,
-        PYPCS_SUBMISSION_HISTORY_FILE,
-    ):
-        submissions = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
+    with transaction(Resource.SUBMISSIONS, Resource.CELLS, Resource.HISTORY):
+        submissions = submissions_repository.list_submissions()
         existing_submission = next(
             (
                 row
@@ -411,7 +382,7 @@ def _persist_matrix_submission(
             ),
             None,
         )
-        existing_cells = read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE)
+        existing_cells = submissions_repository.list_cells()
         submission_id = value_to_str(req.submission_id) or str(uuid.uuid4())
         scoped_existing_cells = [
             row
@@ -562,28 +533,22 @@ def _persist_matrix_submission(
             "selected_modules", "product_name", "prodgroup3", "operation",
             "answer_count", "status",
         ]
-        upsert_rows_to_csv(
-            PYPCS_SUBMISSIONS_FILE,
-            "submission_id",
-            submission_id,
-            [submission_row],
-            submission_headers,
+        submissions_repository.save_submission(
+            submission_id, submission_row, submission_headers
         )
-        write_rows_to_csv(
-            PYPCS_SUBMISSION_CELLS_FILE,
-            merged_cells,
-            PYPCS_SUBMISSION_CELL_HEADERS,
+        submissions_repository.save_cells(
+            merged_cells, submissions_repository.CELL_HEADERS
         )
         invalidate_product_action_matrix_cache()
 
         saved_submission = next(
             row
-            for row in read_optional_csv(PYPCS_SUBMISSIONS_FILE)
+            for row in submissions_repository.list_submissions()
             if value_to_str(row.get("submission_id", "")) == submission_id
         )
         saved_cells = [
             row
-            for row in read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE)
+            for row in submissions_repository.list_cells()
             if value_to_str(row.get("submission_id", "")) == submission_id
         ]
         return {
@@ -595,8 +560,8 @@ def _persist_matrix_submission(
             "selected_modules": selected_modules_ordered,
             "role": req.role,
             "cell_count": len(cell_rows),
-            "submission_file": PYPCS_SUBMISSIONS_FILE,
-            "cell_file": PYPCS_SUBMISSION_CELLS_FILE,
+            "submission_file": Resource.SUBMISSIONS.value,
+            "cell_file": Resource.CELLS.value,
             "versions": matrix_submission_versions(
                 saved_submission, saved_cells, question_rows
             ),
@@ -640,7 +605,7 @@ def normalize_operation_value(value: str) -> str:
 
 @router.get("/pypcs/modules")
 def get_pypcs_modules():
-    rows = read_generic_csv(PYPCS_MODULES_FILE)
+    rows = settings_repository.list_modules()
     modules = [normalize_pypcs_module(row) for row in rows]
 
     modules = sorted(
@@ -656,7 +621,7 @@ def get_pypcs_modules():
 
 @router.get("/pypcs/questions")
 def get_pypcs_questions(role: str | None = None):
-    rows = read_generic_csv(PYPCS_QUESTIONS_FILE)
+    rows = settings_repository.list_questions()
     questions = [normalize_pypcs_question(row) for row in rows]
 
     if role:
@@ -679,11 +644,12 @@ def get_pypcs_questions(role: str | None = None):
 
 @router.patch("/pypcs/questions/{question_id}")
 def update_pypcs_question_description(
-    question_id: str, payload: PYPCSQuestionDescriptionUpdate
+    question_id: str, payload: PYPCSQuestionDescriptionUpdate, request: Request
 ):
     target = value_to_str(question_id)
-    with locked_files(PYPCS_QUESTIONS_FILE):
-        rows = read_generic_csv(PYPCS_QUESTIONS_FILE)
+    actor = get_actor(request)
+    with transaction(Resource.QUESTIONS):
+        rows = settings_repository.list_questions()
         idx = next(
             (
                 i
@@ -696,7 +662,10 @@ def update_pypcs_question_description(
             raise HTTPException(status_code=404, detail="PYPCS question not found.")
         headers = list(rows[0].keys())
         rows[idx]["description"] = value_to_str(payload.description)
-        write_rows_to_csv(PYPCS_QUESTIONS_FILE, rows, headers)
+        settings_repository.save_questions(
+            rows, headers, actor=actor,
+            actor_label=actor.label if actor else "system",
+        )
 
     return {
         "message": "updated",
@@ -722,7 +691,7 @@ def list_pypcs_submissions(
     limit: int = Query(200, ge=1, le=5000),
     offset: int = Query(0, ge=0),
 ):
-    rows = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
+    rows = submissions_repository.list_submissions()
 
     if role:
         role_upper = value_to_str(role).upper()
@@ -796,7 +765,7 @@ def list_pypcs_submissions(
 def get_pypcs_submission_detail(submission_id: str):
     target_id = value_to_str(submission_id)
 
-    submissions = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
+    submissions = submissions_repository.list_submissions()
 
     submission = None
 
@@ -811,7 +780,7 @@ def get_pypcs_submission_detail(submission_id: str):
             detail="PYPCS submission not found.",
         )
 
-    question_rows = read_optional_csv(PYPCS_QUESTIONS_FILE)
+    question_rows = settings_repository.list_questions()
     questions_by_id = {}
     for row in question_rows:
         question = normalize_pypcs_question(row)
@@ -819,12 +788,12 @@ def get_pypcs_submission_detail(submission_id: str):
             questions_by_id[question["question_id"]] = question
 
     mapping_by_pair = {}
-    for row in read_optional_csv(PYPCS_QUESTION_MODULE_MAP_FILE):
+    for row in settings_repository.list_question_module_map():
         mapping = normalize_pypcs_map(row)
         if mapping["visible_default"]:
             mapping_by_pair[(mapping["question_id"], mapping["module_key"].upper())] = mapping
 
-    all_cells = read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE)
+    all_cells = submissions_repository.list_cells()
     submission_cells = [
         row
         for row in all_cells
@@ -961,7 +930,7 @@ def get_pypcs_submission_history(submission_id: str):
     target_id = value_to_str(submission_id)
     rows = [
         row
-        for row in read_optional_csv(PYPCS_SUBMISSION_HISTORY_FILE)
+        for row in submissions_repository.list_history()
         if value_to_str(row.get("submission_id", "")) == target_id
     ]
     rows.sort(key=lambda row: value_to_str(row.get("changed_at", "")), reverse=True)
@@ -985,13 +954,12 @@ def delete_pypcs_submission(
     edit_reason: str | None = None,
     submitted_by: str | None = None,
 ):
+    actor = get_actor(request)
+    if actor:
+        submitted_by = actor.label
     target_id = value_to_str(submission_id)
-    with locked_files(
-        PYPCS_SUBMISSIONS_FILE,
-        PYPCS_SUBMISSION_CELLS_FILE,
-        PYPCS_SUBMISSION_HISTORY_FILE,
-    ):
-        submissions = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
+    with transaction(Resource.SUBMISSIONS, Resource.CELLS, Resource.HISTORY):
+        submissions = submissions_repository.list_submissions()
         previous_submission = next(
             (
                 row
@@ -1004,7 +972,7 @@ def delete_pypcs_submission(
             raise HTTPException(status_code=404, detail="PYPCS submission not found.")
         previous_cells = [
             row
-            for row in read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE)
+            for row in submissions_repository.list_cells()
             if value_to_str(row.get("submission_id", "")) == target_id
         ]
         is_final = normalize_status(previous_submission.get("status", "")) == "final"
@@ -1017,15 +985,13 @@ def delete_pypcs_submission(
                 value_to_str(submitted_by),
                 value_to_str(edit_reason),
             )
-        deleted = delete_rows_from_csv(
-            PYPCS_SUBMISSIONS_FILE, "submission_id", target_id
-        )
+        deleted = submissions_repository.delete_submission(target_id)
         if not deleted:
             raise HTTPException(
                 status_code=404,
                 detail="PYPCS submission not found.",
             )
-        delete_rows_from_csv(PYPCS_SUBMISSION_CELLS_FILE, "submission_id", target_id)
+        submissions_repository.delete_cells(target_id)
         invalidate_product_action_matrix_cache()
 
     return {"message": "deleted", "submission_id": target_id}
@@ -1037,6 +1003,9 @@ def create_pypcs_matrix_submission(
     request: Request,
     edit_pin: str | None = Header(default=None, alias="X-Edit-Pin"),
 ):
+    actor = get_actor(request)
+    if actor:
+        req.submitted_by = actor.label
     if not req.selected_modules:
         raise HTTPException(
             status_code=400,
@@ -1058,8 +1027,8 @@ def create_pypcs_matrix_submission(
             detail="cells is required.",
         )
 
-    question_rows = read_generic_csv(PYPCS_QUESTIONS_FILE)
-    map_rows = read_generic_csv(PYPCS_QUESTION_MODULE_MAP_FILE)
+    question_rows = settings_repository.list_questions()
+    map_rows = settings_repository.list_question_module_map()
 
     questions_by_id = {}
 

@@ -11,19 +11,16 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from app.config import DATA_DIR
-from app.io.csv_excel import value_to_str
-from app.io.concurrency import locked_files, record_version
-from app.io.generic_csv import read_generic_csv, write_rows_to_csv, safe_int
+from app.repositories import Resource, resource_fingerprint, transaction
+from app.repositories import action_items as action_items_repository
+from app.repositories import decisions as decisions_repository
+from app.repositories import settings as settings_repository
+from app.repositories import submissions as submissions_repository
+from app.repositories.common import record_version, safe_int, value_to_str
 from app.services.pypcs_service import (
-    PYPCS_ACTION_ITEMS_FILE,
-    PYPCS_MODULES_FILE,
-    PYPCS_SUBMISSION_CELLS_FILE,
-    PYPCS_SUBMISSIONS_FILE,
     normalize_pypcs_module,
 )
 
-PRODUCT_ACTION_DECISIONS_FILE = "View3/PYPCS_ProductActionDecisions.csv"
 PRODUCT_ATTRIBUTES = [
     "package",
     "bare_die_lid",
@@ -81,12 +78,12 @@ PRODUCT_ACTION_MATRIX_HEADERS = [
     "updated_by",
     "updated_at",
 ]
-_MATRIX_INPUT_FILES = (
-    PYPCS_MODULES_FILE,
-    PYPCS_SUBMISSIONS_FILE,
-    PYPCS_SUBMISSION_CELLS_FILE,
-    PRODUCT_ACTION_DECISIONS_FILE,
-    PYPCS_ACTION_ITEMS_FILE,
+_MATRIX_INPUT_RESOURCES = (
+    Resource.MODULES,
+    Resource.SUBMISSIONS,
+    Resource.CELLS,
+    Resource.DECISIONS,
+    Resource.ACTION_ITEMS,
 )
 _CACHE_LOCK = threading.RLock()
 _CACHE_FINGERPRINT: tuple[tuple[str, int | None, int | None], ...] | None = None
@@ -94,16 +91,7 @@ _CACHED_MATRIX: dict[str, Any] | None = None
 
 
 def _input_fingerprint() -> tuple[tuple[str, int | None, int | None], ...]:
-    fingerprint = []
-    for file_name in _MATRIX_INPUT_FILES:
-        path = DATA_DIR / file_name
-        try:
-            stat = path.stat()
-        except FileNotFoundError:
-            fingerprint.append((str(path.resolve()), None, None))
-        else:
-            fingerprint.append((str(path.resolve()), stat.st_mtime_ns, stat.st_size))
-    return tuple(fingerprint)
+    return resource_fingerprint(*_MATRIX_INPUT_RESOURCES)
 
 
 def invalidate_product_action_matrix_cache() -> None:
@@ -141,7 +129,7 @@ def _decision_values(row: dict[str, str]) -> dict[str, str]:
 
 
 def _module_catalog() -> tuple[dict[str, dict[str, Any]], dict[str, int]]:
-    modules = [normalize_pypcs_module(row) for row in read_generic_csv(PYPCS_MODULES_FILE)]
+    modules = [normalize_pypcs_module(row) for row in settings_repository.list_modules()]
     modules.sort(key=lambda item: item["sort_order"])
     by_key = {item["module_key"].casefold(): item for item in modules if item["module_key"]}
     group_order: dict[str, int] = {}
@@ -175,7 +163,7 @@ def _decision_index(rows: list[dict[str, str]]) -> dict[tuple[str, str, str], di
 
 
 def _action_rows() -> list[dict[str, str]]:
-    actions = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
+    actions = action_items_repository.list_action_items()
     actions.sort(key=lambda row: safe_int(row.get("nbr", "")))
     return actions
 
@@ -186,8 +174,8 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
     set[tuple[str, str, str]],
 ]:
     modules_by_key, group_order = _module_catalog()
-    submissions = read_generic_csv(PYPCS_SUBMISSIONS_FILE)
-    cells = read_generic_csv(PYPCS_SUBMISSION_CELLS_FILE)
+    submissions = submissions_repository.list_submissions()
+    cells = submissions_repository.list_cells()
     cells_by_submission: dict[str, dict[tuple[str, str], list[str]]] = defaultdict(
         lambda: defaultdict(list)
     )
@@ -341,7 +329,7 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
                 }
                 flat_rows.append(flat_row)
 
-    previous_rows = read_generic_csv(PRODUCT_ACTION_DECISIONS_FILE)
+    previous_rows = decisions_repository.list_decisions()
     previous_decisions = _decision_index(previous_rows)
     current_keys = set()
     for row in flat_rows:
@@ -494,7 +482,7 @@ def rebuild_product_action_matrix(
 ) -> list[dict[str, str]]:
     """Regenerate current rows and preserve decisions, including orphaned ones."""
     global _CACHE_FINGERPRINT, _CACHED_MATRIX
-    with locked_files(PRODUCT_ACTION_DECISIONS_FILE):
+    with transaction(Resource.DECISIONS):
         with _CACHE_LOCK:
             built = built if built is not None else build_product_action_matrix()
             updates = decision_updates or {}
@@ -520,11 +508,7 @@ def rebuild_product_action_matrix(
                         },
                     }
                 )
-            write_rows_to_csv(
-                PRODUCT_ACTION_DECISIONS_FILE,
-                decision_rows,
-                PRODUCT_ACTION_DECISION_HEADERS,
-            )
+            decisions_repository.save_decisions(decision_rows)
             invalidate_product_action_matrix_cache()
             _CACHE_FINGERPRINT = _input_fingerprint()
             _CACHED_MATRIX = copy.deepcopy(built)

@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter
 
-from app.io.csv_excel import is_excel_file, get_path, read_data
+from app.repositories import product_basis as product_basis_repository
+from app.repositories import solutions as solutions_repository
 from app.schema_config import MODULE_CONFIG, SOLUTION_CONFIG
 
 router = APIRouter()
@@ -12,19 +13,8 @@ router = APIRouter()
 def health():
     result = {"status": "ok", "modules": {}}
     for module, config in MODULE_CONFIG.items():
-        headers, rows = read_data(config)
-        result["modules"][module] = {
-            "file": str(get_path(config)),
-            "file_is_excel_format": is_excel_file(get_path(config)),
-            "row_count": len(rows),
-            "column_count": len(headers),
-        }
-    headers, rows = read_data(SOLUTION_CONFIG)
-    result["solutions"] = {
-        "file": str(get_path(SOLUTION_CONFIG)),
-        "row_count": len(rows),
-        "column_count": len(headers),
-    }
+        result["modules"][module] = product_basis_repository.product_basis_file_metadata(config)
+    result["solutions"] = solutions_repository.solution_file_metadata(SOLUTION_CONFIG)
     return result
 
 

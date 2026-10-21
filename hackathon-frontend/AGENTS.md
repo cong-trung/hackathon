@@ -9,6 +9,8 @@
 - `~/` resolves to `src/server/` — used for server config, services, utils, and routes.
 - The Express server proxies API requests to a Django backend (`DJANGO_BASE_URL`). All server-side routes live under `/api` and delegate to service functions that call `forwardRequest()`.
 - `forwardRequest()` in `src/server/utils/forwardRequest.js` builds the URL as `${DJANGO_BASE_URL}/api${path}` and forwards the HTTP method, body, query params, and auth header.
+- The auth router in `src/server/routes/api/auth.js` exposes `POST /api/auth/session`, `GET /api/auth/me`, and `POST /api/auth/logout`. API middleware checks mutating-request Origins and requires a valid `qm_session` cookie outside `/api/auth/*`.
+- Backend proxy calls use `src/server/utils/identityHeaders.js` to build identity headers from the verified `req.user`; direct-fetch helpers must use the same helper and must not forward client-supplied identity headers.
 
 ## Commands
 
@@ -54,6 +56,8 @@ npm run dev
 ## Environment
 
 - `.env.development` is loaded automatically by the server (`src/server/config/env.js`).
+- `VITE_OLB_PROFILE_URL` defaults to `https://olbplus.intel.com:3386/fetch_profile`; `VITE_OLB_PROFILE_METHOD` defaults to `GET`. Both configure the browser-side OLB+ login request. OLB+ must allow the app origin via CORS before it succeeds.
+- `VITE_OLB_LOGIN_ENABLED` enables OLB+ sign-in only when set to `true`; it defaults to off and the manual form is shown instead.
 - `DJANGO_BASE_URL` must point to the backend Django server.
 - `PORT` sets the Express server port (defaults in `.env.development`: 5173).
 

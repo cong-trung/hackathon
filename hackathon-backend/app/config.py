@@ -17,13 +17,25 @@ def load_env_file(path: Path) -> None:
         os.environ.setdefault(key.strip(), value.strip())
 
 
-load_env_file(BACKEND_ROOT / ".env.production")
+if os.getenv("QUALITY_MATRIX_SKIP_ENV_FILES") != "1":
+    load_env_file(BACKEND_ROOT / ".env.local")
+    load_env_file(BACKEND_ROOT / ".env.production")
 
 DATA_DIR = Path(os.getenv("QUALITY_MATRIX_DATA_DIR", "data"))
 QUALITY_MATRIX_EDIT_PIN = os.getenv("QUALITY_MATRIX_EDIT_PIN", "").strip()
+PROXY_SHARED_SECRET = os.getenv("PROXY_SHARED_SECRET", "").strip()
 ALLOWED_ORIGINS = [
     x.strip()
     for x in os.getenv(
         "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000"
     ).split(",")
 ]
+QUALITY_MATRIX_DB_FEATURES = frozenset(
+    feature.strip().casefold()
+    for feature in os.getenv("QUALITY_MATRIX_DB_FEATURES", "").split(",")
+    if feature.strip()
+)
+
+
+def database_feature_enabled(feature: str) -> bool:
+    return feature.casefold() in QUALITY_MATRIX_DB_FEATURES

@@ -2,15 +2,8 @@
 
 from typing import Any
 
-from app.io.csv_excel import value_to_str
-from app.io.generic_csv import read_generic_csv, safe_int, split_options, yn_to_bool
-
-PYPCS_MODULES_FILE = "QualityMatrix/Settings/PYPCS_Modules.csv"
-PYPCS_QUESTIONS_FILE = "QualityMatrix/Settings/PYPCS_Questions.csv"
-PYPCS_QUESTION_MODULE_MAP_FILE = "QualityMatrix/Settings/PYPCS_QuestionModuleMap.csv"
-PYPCS_SUBMISSIONS_FILE = "QualityMatrix/PYPCS_Submissions.csv"
-PYPCS_SUBMISSION_CELLS_FILE = "QualityMatrix/PYPCS_SubmissionCells.csv"
-PYPCS_ACTION_ITEMS_FILE = "View2/PYPCS_ActionItems.csv"
+from app.repositories import settings as settings_repository
+from app.repositories.common import safe_int, split_options, value_to_str, yn_to_bool
 
 ACTION_ITEM_APPLICABILITY_FIELDS = {
     "package": "package",
@@ -42,14 +35,10 @@ ACTION_ITEM_HEADERS = [
     "updated_at",
 ]
 
-# Derived from the ATRMS Operation_Process_Step tracker.
-OPERATION_PROCESS_STEP_FILE = "QualityMatrix/Settings/Operation_Process_Step.csv"
-
-
 def build_action_item_options() -> dict[str, Any]:
     questions_by_id = {
         value_to_str(row.get("question_id", "")): row
-        for row in read_generic_csv(PYPCS_QUESTIONS_FILE)
+        for row in settings_repository.list_questions()
     }
     extra_options = {
         "segment": ["Mobile"],
@@ -74,7 +63,7 @@ def build_action_item_options() -> dict[str, Any]:
 
 
 def load_operation_options(selected_modules: set[str] | None = None) -> list[str]:
-    rows = read_generic_csv(OPERATION_PROCESS_STEP_FILE)
+    rows = settings_repository.list_operation_catalog()
     modules_upper = (
         {value_to_str(m).upper() for m in selected_modules}
         if selected_modules
@@ -103,7 +92,7 @@ def load_operation_options_by_module(
     selected_modules: set[str] | None = None,
 ) -> dict[str, list[str]]:
     """Per-module operation options, so each module's own cell only shows its operations."""
-    rows = read_generic_csv(OPERATION_PROCESS_STEP_FILE)
+    rows = settings_repository.list_operation_catalog()
     modules_upper = (
         {value_to_str(m).upper() for m in selected_modules}
         if selected_modules
@@ -217,8 +206,8 @@ def build_pypcs_visible_questions(
 
     role_filter = value_to_str(role).upper() if role else ""
 
-    question_rows = read_generic_csv(PYPCS_QUESTIONS_FILE)
-    map_rows = read_generic_csv(PYPCS_QUESTION_MODULE_MAP_FILE)
+    question_rows = settings_repository.list_questions()
+    map_rows = settings_repository.list_question_module_map()
 
     questions_by_id = {}
 

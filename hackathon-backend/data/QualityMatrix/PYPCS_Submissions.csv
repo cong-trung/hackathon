@@ -1,0 +1,116 @@
+﻿submission_id,created_at,updated_at,submitted_by,role,selected_modules,product_name,prodgroup3,operation,answer_count,status
+a0317059-302f-45dc-8706-43732d49a0d7,2026-08-19T01:49:29Z,"",current_user,TI,LCBI|HDMX_AHMT|HDMX_CLASS|STHI,Demo,DEMO123,6379,15,""
+98f0058f-0815-454c-adc2-9cb1e9da8bde,2026-08-25T10:14:55Z,2026-08-25T10:40:50Z,current_user,"",LCBI,Hello,aa,aa,14,final
+37269255-fb15-4f08-a1b0-dc16c8e71ab3,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,DG2-512,DG512,7460|7462|7463|7465,31,draft
+dc8b8bed-95ed-4b39-bda8-8756460bdc65,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,DG2-128,DG128,7462|7463|7464,31,draft
+b9259206-598c-4fb4-877e-24b4f52fa1c0,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Alder Lake P682,ADLP682,6248|6249,30,draft
+07eb93ef-51e8-4dec-b81c-8e29bdc39404,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADLS601,ADLS601,6248|7820,34,draft
+e7731186-e5c5-4407-b72c-66a20d9da7a4,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADLS601,ADLS601,6248|7820,38,draft
+e9593ce4-87fa-4bd7-8de8-a615d48df2c6,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADLS601,ADLS601,6248|7820,38,draft
+0859273c-b4fa-4210-8c27-963b8acc9aa8,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADLS601,ADLS601,6248|7820,38,draft
+7ee49e52-3895-4639-9175-a24b5fa5f22d,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADLS881,ADLS881,6248|7820,34,draft
+8e6cb9bd-bd72-4424-b7ce-15684d33965d,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADLS881,ADLS881,6248|7820,38,draft
+857d4237-8374-4f81-97d5-7b4e10780af2,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADL S881 BGA,ADLS8BGA,7460|7465,46,draft
+89d863fd-770e-4fac-a6bd-2d7215167920,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Alderlake M282,ADLM282,7460|7465,46,draft
+171d0eb2-5062-4778-aad9-cd6020d0ff13,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Alder Lake P282,ADLP282,7460|7465,46,draft
+3dc6c4cb-4f29-4cf7-86fd-864f7e0ad76a,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADL PS682,ADLPS6,7460|7465,46,draft
+b377252b-e372-4dc6-aabd-af92421ad100,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADL S601 IOTG,ADLG601,7460|7465,51,draft
+18d68ee6-77bb-4275-aa13-70d3cc639b6d,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADL S601 IOTG,ADLG601,7460|7465,46,draft
+a67d452e-ff24-4588-913d-9bcf30ab8f48,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADL S881 IOTG,ADLG881,7460|7465,46,draft
+27e80b1f-5389-4de4-b727-89aeccc6fef4,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADL S881 IOTG,ADLG881,7460|7465,46,draft
+ebc3b6f3-af18-413d-9326-a8fce37797e4,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,STHI,Tiger Lake,TGLUP3,"",7,draft
+b2a4e080-38d4-483b-af00-27380c58c463,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,"ALDER LAKE N081
+(CCG )",ADLN (for CCG),7462|7463|7464,51,draft
+bc76815c-3fc0-4c40-b4ac-ca58faed386a,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ALDER LAKE N081 (IOTG),ADNIOTG (for IOTG),7462|7463|7464,46,draft
+fef5aafa-6112-411b-97e7-f1389c8a6c30,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S601,RPLS601,7460|7465,54,draft
+70a6e839-2703-4558-a799-be7a8b8de331,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S881,RPLS881,7460|7465,54,draft
+8934e0a7-8cbc-4b00-8025-f18a01c723d6,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake P682 (IOTG),RPLP682IOTG,7460|7465,54,draft
+ac2e2961-6716-428a-87b7-9cc3a9d3f6d0,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake P682,RPLP682,7460|7465,54,draft
+679bad86-302c-45fc-b6a9-6cd7b4e9ff6f,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake P282,RPL P282,7460|7465|7462,51,draft
+d9dcb09f-bb3a-4758-aa10-18a8cc480db1,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake P282,RPL P282,7460|7465|7462,51,draft
+f0cad5d3-0cc3-415a-af96-0cf4ca784f6f,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_EQA|STHI,Cascade Lake,CLX,7460|7562|7465|7073,40,draft
+9c77dddf-8bc7-4168-9d83-5edfcd55a24c,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Alder Lake P282 IOTG,ADL282IOTG,7460|7465,51,draft
+b7626723-965c-491c-8464-ce577749d478,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Alder Lake P282 IOTG,ADL282IOTG,7460|7465,51,draft
+cbfb8292-b22c-4449-9b57-3cb2cbfa2134,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,V8|STHI,Alder Lake PCH Refresh,ADP,7757|6832,20,draft
+f3a97473-98a2-4916-8bf1-638ee458442b,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S8161 LGA,RPL8161,7460|7462|7463|7465,51,draft
+29f057c5-6230-42da-bc6b-57c50f6d5271,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S8161 LGA IOTG,RPG8161,7460|7462|7463|7465,51,draft
+0d4a558c-f705-4bb8-8408-3437370706f4,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S881LGA IOTG,RPLG881,7460|7462|7463|7465,51,draft
+b26ded3e-fdba-468e-b306-2f8d1d8e522c,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S601 LGA IOTG,RPLG601,7460|7462|7463|7465,51,draft
+8bf48218-5949-4ad7-8ca2-0129b6917b34,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ADL PS282,ADLPS2,7460|7465,54,draft
+d896dc81-4d77-4ef1-ae4e-47d1cc9768db,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Snow Ridge (SNR),SNWRDG,7465,51,draft
+ce68f863-92c3-40d9-95ad-6948beba8348,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,DG2-256,DG256,7460|7462|7463|7465,51,draft
+496e79b3-cce2-4580-af28-72f718c4ad83,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,RPL S881 BGA,RPLS8BGA,7460|7462|7463|7465,51,draft
+d007eb4f-7858-4b2a-833f-d825f9776a07,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|V8|STHI,LBG,LBGSD,7611,22,draft
+a6e2f6b6-753e-4689-a09a-fb49a546d7d1,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake P282 (IOTG),RPLP282IOTG,7460|7465,54,draft
+5903bba3-df7c-4953-96da-168f59438908,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Meteor Lake P281,MTLP281,6248|6249|7820|7827,45,draft
+b0b1916d-1e28-437a-af1f-be51a5ed8c8d,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Meteor Lake M282,MTL M282,6167,57,draft
+6b5a1950-d5cd-4ec0-9ec3-a21d02ddceb6,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ACM G21,ACM G21,7460|7462|7463|7465,51,draft
+a9374db8-0256-439e-8cab-a409f611a6a5,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA,TRK,TRK,7460|7462|7463|7465,42,draft
+d7f83fe0-1945-4a15-ae5c-e0121d966bcb,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Meteor Lake U281,MTL U281,6248|6249|7820|7827,45,draft
+20a8c918-8b41-4968-b331-c44d61395f7b,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_EQA|STHI,Grand Ridge,GRR,7460,62,draft
+8d79a3a7-7159-4d9f-bccc-fabbbbde8590,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_EQA|STHI,Cherry Trail R,CTC,6262,31,draft
+1f173dbd-d2d7-4cad-9a94-979fb2807dbb,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Meteor Lake PS682,MTLPS6,7652|7653|7654,62,draft
+f91155ce-8b7f-4c76-8036-03f64cfabf56,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Meteor Lake PS282,MTLPS2,6167,53,draft
+d4daa451-1a12-4a6f-a194-8d9c4dfbc66d,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,RPL PS682,RPLPS6,6248|6249|7820|7827,42,draft
+13c6faba-bfc4-48b0-9f4c-c743fe3c4cf0,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,RPL PS282,RPLPS2,6248|6249|7820|7827,42,draft
+10ddbd4c-65c7-49af-899c-ea7693356d66,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S601 Refresh,RPRS601,7460|7465,51,draft
+a7744ef4-7db9-48e1-9de1-8afb09f4af2f,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S881 Refresh,RPRS881,7460|7465,64,draft
+ab8c11c1-0f28-4b83-ad53-8f5859b7d565,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S8161 Refresh,RPR8161,7460|7462|7463|7465,54,draft
+95330a56-d37e-4602-b7de-7eaa6b73a8b5,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Meteor Lake U282,MTLU282,6167,57,draft
+a26c20c8-145e-44d3-9670-91c204fbbdac,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ASL,ASL,7460|7462|7463,54,draft
+7bb922b2-9844-4331-9548-7ea3ee08844a,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Lunarlake M442,LNLM442,6167,83,draft
+7c5c4ed2-aad1-4964-b219-105899cb1e73,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Arrrow Lake S8161 BGA,ARLS816B,7652|7653|7654,96,draft
+3b8c163f-4ac9-4252-9371-13e8051982cb,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Meteor Lake H682,MTLH682,7652|7653|7654,54,draft
+49e7b9e4-b625-4c2b-9b80-0d490a5b9e33,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,BMG G21,BMG21,7652|7653|7655,64,draft
+43359a86-9995-4d2a-9ba7-713f48e8c401,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_EQA|V8|STHI,Meteor Lake PCH,MTP,2050,32,draft
+117ce6d2-5fd4-444a-95b9-3eadc62b1016,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake S8161 Catlow Refresh,RRC8161,7460|7462|7463|7465,54,draft
+a41f1ebb-e788-4403-bd25-8848c985b2d5,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake H682 Refresh,RPRP682,7460|7465,54,draft
+9afb9704-5946-4df1-a880-57edcab2d86e,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,TwinLake,TWL,6248|7820|7821|7823,22,draft
+4a7414b6-02ad-4a27-85ce-8fb62bcf771a,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Arrrow Lake S8161 LGA,ARLS816L,7652|7654|7653,92,draft
+368f19b7-d6cf-4a2f-beb9-3d7dfa24a7ae,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|OLB|STHI,Alchemist automative,DG512,7460,43,draft
+082ce3d0-bfaf-4323-af6a-cd643cc3bcd1,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Bartlett Lake S601,BLTS601,6248|6249|7820|7827,45,draft
+d40c5d1b-1ac5-41dc-9323-b90c5b589cd5,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Bartlett Lake S881,BLTS881,6248|6249|7820|7827,45,draft
+3e64e177-0fc0-427f-b6b4-99f6325cb2a8,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Bartlett Lake S8161,BLTS8161,7460|7465,54,draft
+131424c2-a2d8-4d16-9aab-cca31ca5e927,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Redondo Lake,RDL,7460|7465|7462|7463|6138|6263|6264|6134|6135,60,draft
+1bbeac34-f0b2-402e-bf5e-5261f2d73d47,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Arrow Lake U281,"ARLU281  / 
+ARLU281W",7652|7655,79,draft
+318cf0ac-8a99-4f6e-8a34-cdb65e07c2ab,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,BMG G31,BMG31,7652|7653|7655,59,draft
+101fc40a-455b-4d58-a9f1-e26da6fdeeab,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,BMG G21 Automotive,BMG21,7652|7653|7655,64,draft
+58e616bb-aa50-43bb-abbd-b4c363ce172f,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Arrrow Lake Hx8161 BGA Refresh,ARLR816B,7652|7653|7654,96,draft
+aaf7e26e-e1f0-463d-898a-6de3e3f6bddd,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Wildcat Lake N,WCL,6248|6249|7820|7827,66,draft
+b2f6d5db-687d-4e30-8b4d-f652bd81662f,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ARL S681 N3B,"ARLS681 (Non West Lake) / 
+ARL S681W (West Lake)",6248|6249|7820|7827,66,draft
+c1003e9a-9363-42a4-8a71-e6273cc3d317,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,NVL PCH,NVP,6248|6249|7820|7827,66,draft
+78865878-e4b9-4115-a2ff-9ef9dcbdd350,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,ARL S8161 LGA Refersh,ARLR8161L,6248|6249|7820|7827,66,draft
+192acf2c-8390-4714-bb19-dba047b2be99,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,V8|STHI,LBG,"LBGSD
+LBGNS",6881,24,draft
+3f7221ac-ab9b-4674-9f3e-6094439feda5,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,V8,TGLP NEX,TGP,7721|7735,12,draft
+c67e7141-6912-40f4-8e90-ba89d1f06ca6,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,RPL P282 Refresh,RPRP282,6248|7820,63,draft
+94c3250c-d6f5-4ef0-a1ea-6f51bfd08b8e,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Bartlett Lake S12P,BTL12P,7460|7462|7463|7465,71,draft
+b0d93a36-5444-4a6b-83d9-d5774fe35f80,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,V8,Hoover Ridge,HVR,7721,14,draft
+d33f67a7-45b1-4390-b573-cd3dae1ec934,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|OLB|STHI,Panther Lake U404,PTLU404,7652|7655,92,draft
+58d721cf-843c-4301-959f-0bf8a04b67da,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Raptor Lake P282 Refresh,RPR P282,6248|6249|7820|7827,42,draft
+6ea40056-6e63-40be-ba2e-6678665a06b2,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,EMERALD RAPIDS XCC,EMRXCP,7652|7655,36,draft
+a34a12c3-f076-468a-ba71-90d2bf081dca,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,EMERALD RAPIDS XCC,EMRXCP,7652|7655,36,draft
+2a1742f3-cb31-47c3-be01-868005b1934b,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,SPR XCC,SPRXCS,7652|7655,36,draft
+7c75bdef-4d7a-438d-bb03-007bde420868,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,SPR XCC,SPRXCS,7652|7655,36,draft
+04d3ad3d-4a41-4986-9405-825576577c92,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,SPR XCC 112L,SPR12S,7652|7655,36,draft
+bc9d8aa4-8edb-4aa4-a3d3-67f870657290,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_EQA|STHI,ICXHCC,ICXHCP,7460|7465,28,draft
+b94747dd-9820-427d-b391-d4188d8259fc,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_EQA|STHI,ICXXCC,ICXXCP,7652|7653|7654|7655,28,draft
+f5e7fa5f-121e-4eaa-bc5e-0f1ffdb43f18,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_EQA|STHI,SPR MCC,SPRMCP/SPRWSP/SPRMJT,7652|7653|7655,24,draft
+ed992fff-4995-4cca-b969-7170aab085d1,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_EQA|STHI,EMERALD RAPIDS MCC,EMRMCP,6261|6193|6092|6212|6217|6244|6258|6262|6263|6267,22,draft
+47c3c983-935c-4325-a05d-50fbc7de9566,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Novalake H,NVLH,7652|7653|7654,92,draft
+4644d82f-269f-4cfc-bb73-dda1a51cac69,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Novalake P,NVLP484,7652|7653|7654,92,draft
+3be32c87-c351-4b21-afa1-226a4c742f51,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Novalake U,NVLU404,7652|7653|7654|7655,76,draft
+7a1a32e9-cb6c-41cc-935b-654eb355fb6e,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Novalake Hx,NVLHX,7652|7653|7654,92,draft
+691e216a-36ef-44f3-82be-3d04a81aed7d,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_EQA|STHI,GNR LCC SWS,GNRLWS,7652|7655,32,draft
+66f80348-ad69-4f0a-b344-f3449b580c3c,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_EQA|STHI,GNR LCC LCP/R1S,GNRLCP/GNRLR1S,7652|7655,32,draft
+e87f1acf-c2e2-4b02-a84f-20fd2c95f594,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_EQA|STHI,GNR HCC SWS,GHCSWS,7652|7655,32,draft
+e07fc9a8-eaf5-472e-8297-c20a98670da4,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_EQA|STHI,GNR HCC HCP/R1S/Halo,"GNRHCC
+GHCR1S
+GNRHCH",7652|7655,32,draft
+f1649535-15e2-446b-8f58-7d873b9a6f9b,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|STHI,Tiger Lake,TGLUP4,7460|7562|7465|7073,41,draft
+199a2644-24b7-4f1d-9825-6606ba7e8026,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|OLB|STHI,NVL S8C,NVLS8C,7652|7655,95,draft
+3a6b1422-87ec-4b28-981a-b4a7d7f925f1,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|OLB|STHI,Panther Lake U404 NEX,PTLUNEX,7652|7655,92,draft
+c5340a90-9889-49dc-bab3-e28e96d4fa9c,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Cfuse|HDMx_EQA|OLB|STHI,Wildcat Lake 8C,WCL8,6197,62,draft
+c082a5f1-9de0-4109-a989-85f4342fb944,2026-10-13T01:36:56Z,2026-10-21T05:56:42Z,Phan Anh Minh (12325708),"",HDMX_CLASS|STHI|LCBI|HDMX_AHMT|OLB,hi,ADLP682,5138|5166|5208|5212,70,draft

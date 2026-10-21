@@ -10,7 +10,7 @@ import {
 
 import NavLogo from './nav-logo';
 import NavMain from './nav-main';
-// import NavUser from './nav-user';
+import NavUser from './nav-user';
 
 /**
  * AppSidebar - Main sidebar component for application navigation
@@ -26,7 +26,7 @@ function AppSidebar({ ...props }) {
       <SidebarContent>
         <NavMain />
       </SidebarContent>
-      <SidebarFooter>{/* <NavUser /> */}</SidebarFooter>
+      <SidebarFooter><NavUser /></SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

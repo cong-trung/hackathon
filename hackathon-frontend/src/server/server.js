@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -16,7 +15,6 @@ const PORT = config.port;
 const HOST = '0.0.0.0';
 
 const app = express();
-app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
 

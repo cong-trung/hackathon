@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 
 import AppLayout from '@/shared/layout/AppLayout';
+import RequireAuth from '@/features/auth/components/RequireAuth';
+import { routesConfig } from '@/routes/constants';
 import { routes } from '@/routes/routes';
 
 const NotFound = lazy(() => import('@/features/home/pages/NotFound'));
@@ -44,15 +46,21 @@ const buildRouteObjects = (routeList) =>
         .filter(Boolean);
 
 const router = createBrowserRouter([
+    ...buildRouteObjects(routes.filter((route) => route.route_name === routesConfig.login)),
     {
-        element: <AppLayout />,
+        element: <RequireAuth />,
         children: [
-            { index: true, element: <Navigate to="/pypcs" replace /> },
-            ...buildRouteObjects(routes),
             {
-                path: '*',
-                element: <NotFound />,
-                id: 'not-found',
+                element: <AppLayout />,
+                children: [
+                    { index: true, element: <Navigate to="/pypcs" replace /> },
+                    ...buildRouteObjects(routes.filter((route) => route.route_name !== routesConfig.login)),
+                    {
+                        path: '*',
+                        element: <NotFound />,
+                        id: 'not-found',
+                    },
+                ],
             },
         ],
     },

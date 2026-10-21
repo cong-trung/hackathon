@@ -401,6 +401,21 @@ def create_plan(data_dir, xlsx_path):
         )
     with (settings / "PYPCS_Modules.csv").open(encoding="utf-8-sig", newline="") as source:
         module_rows = list(csv.DictReader(source))
+    from app.config import database_feature_enabled
+    from app.repositories import settings as settings_repository
+
+    db_settings = database_feature_enabled("settings")
+    if db_settings:
+        questions = settings_repository.list_questions()
+        module_rows = settings_repository.list_modules()
+        map_rows = settings_repository.list_question_module_map()
+        operation_rows = settings_repository.list_operation_catalog()
+        questions_by_id = {row.get("question_id", ""): row for row in questions}
+        applicable = {
+            (clean(row.get("question_id")), clean(row.get("module_key")).upper())
+            for row in map_rows
+            if clean(row.get("visible_default")).upper() in {"Y", "YES", "TRUE", "1"}
+        }
     module_order = list(dict.fromkeys(clean(row.get("module_key")) for row in module_rows if clean(row.get("module_key"))))
     question_order = [row["question_id"] for row in questions if row.get("question_id") in QUESTION_IDS]
 
@@ -853,16 +868,51 @@ def apply_plan(plan):
             (question_original, question_headers),
             (operation_original, operation_headers),
         ) = plan["originals"]
-        payloads = (
+        csv_payloads = (
             encode_csv(submission_headers, plan["submissions"], submission_original),
             encode_csv(cell_headers, plan["cells"], cell_original),
-            encode_csv(question_headers, plan["questions"], question_original),
-            encode_csv(operation_headers, plan["operation_rows"], operation_original),
         )
-        for path, payload in zip(paths, payloads):
-            atomic_write_bytes(path, payload)
-            if path.read_bytes() != payload:
-                raise RuntimeError(f"Write verification failed for {path.name}")
+        from app.config import database_feature_enabled
+        if database_feature_enabled("settings"):
+            from app.repositories import Resource, transaction
+            from app.repositories import settings as settings_repository
+
+            with transaction(
+                Resource.SUBMISSIONS,
+                Resource.CELLS,
+                Resource.QUESTIONS,
+                Resource.OPERATION_CATALOG,
+                export_dir=data_dir,
+            ):
+                for path, payload in zip(paths[:2], csv_payloads):
+                    atomic_write_bytes(path, payload)
+                settings_repository.save_questions(
+                    plan["questions"], question_headers,
+                    actor_label=IMPORTER, source="import",
+                )
+                settings_repository.add_operation_rows(
+                    plan["new_operation_rows"],
+                    actor_label=IMPORTER, source="import",
+                )
+            for path, payload in zip(paths[:2], csv_payloads):
+                if path.read_bytes() != payload:
+                    raise RuntimeError(f"Write verification failed for {path.name}")
+            for path in paths[2:]:
+                if not path.exists():
+                    raise RuntimeError(f"Write-through export did not create {path.name}")
+        else:
+            for path, payload in zip(paths[:2], csv_payloads):
+                atomic_write_bytes(path, payload)
+                if path.read_bytes() != payload:
+                    raise RuntimeError(f"Write verification failed for {path.name}")
+            settings_payloads = (
+                encode_csv(question_headers, plan["questions"], question_original),
+                encode_csv(operation_headers, plan["operation_rows"], operation_original),
+            )
+            for path, payload in zip(paths[2:], settings_payloads):
+                atomic_write_bytes(path, payload)
+                if path.read_bytes() != payload:
+                    raise RuntimeError(f"Write verification failed for {path.name}")
     print(f"Applied. Submissions: {len(plan['submissions'])}; cells: {len(plan['cells'])}")
     print(f"Backup: {backup_dir}")
     return plan

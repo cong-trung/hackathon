@@ -1,9 +1,22 @@
 """FastAPI app factory: wires CORS and all routers together."""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from alembic.config import Config
+from alembic.migration import MigrationContext
+from alembic.script import ScriptDirectory
+from sqlalchemy import inspect
 
-from app.config import ALLOWED_ORIGINS, DATA_DIR
+from app.auth import get_actor
+from app.config import (
+    ALLOWED_ORIGINS,
+    BACKEND_ROOT,
+    DATA_DIR,
+    PROXY_SHARED_SECRET,
+    QUALITY_MATRIX_DB_FEATURES,
+)
+from app.db.session import database_url, get_engine
 
 LEGACY_ROOT_DATA_FILES = (
     "PYPCS_Submissions.csv",
@@ -49,6 +62,51 @@ app = FastAPI(
     description="No-auth GitHub-ready API for STHI, LCBI product basic info and module solutions.",
 )
 
+
+def validate_database_feature_configuration() -> None:
+    supported = {"settings"}
+    unsupported = QUALITY_MATRIX_DB_FEATURES - supported
+    if unsupported:
+        raise RuntimeError(
+            "Unsupported QUALITY_MATRIX_DB_FEATURES: "
+            + ", ".join(sorted(unsupported))
+        )
+    if not QUALITY_MATRIX_DB_FEATURES:
+        return
+    url = database_url()
+    if not url:
+        raise RuntimeError(
+            "QUALITY_MATRIX_DB_FEATURES enables settings, but DATABASE_URL is not set."
+        )
+
+    try:
+        engine = get_engine(url)
+        with engine.connect() as connection:
+            current = MigrationContext.configure(connection).get_current_revision()
+            config = Config(str(BACKEND_ROOT / "alembic.ini"))
+            config.set_main_option(
+                "script_location", str(BACKEND_ROOT / "alembic")
+            )
+            head = ScriptDirectory.from_config(config).get_current_head()
+            if current != head:
+                raise RuntimeError(
+                    "Database feature settings requires Alembic head "
+                    f"{head}; database revision is {current or 'unversioned'}."
+                )
+            inspect(connection).get_table_names()
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(
+            "QUALITY_MATRIX_DB_FEATURES enables settings, but the database "
+            "is unreachable or unavailable. Check DATABASE_URL and database status."
+        ) from exc
+
+
+@app.on_event("startup")
+def validate_database_features_on_startup() -> None:
+    validate_database_feature_configuration()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -56,6 +114,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def require_proxy_actor(request: Request, call_next):
+    if PROXY_SHARED_SECRET and request.url.path not in {
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/redoc",
+    } and not request.url.path.startswith("/docs/"):
+        actor = get_actor(request)
+        if actor is None:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": {"code": "unauthenticated"}},
+            )
+        request.state.actor = actor
+
+    return await call_next(request)
 
 app.include_router(health.router)
 app.include_router(product_basis.router)

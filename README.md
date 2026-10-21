@@ -2,8 +2,9 @@
 
 Quality Matrix is a React application and FastAPI API for product information,
 solution tracking, PYPCS quality submissions, action items, and chat. The API
-uses files in `hackathon-backend/data` rather than a database; the browser
-reaches it through the frontend's Express proxy.
+uses CSV files in `hackathon-backend/data`; the settings catalog can optionally
+use PostgreSQL when explicitly enabled. The browser reaches it through the
+frontend's Express proxy.
 
 ## Repository Layout
 
@@ -101,22 +102,55 @@ is environment-specific and needs a suitable host path on Windows.
 
 ## Configuration
 
-| Variable                                                     | File or source                             | Purpose                                                                                                                                                                                                 |
-| ------------------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`                                                     | Frontend `.env.development`              | Express listen port; local setting is 5173.                                                                                                                                                             |
-| `DJANGO_BASE_URL`                                          | Frontend `.env.development`              | FastAPI base URL; local setting is `http://127.0.0.1:8004`. The name is legacy.                                                                                                                       |
-| `NODE_ENV`                                                 | Frontend `.env.development` / npm script | Selects development or production mode and env file.                                                                                                                                                    |
-| `VITE_ENCRYPTION_KEY`                                      | Frontend `.env.development`              | Loaded into server config; keep any value private.                                                                                                                                                      |
-| `VITE_API_BASE_URL`                                        | Frontend `.env.development`              | Present in the env file; no consumer was found in current source.                                                                                                                                       |
-| `QUALITY_MATRIX_DATA_DIR`                                  | Backend `.env.production` or shell       | `.env.production` sets the team network share location. Defaults to `data`; for local data, set `$env:QUALITY_MATRIX_DATA_DIR = "data"` in the backend PowerShell window before starting Uvicorn. |
-| `ALLOWED_ORIGINS`                                          | Backend environment                        | Comma-separated browser origins; defaults include ports 5173 and 3000.                                                                                                                                  |
-| `NYRA_API_KEY`                                             | Backend `.env.production`                | Required by the chat endpoint; secret.                                                                                                                                                                  |
-| `NYRA_CHAT_MODEL`                                          | Backend `.env.production`                | Optional chat model override; code default is `gpt-5.4-mini`.                                                                                                                                         |
-| `HTTP_PROXY`, `HTTPS_PROXY`, `FTP_PROXY`, `NO_PROXY` | Root `.env.production`                   | Optional proxy settings passed to the Compose builds and containers.                                                                                                                                    |
+| Variable                                                     | File or source                                                                      | Purpose                                                                                                                                                                                                 |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                                                     | Frontend `.env.development`                                                       | Express listen port; local setting is 5173.                                                                                                                                                             |
+| `DJANGO_BASE_URL`                                          | Frontend `.env.development`                                                       | FastAPI base URL; local setting is `http://127.0.0.1:8004`. The name is legacy.                                                                                                                       |
+| `NODE_ENV`                                                 | Frontend `.env.development` / npm script                                          | Selects development or production mode and env file.                                                                                                                                                    |
+| `SESSION_SECRET`                                           | Frontend `.env.development` / process environment                                 | Signs the `qm_session` cookie; keep the value private and use a random secret.                                                                                                                        |
+| `PROXY_SHARED_SECRET`                                      | Frontend `.env.development` and backend `.env.production` / process environment | Must match between Express and FastAPI; keep the value private and use a random secret.                                                                                                                 |
+| `SESSION_COOKIE_SECURE`                                    | Frontend `.env.development` / process environment                                 | Set to `true` only when Express is served over HTTPS; unset/false for the current HTTP setup.                                                                                                         |
+| `VITE_ENCRYPTION_KEY`                                      | Frontend `.env.development`                                                       | Loaded into server config; keep any value private.                                                                                                                                                      |
+| `VITE_API_BASE_URL`                                        | Frontend `.env.development`                                                       | Present in the env file; no consumer was found in current source.                                                                                                                                       |
+| `VITE_OLB_PROFILE_URL`                                     | Frontend `.env.development` (optional)                                            | Browser-side OLB+ identity URL; defaults to `https://olbplus.intel.com:3386/fetch_profile`. OLB+ must allow the app origin via CORS.                                                                  |
+| `VITE_OLB_PROFILE_METHOD`                                  | Frontend `.env.development` (optional)                                            | Browser-side OLB+ identity method; defaults to `GET`.                                                                                                                                                 |
+| `VITE_OLB_LOGIN_ENABLED`                                   | Frontend `.env.development` (optional)                                            | Enables OLB+ sign-in only when set to `true`; defaults to off and shows the manual form.                                                                                                              |
+| `QUALITY_MATRIX_DATA_DIR`                                  | Backend `.env.production` or shell                                                | `.env.production` sets the team network share location. Defaults to `data`; for local data, set `$env:QUALITY_MATRIX_DATA_DIR = "data"` in the backend PowerShell window before starting Uvicorn. |
+| `ALLOWED_ORIGINS`                                          | Backend environment                                                                 | Comma-separated browser origins; defaults include ports 5173 and 3000.                                                                                                                                  |
+| `DATABASE_URL`                                             | Backend `.env.local` or process environment                                       | SQLAlchemy URL. It selects the settings database only when `QUALITY_MATRIX_DB_FEATURES=settings`; shell values override dotenv files.                                                                 |
+| `QUALITY_MATRIX_DB_FEATURES`                               | Backend `.env.local` or process environment                                       | Comma-separated DB features. Currently only `settings` is supported; requires `DATABASE_URL`. Unlisted features remain CSV-backed.                                                                  |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`    | Compose interpolation environment                                                   | Credentials/database name for the local `quality-matrix-db` service; supply values outside tracked files.                                                                                             |
+| `NYRA_API_KEY`                                             | Backend `.env.production`                                                         | Required by the chat endpoint; secret.                                                                                                                                                                  |
+| `NYRA_CHAT_MODEL`                                          | Backend `.env.production`                                                         | Optional chat model override; code default is `gpt-5.4-mini`.                                                                                                                                         |
+| `HTTP_PROXY`, `HTTPS_PROXY`, `FTP_PROXY`, `NO_PROXY` | Root `.env.production`                                                            | Optional proxy settings passed to the Compose builds and containers.                                                                                                                                    |
 
 The frontend env file also contains `VITE_ENCRYPTION_KEY`; do not put its value
-in documentation or commit sensitive values. Compose reads the root
+in documentation or commit sensitive values. The frontend and backend env files
+are gitignored; configure both auth secrets there for local development, using
+the same `PROXY_SHARED_SECRET` value in each. Compose reads the root
 `.env.production`, which is separate from the backend's `.env.production`.
+
+### Settings Database (Local)
+
+The local, gitignored `hackathon-backend/.env.local` enables PostgreSQL settings
+only when both `DATABASE_URL` is set and `QUALITY_MATRIX_DB_FEATURES=settings`.
+It is excluded from the Docker build context. `POSTGRES_DB`, `POSTGRES_USER`,
+and `POSTGRES_PASSWORD` in the root `.env` configure Compose. Start PostgreSQL
+and initialize it from local CSV data:
+
+```powershell
+docker compose up -d quality-matrix-db
+cd hackathon-backend
+$env:QUALITY_MATRIX_DATA_DIR = "data"
+.\.venv\Scripts\python.exe -m alembic upgrade head
+\.venv\Scripts\python.exe scripts\import_csv_to_db.py --data-dir data --apply --replace
+.\.venv\Scripts\python.exe -m uvicorn main:app --reload --port 8004
+```
+
+To return to CSV mode, remove `QUALITY_MATRIX_DB_FEATURES` from
+`hackathon-backend/.env.local` (or set `$env:QUALITY_MATRIX_DB_FEATURES = ""`
+for the current PowerShell process), then restart the backend. Settings writes
+in DB mode are exported to CSV after each commit.
 
 ## Troubleshooting
 
@@ -155,9 +189,13 @@ items; it does not currently provide delete behavior.
 ## Data Notes
 
 CSV files under `hackathon-backend/data` are the source of truth for the
-features above. Updates rewrite the corresponding CSV file, so back up the data
-before bulk edits. The API has no authentication by design; run it only in an
-appropriate trusted environment.
+features above except settings when DB mode is enabled. Settings writes in DB
+mode are exported to CSV after commit. Updates rewrite the corresponding CSV
+file, so back up the data before bulk edits. When `PROXY_SHARED_SECRET` is set, direct backend API calls
+require trusted proxy identity headers. Do not expose port 8004 publicly once
+the shared secret is configured; keep it reachable only by Express and trusted
+operators. TI, PdO, and GL-MQR writes have no attribution fields today and are
+deferred to a later database audit.
 
 ### Network share data
 

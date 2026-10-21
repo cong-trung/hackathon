@@ -6,6 +6,7 @@ import os
 import tempfile
 import threading
 import time
+from contextvars import ContextVar
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
@@ -16,6 +17,9 @@ from app.config import DATA_DIR
 
 _registry_guard = threading.Lock()
 _lock_registry: dict[str, threading.RLock] = {}
+_DEFERRED_WRITES: ContextVar[dict[Path, bytes] | None] = ContextVar(
+    "deferred_csv_writes", default=None
+)
 # Acquire file locks before _CACHE_LOCK; readers stay lock-free and serializers rely on caller-held locks.
 
 
@@ -45,6 +49,11 @@ def locked_files(*targets: str | Path) -> Iterator[None]:
 
 
 def atomic_write_bytes(path: Path, data: bytes) -> None:
+    deferred = _DEFERRED_WRITES.get()
+    if deferred is not None:
+        deferred[path] = data
+        return
+
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temp_name = tempfile.mkstemp(
         dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
@@ -72,6 +81,21 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
                 time.sleep(0.3)
     finally:
         temp_path.unlink(missing_ok=True)
+
+
+@contextmanager
+def defer_atomic_writes() -> Iterator[dict[Path, bytes]]:
+    pending: dict[Path, bytes] = {}
+    token = _DEFERRED_WRITES.set(pending)
+    try:
+        yield pending
+    finally:
+        _DEFERRED_WRITES.reset(token)
+
+
+def apply_deferred_writes(pending: dict[Path, bytes]) -> None:
+    for path, data in pending.items():
+        atomic_write_bytes(path, data)
 
 
 def record_version(fields: dict[str, Any]) -> str:

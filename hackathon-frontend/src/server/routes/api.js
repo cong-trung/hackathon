@@ -1,5 +1,6 @@
 import express from 'express';
 
+import authRouter from './api/auth.js';
 import healthRouter from './api/health.js';
 import tiRouter from './api/ti.js';
 import pdoRouter from './api/pdo.js';
@@ -26,11 +27,15 @@ import {
     updatePypcsProductActionMatrixRow,
     exportPypcsProductActionMatrix,
 } from '../services/pypcsService.js';
+import { originGuard, requireSession } from '../services/authService.js';
 
 const router = express.Router();
 
 // Middleware to parse JSON bodies
 router.use(express.json());
+router.use(originGuard);
+router.use('/auth', authRouter);
+router.use(requireSession);
 
 // Mount routers for each service
 router.use(healthRouter);

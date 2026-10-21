@@ -3,12 +3,12 @@
 import re
 from typing import Any
 
-from fastapi import APIRouter, Body, HTTPException, Query, Response
+from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
 
-from app.io.csv_excel import value_to_str
-from app.io.concurrency import locked_files, record_version
+from app.auth import get_actor
+from app.repositories import Resource, transaction
+from app.repositories.common import record_version, value_to_str
 from app.services.product_action_matrix_service import (
-    PRODUCT_ACTION_DECISIONS_FILE,
     _decision_values,
     build_product_action_matrix,
     export_product_action_matrix,
@@ -35,12 +35,17 @@ def get_pypcs_product_action_matrix(
 
 
 @router.put("/pypcs/product-action-matrix/rows")
-def update_pypcs_product_action_matrix_row(payload: Any = Body(...)):
+def update_pypcs_product_action_matrix_row(
+    request: Request, payload: Any = Body(...)
+):
     if not isinstance(payload, dict):
         raise _field_error(422, "body", "Request body must be an object.")
     product_key = value_to_str(payload.get("product_key", ""))
     module_group = value_to_str(payload.get("module_group", ""))
-    updated_by = value_to_str(payload.get("updated_by", ""))
+    actor = get_actor(request)
+    updated_by = (
+        actor.label if actor else value_to_str(payload.get("updated_by", ""))
+    )
     mode = payload.get("mode", "final")
     if not isinstance(mode, str) or mode not in {"draft", "final"}:
         raise _field_error(422, "mode", "mode must be 'draft' or 'final'.")
@@ -90,7 +95,7 @@ def update_pypcs_product_action_matrix_row(payload: Any = Body(...)):
 
 
 def _update_matrix_row(product_key, module_group, updated_by, mode, cells):
-    with locked_files(PRODUCT_ACTION_DECISIONS_FILE):
+    with transaction(Resource.DECISIONS):
         built = build_product_action_matrix()
         target_rows = [
             row

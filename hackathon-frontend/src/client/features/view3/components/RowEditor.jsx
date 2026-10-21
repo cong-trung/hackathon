@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 
+import { useGetMeQuery } from '@/app/api/authApi';
 import { useUpdateProductActionMatrixRowMutation } from '@/app/api/productActionMatrixApi';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -118,6 +119,8 @@ function ActionEditor({ action, index, cell, form, focusRef, focused }) {
 }
 
 export default function RowEditor({ row, actions, focusedAction, onClose, onReload }) {
+    const { data: session } = useGetMeQuery();
+    const sessionLabel = session?.user ? `${session.user.name} (${session.user.wwid})` : '';
     const focusRef = useRef(null);
     const cancelRef = useRef(null);
     const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -127,7 +130,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
     const form = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
-            updated_by: localStorage.getItem('view3.updatedBy') ?? '',
+            updated_by: sessionLabel,
             cells: actions.map((action) => savedCell(loadedRow, action)),
         },
     });
@@ -149,7 +152,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
             const latest = await onReload();
             setLoadedRow(latest);
             form.reset({
-                updated_by: localStorage.getItem('view3.updatedBy') ?? '',
+                updated_by: sessionLabel,
                 cells: actions.map((action) => savedCell(latest, action)),
             });
             setConflict(null);
@@ -206,7 +209,6 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
                 mode,
                 cells: changes,
             }).unwrap();
-            localStorage.setItem('view3.updatedBy', values.updated_by);
             toast.success(mode === 'draft' ? 'Draft saved.' : 'Saved.');
             onClose();
         } catch (error) {
@@ -260,7 +262,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
                             <FormField control={form.control} name="updated_by" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Updated by *</FormLabel>
-                                    <FormControl><Input autoComplete="name" {...field} /></FormControl>
+                                    <FormControl><Input {...field} readOnly className="bg-muted" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />

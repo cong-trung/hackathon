@@ -16,11 +16,15 @@ source .venv/bin/activate
 uvicorn main:app --reload
 ```
 
-No test suite or lint config exists yet.
+Run tests from `hackathon-backend` with:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests
+```
 
 ## Architecture
 
-- [app/config.py](app/config.py) — env loading (`.env.production`), `DATA_DIR`, `ALLOWED_ORIGINS`.
+- [app/config.py](app/config.py) — env loading (`.env.local` before `.env.production`; shell values win), `DATA_DIR`, `ALLOWED_ORIGINS`, and `QUALITY_MATRIX_DB_FEATURES`.
 - [app/schema_config.py](app/schema_config.py) — `MODULE_CONFIG["STHI"|"LCBI"]`, `SOLUTION_CONFIG`,
   `MODULE_SOLUTION_CONFIG`, `FIELD_LABELS`, `get_module_config()`, `get_module_solution_config()`,
   `field_schema()`. Each module entry maps a data file to its `fields` (frontend/API keys),
@@ -38,6 +42,23 @@ No test suite or lint config exists yet.
 - [app/io/generic_csv.py](app/io/generic_csv.py) — schema-less CSV helpers (`read_generic_csv`,
   `append_rows_to_csv`, etc.) used by the PYPCS subsystem, plus `split_options`/`safe_int`/
   `yn_to_bool`.
+- [app/repositories/](app/repositories) — feature-level CSV access for action items, settings,
+  submissions, decisions, product basis, solutions, and PdO matrices. Routers and services use
+  these repositories rather than importing `app.io` or accessing data paths directly. Settings
+  can use the database when `DATABASE_URL` is set and `QUALITY_MATRIX_DB_FEATURES=settings`;
+  all other features remain CSV-backed.
+- [app/db/](app/db) — optional SQLAlchemy 2 schema and lazy engine/session factory. No API feature
+  uses it unless the `settings` database feature is enabled; settings CSVs are exported after
+  committed writes for rollback compatibility.
+- [alembic/](alembic) — database schema revisions. Upgrade with `python -m alembic upgrade head`
+  after setting `DATABASE_URL`.
+- [scripts/import_csv_to_db.py](scripts/import_csv_to_db.py) — preview-by-default CSV migration;
+  `--apply` imports transactionally and verifies repository-shaped round trips. PostgreSQL is
+  available locally as `quality-matrix-db` in root Compose; its data uses a named Docker volume.
+  Repeated submission-answer keys are retained in `submission_answer_collision` in source order,
+  preserving the required unique key in `submission_answer` without dropping CSV rows.
+- `tests/test_database_migration.py` covers the SQLite schema and import path; run it with the
+  existing characterization suite using `python -m pytest -q tests`.
 - [app/services/pypcs_service.py](app/services/pypcs_service.py) — PYPCS CSV filenames, row
   normalization, and `build_pypcs_visible_questions()`.
 - `data/View2/PYPCS_ActionItems.csv` (View 2) uses `nbr` as its key; applicability fields mirror
@@ -57,13 +78,18 @@ No test suite or lint config exists yet.
 
 ## Conventions
 
-- `DATA_DIR` (env `QUALITY_MATRIX_DATA_DIR`, default `data`) and `ALLOWED_ORIGINS` (env, comma
-  separated, default covers Vite `:5173` and CRA `:3000`) are the only configurable settings.
+- `DATA_DIR` (env `QUALITY_MATRIX_DATA_DIR`, default `data`), `ALLOWED_ORIGINS` (env, comma
+  separated, default covers Vite `:5173` and CRA `:3000`), and `PROXY_SHARED_SECRET` are
+  configurable settings. When configured, `app.auth.get_actor(request)` verifies proxy identity
+  headers and supplies the actor used for write attribution. Leave it empty for legacy behavior.
 - The app refuses to import if any legacy data file remains directly in `DATA_DIR`; migrate the
   files before starting the backend.
-- Endpoints are no-auth by design (see app description in [app/main.py](app/main.py)); don't add
-  auth without being asked.
-- Wrap every read-modify-write in `locked_files(...)` for all touched files; writes use atomic replace.
+- Endpoints retain legacy no-auth behavior while `PROXY_SHARED_SECRET` is empty. When configured,
+  all routes except health and API documentation require trusted proxy identity.
+- Wrap read-modify-write flows in `transaction(Resource...)` for all touched repository resources.
+  It preserves deterministic multi-file lock ordering; read-only repository calls remain lock-free.
+  In mixed settings/CSV transactions the DB commits before staged CSV writes are applied; a DB
+  failure must not write any CSV. Writes use atomic replace.
 - Keep a single uvicorn worker; editable flows accept optional `expected_version` and return 409 `{"code": "conflict"}`.
 
 ## PYPCS Views
@@ -81,6 +107,11 @@ No test suite or lint config exists yet.
   and rebuilds preserve it while export includes it. PUT `mode` defaults to `final`; final statuses require comments, drafts allow optional comments, and blank draft cells clear.
 
 ## Data Layout and Migration
+
+Set `QUALITY_MATRIX_DB_FEATURES=settings` together with `DATABASE_URL` to enable DB-backed
+settings. Unknown feature names, missing configuration, an unreachable database, or a database
+not at Alembic head fail startup. `.env.local` loads before `.env.production`; shell environment
+values take precedence. Remove the `settings` feature flag to return to CSV settings mode.
 
 - Quality Matrix submissions and slim cells live under `data/QualityMatrix/`; modules,
   questions, question/module mappings, and operation steps live under `data/QualityMatrix/Settings/`.

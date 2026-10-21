@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, ChevronsUpDown, CopyCheck, Info, X } from 'lucide-react';
 
+import { useGetMeQuery } from '@/app/api/authApi';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -271,6 +272,7 @@ export default function PYPCSMatrixSubmission({
     modeSwitch,
     onDirtyChange = () => {},
 } = {}) {
+    const { data: session } = useGetMeQuery();
     const [modules, setModules] = useState([]);
     const [selectedModules, setSelectedModules] = useState([]);
     const [visibleModules, setVisibleModules] = useState([]);
@@ -348,9 +350,9 @@ export default function PYPCSMatrixSubmission({
 
     useEffect(() => {
         if (baseline.current !== null) {
-            onDirtyChange(currentSnapshot !== baseline.current);
+            onDirtyChange(!locked && currentSnapshot !== baseline.current);
         }
-    }, [currentSnapshot, onDirtyChange]);
+    }, [currentSnapshot, locked, onDirtyChange]);
 
     useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
 
@@ -455,7 +457,7 @@ export default function PYPCSMatrixSubmission({
         loadModules();
     }, [loadModules]);
 
-    async function refreshQuestions(nextSelectedModules, nextRole = role) {
+    async function refreshQuestions(nextSelectedModules, nextRole = role, resumeCells = null) {
         if (nextSelectedModules.length === 0) {
             setCells({});
             setErrors({});
@@ -481,9 +483,18 @@ export default function PYPCSMatrixSubmission({
             });
 
             setQuestions(result.items || []);
-            setCells((previousCells) => expandMatrixCells(
-                result.items || [], nextSelectedModules, previousCells,
-            ));
+            if (resumeCells) {
+                const expandedCells = expandMatrixCells(
+                    result.items || [], nextSelectedModules, resumeCells,
+                );
+                baseline.current = formSnapshot(nextSelectedModules, nextRole, expandedCells);
+                setCells(expandedCells);
+                onDirtyChange(false);
+            } else {
+                setCells((previousCells) => expandMatrixCells(
+                    result.items || [], nextSelectedModules, previousCells,
+                ));
+            }
             setErrors({});
             return true;
         } catch (error) {
@@ -517,6 +528,7 @@ export default function PYPCSMatrixSubmission({
         baseline.current = formSnapshot(nextModules, nextRole, nextCells);
         setEditPin('');
         setEditReason('');
+        onDirtyChange(false);
         setErrors({});
         setSubmissionId(sub.submission_id || null);
         setSubmissionStatus(sub.status || 'final');
@@ -524,7 +536,7 @@ export default function PYPCSMatrixSubmission({
         setConflict(null);
         setStatusMessage('');
 
-        refreshQuestions(nextModules, nextRole);
+        refreshQuestions(nextModules, nextRole, nextCells);
         onResumeHandled();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [resumeSubmission]);
@@ -929,7 +941,7 @@ export default function PYPCSMatrixSubmission({
         const payload = {
             selected_modules: selectedModules,
             role: backendRole(role),
-            submitted_by: 'current_user',
+            submitted_by: `${session.user.name} (${session.user.wwid})`,
             product_name: findAnswer('product_name'),
             prodgroup3: findAnswer('prodgroup3'),
             operation: findAnswer('operation'),

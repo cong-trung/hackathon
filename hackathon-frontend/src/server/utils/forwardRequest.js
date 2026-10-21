@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { config } from '../config/env.js';
+import { identityHeaders } from './identityHeaders.js';
 
 export const forwardRequest = async (path, req) => {
     try {
@@ -10,6 +11,7 @@ export const forwardRequest = async (path, req) => {
 
         // Build clean headers object
         const headers = {
+            ...identityHeaders(req.user),
             'Content-Type': 'application/json',
             Accept: 'application/json',
         };

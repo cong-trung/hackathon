@@ -1,0 +1,25 @@
+﻿Product,ProdGroup3,Module,Package,Package (1),Product segment,Fab Technology
+Shaddow Wood,SDW,LCBI,BGA,Lidded,5G,10nm
+Alder Lake S881 BGA,,,,,,
+Raptor Lake S881 BGA,,,,,,
+Meadow Wood,MDW,LCBI,BGA,Lidded,5G,10nm
+Grand Ridge,GRR,LCBI,LGA,Lidded,5G,7nm
+Bartlett Lake S/ S12P,BTLS/BTL S12P,LCBI,LGA,Lidded,Desktop,10nm
+Skylake LGA 2+2,SKC,LCBI,LGA,Lidded,Desktop,10nm
+Skylake LGA 4+2,SKA/SKB/SKZ,LCBI,LGA,Lidded,Desktop,14nm
+Alder Lake M282,ADLM282,LCBI,BGA,Baredie,Mobile,10nm
+Trout Creek,TRC,LCBI,BGA,Lidded,5G,10nm
+Tarpon Creek,TRK,LCBI,BGA,Lidded,5G,10nm
+Kaby Lake U22,KBLU22,LCBI,BGA,Baredie,Mobile,14nm
+Coffee Lake,CFA/CFD/CFH/CFG/CFZ,LCBI,LGA,Lidded,Client,14nm
+Tiger Lake UP3,TGLUP3,LCBI,BGA,Baredie,Client,10nm
+Alder Lake P682,ADL P682,LCBI,BGA,Baredie,Client,10nm
+Raptor Lake P682 / Raptor Lake Refresh P682,RPLP682 / RPRP682,LCBI,BGA,Baredie,Client,10nm
+Alder Lake P282,ADL P282 / RPL P282,LCBI,BGA,Baredie,Client,10nm
+ADL N0+8+1,ADLN081/ ASL / ASL Auto (RDL),LCBI,BGA,Baredie,SOC,10nm
+DG512,DG2-512/ DG2-256/ ACM G21,LCBI,BGA,Baredie,Graphic,TSMC 6nm
+Comet Lake S62 ,CMLS62,LCBI,LGA,Lidded,Desktop, 14 nm++
+Comet Lake S102,CMLS102,LCBI,LGA,Lidded,Desktop, 14 nm++
+Rocket Lake S81,RKLS81,LCBI,LGA,Lidded,Desktop, 14 nm++
+Raptor Lake S8161 LGA,RPL8161/RPR8161/RRC8161,LCBI,LGA,Lidded,Desktop,10nm
+ICX HCC,ICXHCP,LCBI,LGA,Lidded,Server,10nm

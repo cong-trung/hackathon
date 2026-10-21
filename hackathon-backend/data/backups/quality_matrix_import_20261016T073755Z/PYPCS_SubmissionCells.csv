@@ -1,0 +1,602 @@
+﻿submission_id,question_id,module_key,role,answer,updated_at,updated_by
+98f0058f-0815-454c-adc2-9cb1e9da8bde,product_name,LCBI,TI,Hello,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,prodgroup3,LCBI,TI,aa,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,operation,LCBI,TI,aa,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,tp_name,LCBI,ME,1234567,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,nsb,LCBI,TI,Y,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,mcp,LCBI,TI,Y,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,package,LCBI,TI,BGA,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,bare_die_lid,LCBI,TI,Bare die,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,foveros,LCBI,TI,Foveros,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,implementation_stage,LCBI,TI,aaa,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,segment,LCBI,TI,Thunderbolt,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,xvi_tool_type,LCBI,TI,TRI,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,fab_technology,LCBI,TI,aaa,2026-08-25T10:40:50Z,current_user
+98f0058f-0815-454c-adc2-9cb1e9da8bde,lts_ball,LCBI,TI,Y,2026-08-25T10:40:50Z,current_user
+23ae28d7-21d8-474d-acb5-3516523502c5,product_name,STHI,TI,Alder Lake S601 IOTG,"",product_catalog_seed
+23ae28d7-21d8-474d-acb5-3516523502c5,prodgroup3,STHI,TI,ADLG601,"",product_catalog_seed
+75872cd2-2268-4369-807c-4354d6760c0e,product_name,STHI,TI,Alder Lake PS282,"",product_catalog_seed
+75872cd2-2268-4369-807c-4354d6760c0e,prodgroup3,STHI,TI,ADLPS2,"",product_catalog_seed
+11656aa3-7381-486d-8522-e46cb2c2af80,product_name,STHI,TI,Alder Lake M282,"",product_catalog_seed
+11656aa3-7381-486d-8522-e46cb2c2af80,product_name,LCBI,TI,Alder Lake M282,"",product_catalog_seed
+11656aa3-7381-486d-8522-e46cb2c2af80,prodgroup3,STHI,TI,ADLM282,"",product_catalog_seed
+11656aa3-7381-486d-8522-e46cb2c2af80,prodgroup3,LCBI,TI,ADLM282,"",product_catalog_seed
+8845f2ef-3bc7-4dee-aaa5-794cf5446a8f,product_name,STHI,TI,Alder Lake N081,"",product_catalog_seed
+8845f2ef-3bc7-4dee-aaa5-794cf5446a8f,prodgroup3,STHI,TI,ADLN,"",product_catalog_seed
+4484155a-5423-48e5-83bf-63de8563cab7,product_name,STHI,TI,Alder Lake PS682,"",product_catalog_seed
+4484155a-5423-48e5-83bf-63de8563cab7,prodgroup3,STHI,TI,ADLPS6,"",product_catalog_seed
+ff85de1b-af80-4eb7-a3f1-a449430d2580,product_name,STHI,TI,Alder Lake S601,"",product_catalog_seed
+ff85de1b-af80-4eb7-a3f1-a449430d2580,prodgroup3,STHI,TI,ADLS601,"",product_catalog_seed
+7b2c5aca-36b4-42e4-a374-4afbcccbef0f,product_name,STHI,TI,COFFEE LAKE CPU-8,"",product_catalog_seed
+7b2c5aca-36b4-42e4-a374-4afbcccbef0f,prodgroup3,STHI,TI,CFH,"",product_catalog_seed
+dcf81424-29ca-4cb6-b206-ff98129f706e,product_name,STHI,TI,COMET LAKE CPU-10-24,"",product_catalog_seed
+dcf81424-29ca-4cb6-b206-ff98129f706e,prodgroup3,STHI,TI,CMLS102,"",product_catalog_seed
+5a35af0e-a4eb-4313-a75c-17a77760632a,product_name,STHI,TI,AlderLake S881 BGA,"",product_catalog_seed
+5a35af0e-a4eb-4313-a75c-17a77760632a,prodgroup3,STHI,TI,ADLS8BGA,"",product_catalog_seed
+77b78595-ddec-4186-b36e-e1a00c17b99f,product_name,STHI,TI,Alder Lake N081 IOTG,"",product_catalog_seed
+77b78595-ddec-4186-b36e-e1a00c17b99f,prodgroup3,STHI,TI,ADNIOTG,"",product_catalog_seed
+b474ae0d-a1c9-48a5-8322-2c24d71b1710,product_name,STHI,TI,Apollo Lake,"",product_catalog_seed
+b474ae0d-a1c9-48a5-8322-2c24d71b1710,prodgroup3,STHI,TI,APK,"",product_catalog_seed
+1168ecfe-1cc9-4558-8ccf-636da75e3b4d,product_name,STHI,TI,Apollo Lake,"",product_catalog_seed
+1168ecfe-1cc9-4558-8ccf-636da75e3b4d,prodgroup3,STHI,TI,APL,"",product_catalog_seed
+b78306e5-7ddd-4f0a-bf64-be45a39ba953,product_name,STHI,TI,Apollo Lake,"",product_catalog_seed
+b78306e5-7ddd-4f0a-bf64-be45a39ba953,prodgroup3,STHI,TI,AXLF,"",product_catalog_seed
+5e2be974-235f-4479-85be-7cd2b4c0c9fd,product_name,STHI,TI,BURNSIDE BRIDGE,"",product_catalog_seed
+5e2be974-235f-4479-85be-7cd2b4c0c9fd,prodgroup3,STHI,TI,BBR,"",product_catalog_seed
+6518eeb7-5640-4570-a107-ed0dae592a90,product_name,STHI,TI,COFFEE LAKE CPU-4-48,"",product_catalog_seed
+6518eeb7-5640-4570-a107-ed0dae592a90,prodgroup3,STHI,TI,CFLU43,"",product_catalog_seed
+7ebf2a4b-5ea8-4b7a-bed3-cef269c45fb3,product_name,STHI,TI,Lake Field,"",product_catalog_seed
+7ebf2a4b-5ea8-4b7a-bed3-cef269c45fb3,prodgroup3,STHI,TI,LFA,"",product_catalog_seed
+42aeb52a-f186-4848-9fd5-79783633c934,product_name,STHI,TI,Meadow Wood,"",product_catalog_seed
+42aeb52a-f186-4848-9fd5-79783633c934,product_name,LCBI,TI,Meadow Wood,"",product_catalog_seed
+42aeb52a-f186-4848-9fd5-79783633c934,prodgroup3,STHI,TI,MDW,"",product_catalog_seed
+42aeb52a-f186-4848-9fd5-79783633c934,prodgroup3,LCBI,TI,MDW,"",product_catalog_seed
+0bc2889e-bf0c-4aa2-adbd-3189e0d8e2fe,product_name,STHI,TI,Trout Creek,"",product_catalog_seed
+0bc2889e-bf0c-4aa2-adbd-3189e0d8e2fe,product_name,LCBI,TI,Trout Creek,"",product_catalog_seed
+0bc2889e-bf0c-4aa2-adbd-3189e0d8e2fe,prodgroup3,STHI,TI,TRC,"",product_catalog_seed
+0bc2889e-bf0c-4aa2-adbd-3189e0d8e2fe,prodgroup3,LCBI,TI,TRC,"",product_catalog_seed
+7586627c-9a32-4e61-94c7-32c9a70efbe7,product_name,STHI,TI,ALDER LAKE-PCH-S,"",product_catalog_seed
+7586627c-9a32-4e61-94c7-32c9a70efbe7,prodgroup3,STHI,TI,ADP,"",product_catalog_seed
+d239e4a8-236b-4089-a655-c08cc317e781,product_name,STHI,TI,BRASWELL,"",product_catalog_seed
+d239e4a8-236b-4089-a655-c08cc317e781,prodgroup3,STHI,TI,BSW,"",product_catalog_seed
+1adc21e8-f40a-4989-bd50-f7b6b2ee3830,product_name,STHI,TI,COMET LAKE CPU-8-24,"",product_catalog_seed
+1adc21e8-f40a-4989-bd50-f7b6b2ee3830,prodgroup3,STHI,TI,CMLH82,"",product_catalog_seed
+e8201d84-8433-4fde-b7db-6d0ad73c504a,product_name,STHI,TI,COUGAR MOUNTAIN,"",product_catalog_seed
+e8201d84-8433-4fde-b7db-6d0ad73c504a,prodgroup3,STHI,TI,CGM,"",product_catalog_seed
+252ecc25-5ecc-46c4-a49b-2f412d30f8c6,product_name,STHI,TI,COFFEE LAKE CPU-6,"",product_catalog_seed
+252ecc25-5ecc-46c4-a49b-2f412d30f8c6,prodgroup3,STHI,TI,CFLH62,"",product_catalog_seed
+76067411-0965-44bd-b9ed-c21333ba3973,product_name,STHI,TI,COMET LAKE (COFFEE LAKE-4-24),"",product_catalog_seed
+76067411-0965-44bd-b9ed-c21333ba3973,prodgroup3,STHI,TI,CMLU42,"",product_catalog_seed
+cb523ff6-8d53-4eef-afd3-1c6de7e3ed3e,product_name,STHI,TI,COFFEE LAKE (KABY LAKE CPU-4),"",product_catalog_seed
+cb523ff6-8d53-4eef-afd3-1c6de7e3ed3e,prodgroup3,STHI,TI,CFA,"",product_catalog_seed
+ddf53e3e-a574-48b9-bae0-8d9a8062f5c1,product_name,STHI,TI,COFFEE LAKE CPU-6,"",product_catalog_seed
+ddf53e3e-a574-48b9-bae0-8d9a8062f5c1,prodgroup3,STHI,TI,CFD,"",product_catalog_seed
+d53b04c5-79e3-4478-b780-c0a0b7720ceb,product_name,STHI,TI,CASCADE LAKE (SKYLAKE-28),"",product_catalog_seed
+d53b04c5-79e3-4478-b780-c0a0b7720ceb,prodgroup3,STHI,TI,CLXXCP,"",product_catalog_seed
+f9dfc6d7-56d6-466c-8e1f-b9b9910e35ab,product_name,STHI,TI,DG2 128 GPU,"",product_catalog_seed
+f9dfc6d7-56d6-466c-8e1f-b9b9910e35ab,prodgroup3,STHI,TI,DG128,"",product_catalog_seed
+47d6ecdb-5cb2-43a7-80b5-696b9f2681eb,product_name,STHI,TI,COFFEE LAKE (KABY LAKE CPU-4),"",product_catalog_seed
+47d6ecdb-5cb2-43a7-80b5-696b9f2681eb,prodgroup3,STHI,TI,CFZ,"",product_catalog_seed
+1c050d84-3431-4d7f-b2fd-3c0f3db289b1,product_name,STHI,TI,DG2 512 GPU,"",product_catalog_seed
+1c050d84-3431-4d7f-b2fd-3c0f3db289b1,prodgroup3,STHI,TI,DG512,"",product_catalog_seed
+4eec431a-0db3-4df4-a415-8e858ff66d4b,product_name,STHI,TI,COMET LAKE CPU-6,"",product_catalog_seed
+4eec431a-0db3-4df4-a415-8e858ff66d4b,prodgroup3,STHI,TI,CMLS62,"",product_catalog_seed
+e124f6d9-7dc7-44d1-91f6-7a52e21a648c,product_name,STHI,TI,COMET LAKE PCH-H,"",product_catalog_seed
+e124f6d9-7dc7-44d1-91f6-7a52e21a648c,prodgroup3,STHI,TI,CMP,"",product_catalog_seed
+2fb00e20-7ad3-41e1-acbb-0022d7de9c14,product_name,STHI,TI,CANNON LAKE PCH-H,"",product_catalog_seed
+2fb00e20-7ad3-41e1-acbb-0022d7de9c14,prodgroup3,STHI,TI,CNLUSFF,"",product_catalog_seed
+cfcaf171-1b0f-47e3-8512-81a3ca1ffe7e,product_name,STHI,TI,CANNON LAKE PCH-H,"",product_catalog_seed
+cfcaf171-1b0f-47e3-8512-81a3ca1ffe7e,prodgroup3,STHI,TI,CNP,"",product_catalog_seed
+96fa7f75-9437-4d97-95b8-7831460e97e5,product_name,STHI,TI,CHERRY TRAIL-4,"",product_catalog_seed
+96fa7f75-9437-4d97-95b8-7831460e97e5,prodgroup3,STHI,TI,CT1,"",product_catalog_seed
+6863c8fe-ea12-4c9f-80e7-8ff3a1fc5f4b,product_name,STHI,TI,CHERRY TRAIL-4,"",product_catalog_seed
+6863c8fe-ea12-4c9f-80e7-8ff3a1fc5f4b,prodgroup3,STHI,TI,CTC,"",product_catalog_seed
+a790e21c-da2b-4f98-ac87-46496bc0fab1,product_name,STHI,TI,COUGAR MOUNTAIN XL,"",product_catalog_seed
+a790e21c-da2b-4f98-ac87-46496bc0fab1,prodgroup3,STHI,TI,CXL,"",product_catalog_seed
+ebbf443b-52dd-49d1-bcb8-323085f79615,product_name,STHI,TI,GEMINI LAKE-4,"",product_catalog_seed
+ebbf443b-52dd-49d1-bcb8-323085f79615,prodgroup3,STHI,TI,GLK,"",product_catalog_seed
+5fc0a7b0-797a-40a6-8346-d2679e33fced,product_name,STHI,TI,ROCKET LAKE CPU-8,"",product_catalog_seed
+5fc0a7b0-797a-40a6-8346-d2679e33fced,prodgroup3,STHI,TI,RKLS81,"",product_catalog_seed
+1e5b86dc-a7dd-401d-a4e2-87387af097c6,product_name,STHI,TI,Alder Lake S881 IOTG,"",product_catalog_seed
+1e5b86dc-a7dd-401d-a4e2-87387af097c6,prodgroup3,STHI,TI,ADLG881,"",product_catalog_seed
+2e311a2d-9410-42c6-85e3-8e3148a59dd3,product_name,STHI,TI,HASWELL-H-2,"",product_catalog_seed
+2e311a2d-9410-42c6-85e3-8e3148a59dd3,prodgroup3,STHI,TI,HSWH,"",product_catalog_seed
+e95a2db5-029f-4b6d-a0d6-fe373bf4725e,product_name,STHI,TI,HASWELL-HE-4,"",product_catalog_seed
+e95a2db5-029f-4b6d-a0d6-fe373bf4725e,prodgroup3,STHI,TI,HSWR,"",product_catalog_seed
+e5463706-6315-4c12-a159-faaee3921bed,product_name,STHI,TI,HASWELL-HE-4,"",product_catalog_seed
+e5463706-6315-4c12-a159-faaee3921bed,prodgroup3,STHI,TI,HWS,"",product_catalog_seed
+f4d62a26-23f0-4788-92af-ec79f8892275,product_name,STHI,TI,KABY LAKE CPU-2,"",product_catalog_seed
+f4d62a26-23f0-4788-92af-ec79f8892275,prodgroup3,STHI,TI,KBC,"",product_catalog_seed
+3ebdcd4b-e230-417c-a2b8-f88370ed7231,product_name,STHI,TI,KABY LAKE CPU-4,"",product_catalog_seed
+3ebdcd4b-e230-417c-a2b8-f88370ed7231,prodgroup3,STHI,TI,KBZ,"",product_catalog_seed
+9744aa5b-50bc-438a-9847-5d16431a2fd3,product_name,STHI,TI,SKYLAKE CPU-4,"",product_catalog_seed
+9744aa5b-50bc-438a-9847-5d16431a2fd3,prodgroup3,STHI,TI,SKA,"",product_catalog_seed
+b5f66b7d-b432-4012-a75f-54a10526568d,product_name,STHI,TI,SKYLAKE CPU-4,"",product_catalog_seed
+b5f66b7d-b432-4012-a75f-54a10526568d,prodgroup3,STHI,TI,SKB,"",product_catalog_seed
+c05ae10d-8dea-4d68-862f-42913cfd8f00,product_name,STHI,TI,SKYLAKE CPU-2,"",product_catalog_seed
+c05ae10d-8dea-4d68-862f-42913cfd8f00,prodgroup3,STHI,TI,SKC,"",product_catalog_seed
+b8e31ddc-e1d0-4bc3-8790-0106b88f085a,product_name,STHI,TI,TIGER LAKE PCH-H,"",product_catalog_seed
+b8e31ddc-e1d0-4bc3-8790-0106b88f085a,prodgroup3,STHI,TI,TGP,"",product_catalog_seed
+aa606435-dbc0-49f9-9da8-056eccac4df2,product_name,STHI,TI,VALLEYVIEW,"",product_catalog_seed
+aa606435-dbc0-49f9-9da8-056eccac4df2,prodgroup3,STHI,TI,V2V,"",product_catalog_seed
+cb422881-d15b-4362-8891-5b9bd0011474,product_name,STHI,TI,Alder Lake S881,"",product_catalog_seed
+cb422881-d15b-4362-8891-5b9bd0011474,prodgroup3,STHI,TI,ADLS881,"",product_catalog_seed
+5512abce-5858-4216-a204-a36b9d1ff949,product_name,STHI,TI,Raptor Lake 8161 (RAPTOR LAKE-CPU-24),"",product_catalog_seed
+5512abce-5858-4216-a204-a36b9d1ff949,prodgroup3,STHI,TI,RPL8161,"",product_catalog_seed
+85f9a7cc-7766-4a71-9458-febd41194bb6,product_name,STHI,TI,Raptor Lake S601 (ALDER LAKE-CPU-6),"",product_catalog_seed
+85f9a7cc-7766-4a71-9458-febd41194bb6,prodgroup3,STHI,TI,RPLG601,"",product_catalog_seed
+732f71a3-c13c-4ec6-b422-b05644104833,product_name,STHI,TI,COMET LAKE CPU-6-24,"",product_catalog_seed
+732f71a3-c13c-4ec6-b422-b05644104833,prodgroup3,STHI,TI,CMLU62,"",product_catalog_seed
+1ae8813a-ba72-4932-82bc-89a9d877801f,product_name,STHI,TI,Raptor Lake S881 (ALDER LAKE-CPU-16),"",product_catalog_seed
+1ae8813a-ba72-4932-82bc-89a9d877801f,prodgroup3,STHI,TI,RPLG881,"",product_catalog_seed
+55f41801-3880-4ff4-9489-460606246a22,product_name,STHI,TI,Raptor Lake S601 (ALDER LAKE-CPU-6),"",product_catalog_seed
+55f41801-3880-4ff4-9489-460606246a22,prodgroup3,STHI,TI,RPLS601,"",product_catalog_seed
+e7ea31f5-49c5-4923-8d39-95b784e57d19,product_name,STHI,TI,Raptor Lake S881 BGA (ALDER LAKE-CPU-16),"",product_catalog_seed
+e7ea31f5-49c5-4923-8d39-95b784e57d19,prodgroup3,STHI,TI,RPLS8BGA,"",product_catalog_seed
+a1c008a4-8563-4d6d-a49e-6ba02bec9e78,product_name,STHI,TI,ELKHART LAKE,"",product_catalog_seed
+a1c008a4-8563-4d6d-a49e-6ba02bec9e78,prodgroup3,STHI,TI,EHB,"",product_catalog_seed
+9d6bb0ef-cb58-48b0-88ec-a2740f88d413,product_name,STHI,TI,ELKHART LAKE,"",product_catalog_seed
+9d6bb0ef-cb58-48b0-88ec-a2740f88d413,prodgroup3,STHI,TI,EHL,"",product_catalog_seed
+1020d4e2-a75f-4b60-af03-4bcd2cd54494,product_name,STHI,TI,JASPER LAKE CPU-4,"",product_catalog_seed
+1020d4e2-a75f-4b60-af03-4bcd2cd54494,prodgroup3,STHI,TI,JSL,"",product_catalog_seed
+2b1f0118-619f-4a2a-9aed-0fcc4babecd9,product_name,STHI,TI,TIGER LAKE CPU-4-96,"",product_catalog_seed
+2b1f0118-619f-4a2a-9aed-0fcc4babecd9,prodgroup3,STHI,TI,TGLUP3,"",product_catalog_seed
+79704672-fa62-4643-859a-e990123e432e,product_name,STHI,TI,TIGER LAKE CPU-4-96,"",product_catalog_seed
+79704672-fa62-4643-859a-e990123e432e,prodgroup3,STHI,TI,TGLUP4,"",product_catalog_seed
+6ec93278-e487-4e51-a62b-89c71c4b8e16,product_name,STHI,TI,KABY LAKE CPU-2-24,"",product_catalog_seed
+6ec93278-e487-4e51-a62b-89c71c4b8e16,prodgroup3,STHI,TI,KBLU22,"",product_catalog_seed
+9c80ed10-ca0d-4b1f-9ced-73c29430862c,product_name,STHI,TI,TIGER LAKE CPU-4-96,"",product_catalog_seed
+9c80ed10-ca0d-4b1f-9ced-73c29430862c,prodgroup3,STHI,TI,TGRUP3,"",product_catalog_seed
+9db0e0b6-0c09-48da-81d8-feaeaadeeb14,product_name,STHI,TI,Shadow Wood,"",product_catalog_seed
+9db0e0b6-0c09-48da-81d8-feaeaadeeb14,prodgroup3,STHI,TI,SDW,"",product_catalog_seed
+15f8fd48-fd20-4d43-b490-224ce7e45301,product_name,STHI,TI,KABY LAKE CPU-4-24,"",product_catalog_seed
+15f8fd48-fd20-4d43-b490-224ce7e45301,prodgroup3,STHI,TI,KBLU42,"",product_catalog_seed
+5d3b0515-4e53-4d81-85c5-4d7991417406,product_name,STHI,TI,Raptor Lake S881 (ALDER LAKE-CPU-16),"",product_catalog_seed
+5d3b0515-4e53-4d81-85c5-4d7991417406,prodgroup3,STHI,TI,RPLS881,"",product_catalog_seed
+ff86e8eb-42b7-40ce-8794-6380395e4c0a,product_name,STHI,TI,WHISKEY LAKE (COFFEE LAKE-4-24),"",product_catalog_seed
+ff86e8eb-42b7-40ce-8794-6380395e4c0a,prodgroup3,STHI,TI,WHLU42,"",product_catalog_seed
+7da5a4fd-b547-4a1f-84b7-7300d90a556d,product_name,STHI,TI,Snow Ridge (SNR),"",product_catalog_seed
+7da5a4fd-b547-4a1f-84b7-7300d90a556d,prodgroup3,STHI,TI,SNWRDG,"",product_catalog_seed
+5d783b72-795e-46f2-90ec-80c4dc9ade8a,product_name,STHI,TI,Alder Lake P282 IOTG,"",product_catalog_seed
+5d783b72-795e-46f2-90ec-80c4dc9ade8a,prodgroup3,STHI,TI,ADL282IOTG,"",product_catalog_seed
+9967eaf8-76c5-4a6f-9c23-2f16eba497e6,product_name,STHI,TI,Alder Lake P282,"",product_catalog_seed
+9967eaf8-76c5-4a6f-9c23-2f16eba497e6,prodgroup3,STHI,TI,ADLP282,"",product_catalog_seed
+2a25363e-85d7-438e-bb7f-4e2d7fc9a525,product_name,STHI,TI,Alder Lake P682,"",product_catalog_seed
+2a25363e-85d7-438e-bb7f-4e2d7fc9a525,prodgroup3,STHI,TI,ADLP682,"",product_catalog_seed
+7dc2636a-76c2-4680-a6bf-ae41245162f8,product_name,STHI,TI,Raptor Lake P282 (RAPTOR LAKE-CPU-10),"",product_catalog_seed
+7dc2636a-76c2-4680-a6bf-ae41245162f8,prodgroup3,STHI,TI,RPLP282,"",product_catalog_seed
+b10785e2-fa05-41d3-b605-3b0cc3fed1c0,product_name,STHI,TI,Raptor Lake P282 (RAPTOR LAKE-CPU-10),"",product_catalog_seed
+b10785e2-fa05-41d3-b605-3b0cc3fed1c0,prodgroup3,STHI,TI,RPLP282IOTG,"",product_catalog_seed
+f3f29548-745d-4269-91b9-a5c62ac05cf0,product_name,STHI,TI,Raptor Lake P682 (RAPTOR LAKE-CPU-14),"",product_catalog_seed
+f3f29548-745d-4269-91b9-a5c62ac05cf0,prodgroup3,STHI,TI,RPLP682,"",product_catalog_seed
+200dba14-c7ee-46ae-8257-c8d83d066218,product_name,STHI,TI,Raptor Lake P682 (RAPTOR LAKE-CPU-14),"",product_catalog_seed
+200dba14-c7ee-46ae-8257-c8d83d066218,prodgroup3,STHI,TI,RPLP682IOTG,"",product_catalog_seed
+88962a6c-18db-4db7-b51c-894499d1c818,product_name,STHI,TI,Meteor Lake (METEOR LAKE-BASE-M282),"",product_catalog_seed
+88962a6c-18db-4db7-b51c-894499d1c818,prodgroup3,STHI,TI,MTLU282,"",product_catalog_seed
+8d3bf51b-1b88-4c28-9df7-37fa738b00bb,product_name,STHI,TI,Meteor Lake (METEOR LAKE-BASE-P281),"",product_catalog_seed
+8d3bf51b-1b88-4c28-9df7-37fa738b00bb,prodgroup3,STHI,TI,MTLU281,"",product_catalog_seed
+6b6b3984-3578-41e2-bd63-79ad84a819c5,product_name,STHI,TI,Tarpon Creek,"",product_catalog_seed
+6b6b3984-3578-41e2-bd63-79ad84a819c5,product_name,LCBI,TI,Tarpon Creek,"",product_catalog_seed
+6b6b3984-3578-41e2-bd63-79ad84a819c5,prodgroup3,STHI,TI,TRK,"",product_catalog_seed
+6b6b3984-3578-41e2-bd63-79ad84a819c5,prodgroup3,LCBI,TI,TRK,"",product_catalog_seed
+2f31d35c-efc9-4421-bb29-173d835a56bb,product_name,STHI,TI,Grand Ridge,"",product_catalog_seed
+2f31d35c-efc9-4421-bb29-173d835a56bb,product_name,LCBI,TI,Grand Ridge,"",product_catalog_seed
+2f31d35c-efc9-4421-bb29-173d835a56bb,prodgroup3,STHI,TI,GRR,"",product_catalog_seed
+2f31d35c-efc9-4421-bb29-173d835a56bb,prodgroup3,LCBI,TI,GRR,"",product_catalog_seed
+61b1117e-6e7c-40d5-bc0f-ad0f4e78f46c,product_name,STHI,TI,Meteor Lake PS682,"",product_catalog_seed
+61b1117e-6e7c-40d5-bc0f-ad0f4e78f46c,prodgroup3,STHI,TI,MTLPS6,"",product_catalog_seed
+925bc492-1e3d-439b-b00d-2627356d48a0,product_name,STHI,TI,Meteor Lake PS282,"",product_catalog_seed
+925bc492-1e3d-439b-b00d-2627356d48a0,prodgroup3,STHI,TI,MTLPS2,"",product_catalog_seed
+35794faf-1793-4367-84ea-a3ae414cf41d,product_name,STHI,TI,Raptor Lake PS682,"",product_catalog_seed
+35794faf-1793-4367-84ea-a3ae414cf41d,prodgroup3,STHI,TI,RPLPS6,"",product_catalog_seed
+7482390f-9aa9-4e57-a7d2-d60b102145ea,product_name,STHI,TI,Raptor Lake PS282,"",product_catalog_seed
+7482390f-9aa9-4e57-a7d2-d60b102145ea,prodgroup3,STHI,TI,RPLPS2,"",product_catalog_seed
+103248e1-7bfc-4d9e-8582-331afbdbf6bf,product_name,STHI,TI,Raptor Lake S601 (ALDER LAKE-CPU-6) Refresh,"",product_catalog_seed
+103248e1-7bfc-4d9e-8582-331afbdbf6bf,prodgroup3,STHI,TI,RPRS601,"",product_catalog_seed
+44de9f74-ef8f-4f95-9730-dc385fbad0b6,product_name,STHI,TI,Raptor Lake S881 (ALDER LAKE-CPU-16) Refresh,"",product_catalog_seed
+44de9f74-ef8f-4f95-9730-dc385fbad0b6,prodgroup3,STHI,TI,RPRS881,"",product_catalog_seed
+588707ff-1060-45c3-bb0b-f374c5d99aaa,product_name,STHI,TI,Raptor Lake 8161 (RAPTOR LAKE-CPU-24) Refresh,"",product_catalog_seed
+588707ff-1060-45c3-bb0b-f374c5d99aaa,prodgroup3,STHI,TI,RPR8161,"",product_catalog_seed
+2474f04d-b4c4-44ca-b8eb-8f490cceae0a,product_name,STHI,TI,Amston lake,"",product_catalog_seed
+2474f04d-b4c4-44ca-b8eb-8f490cceae0a,prodgroup3,STHI,TI,ASL,"",product_catalog_seed
+9f56b649-a430-4d97-bc54-b08b763e3359,product_name,STHI,TI,Lunarlake M442,"",product_catalog_seed
+9f56b649-a430-4d97-bc54-b08b763e3359,prodgroup3,STHI,TI,LNLM442,"",product_catalog_seed
+64b06be4-8696-448e-96e4-a8b19a80888b,product_name,STHI,TI,Arrrow Lake S8161 BGA,"",product_catalog_seed
+64b06be4-8696-448e-96e4-a8b19a80888b,prodgroup3,STHI,TI,ARLS816B,"",product_catalog_seed
+d9a1afca-e51e-403a-b56f-08d2bcb41b48,product_name,STHI,TI,Meteor Lake H682,"",product_catalog_seed
+d9a1afca-e51e-403a-b56f-08d2bcb41b48,prodgroup3,STHI,TI,MTLH682,"",product_catalog_seed
+504fc733-3510-4e8a-b38b-aecdaa170739,product_name,STHI,TI,Arrow Lake S8161 LGA,"",product_catalog_seed
+504fc733-3510-4e8a-b38b-aecdaa170739,prodgroup3,STHI,TI,ARLS816L,"",product_catalog_seed
+e0d93cdb-a03c-4b52-84bc-ced521d6cde1,product_name,STHI,TI,Arrow Lake S681 LGA,"",product_catalog_seed
+e0d93cdb-a03c-4b52-84bc-ced521d6cde1,prodgroup3,STHI,TI,ARLS681,"",product_catalog_seed
+6dc034ea-7b6a-4636-822f-07ca3c2b1beb,product_name,STHI,TI,Bartlett Lake S12 P,"",product_catalog_seed
+6dc034ea-7b6a-4636-822f-07ca3c2b1beb,prodgroup3,STHI,TI,BTL12P,"",product_catalog_seed
+cc3b2bd7-77d6-410a-b09c-47cfe4459e25,product_name,STHI,TI,Sapphire Rapid XCC,"",product_catalog_seed
+cc3b2bd7-77d6-410a-b09c-47cfe4459e25,prodgroup3,STHI,TI,SPRXCC,"",product_catalog_seed
+1cd8ec73-d262-4349-87dc-eefe3230ab2e,product_name,STHI,TI,Sapphire Rapid MCC,"",product_catalog_seed
+1cd8ec73-d262-4349-87dc-eefe3230ab2e,prodgroup3,STHI,TI,SPRMCC,"",product_catalog_seed
+1428988b-7d56-4659-b708-33c3be8145c3,product_name,STHI,TI,Sapphire Rapid 112L XCC,"",product_catalog_seed
+1428988b-7d56-4659-b708-33c3be8145c3,prodgroup3,STHI,TI,SPR112L,"",product_catalog_seed
+944d1334-4518-4580-a114-b5c7ff49cf76,product_name,STHI,TI,Sapphire Rapid WS MCC,"",product_catalog_seed
+944d1334-4518-4580-a114-b5c7ff49cf76,prodgroup3,STHI,TI,SPRWS,"",product_catalog_seed
+08431a3e-1b16-4466-b482-15342bf80eee,product_name,STHI,TI,Ice Lake,"",product_catalog_seed
+08431a3e-1b16-4466-b482-15342bf80eee,prodgroup3,STHI,TI,ICX,"",product_catalog_seed
+4b5d593d-ed64-41bd-b9b1-097c082c1e4b,product_name,STHI,TI,Wildcat Lake N,"",product_catalog_seed
+4b5d593d-ed64-41bd-b9b1-097c082c1e4b,prodgroup3,STHI,TI,WCL,"",product_catalog_seed
+c2e72ad3-cf90-472d-8a5b-74f8c417ed47,product_name,STHI,TI,PANTHER LAKE U404,"",product_catalog_seed
+c2e72ad3-cf90-472d-8a5b-74f8c417ed47,prodgroup3,STHI,TI,PTL U404,"",product_catalog_seed
+da519beb-5c64-4230-b5d9-afa7190ee001,product_name,STHI,TI,Arrow Lake S8161 BGA Refresh,"",product_catalog_seed
+da519beb-5c64-4230-b5d9-afa7190ee001,prodgroup3,STHI,TI,ARLR816B,"",product_catalog_seed
+c77684d7-1fcb-4452-bb6a-12f62280a240,product_name,LCBI,TI,Shaddow Wood,"",product_catalog_seed
+c77684d7-1fcb-4452-bb6a-12f62280a240,prodgroup3,LCBI,TI,SDW,"",product_catalog_seed
+7d16b383-96ab-4be5-97e3-4e5ade896b8c,product_name,LCBI,TI,Alder Lake S881 BGA,"",product_catalog_seed
+7d16b383-96ab-4be5-97e3-4e5ade896b8c,prodgroup3,LCBI,TI,"","",product_catalog_seed
+03176406-ff5f-4906-9047-e155f60e5044,product_name,LCBI,TI,Raptor Lake S881 BGA,"",product_catalog_seed
+03176406-ff5f-4906-9047-e155f60e5044,prodgroup3,LCBI,TI,"","",product_catalog_seed
+b1b52445-6a57-46ee-84a0-ac010b4f1aad,product_name,LCBI,TI,Bartlett Lake S/ S12P,"",product_catalog_seed
+b1b52445-6a57-46ee-84a0-ac010b4f1aad,prodgroup3,LCBI,TI,BTLS/BTL S12P,"",product_catalog_seed
+4ab41caa-d854-4ebe-b0df-faec73cbb808,product_name,LCBI,TI,Skylake LGA 2+2,"",product_catalog_seed
+4ab41caa-d854-4ebe-b0df-faec73cbb808,prodgroup3,LCBI,TI,SKC,"",product_catalog_seed
+7e36cfba-9236-4bf3-b773-8340eb6fbe04,product_name,LCBI,TI,Skylake LGA 4+2,"",product_catalog_seed
+7e36cfba-9236-4bf3-b773-8340eb6fbe04,prodgroup3,LCBI,TI,SKA/SKB/SKZ,"",product_catalog_seed
+19d52b63-4c5c-4a3c-8c61-6d9f1ab265b9,product_name,LCBI,TI,Kaby Lake U22,"",product_catalog_seed
+19d52b63-4c5c-4a3c-8c61-6d9f1ab265b9,prodgroup3,LCBI,TI,KBLU22,"",product_catalog_seed
+19950517-66fe-4fb4-bbb4-052f0955d51c,product_name,LCBI,TI,Coffee Lake,"",product_catalog_seed
+19950517-66fe-4fb4-bbb4-052f0955d51c,prodgroup3,LCBI,TI,CFA/CFD/CFH/CFG/CFZ,"",product_catalog_seed
+73fdcfa3-89da-4895-84f6-3547764f22d0,product_name,LCBI,TI,Tiger Lake UP3,"",product_catalog_seed
+73fdcfa3-89da-4895-84f6-3547764f22d0,prodgroup3,LCBI,TI,TGLUP3,"",product_catalog_seed
+e1a56e07-420a-4d55-a1b5-c33c77009fe6,product_name,LCBI,TI,Alder Lake P682,"",product_catalog_seed
+e1a56e07-420a-4d55-a1b5-c33c77009fe6,prodgroup3,LCBI,TI,ADL P682,"",product_catalog_seed
+8f3c8a54-8205-418b-9be7-8dcd2a3b997f,product_name,LCBI,TI,Raptor Lake P682 / Raptor Lake Refresh P682,"",product_catalog_seed
+8f3c8a54-8205-418b-9be7-8dcd2a3b997f,prodgroup3,LCBI,TI,RPLP682 / RPRP682,"",product_catalog_seed
+90e6f0a8-6c5e-4cc5-b140-f0aedddf7bef,product_name,LCBI,TI,Alder Lake P282,"",product_catalog_seed
+90e6f0a8-6c5e-4cc5-b140-f0aedddf7bef,prodgroup3,LCBI,TI,ADL P282 / RPL P282,"",product_catalog_seed
+ba92a85d-68f1-4c3b-8271-1b02c8c62905,product_name,LCBI,TI,ADL N0+8+1,"",product_catalog_seed
+ba92a85d-68f1-4c3b-8271-1b02c8c62905,prodgroup3,LCBI,TI,ADLN081/ ASL / ASL Auto (RDL),"",product_catalog_seed
+cfa9ceb5-2183-4b64-aa22-db5515cae77a,product_name,LCBI,TI,DG512,"",product_catalog_seed
+cfa9ceb5-2183-4b64-aa22-db5515cae77a,prodgroup3,LCBI,TI,DG2-512/ DG2-256/ ACM G21,"",product_catalog_seed
+1ecdd4a8-7cf1-4393-82f4-3e5ee0f85354,product_name,LCBI,TI,Comet Lake S62,"",product_catalog_seed
+1ecdd4a8-7cf1-4393-82f4-3e5ee0f85354,prodgroup3,LCBI,TI,CMLS62,"",product_catalog_seed
+863ea3b8-a69d-4afb-8745-c2bf485d871b,product_name,LCBI,TI,Comet Lake S102,"",product_catalog_seed
+863ea3b8-a69d-4afb-8745-c2bf485d871b,prodgroup3,LCBI,TI,CMLS102,"",product_catalog_seed
+2e508270-57a2-4c68-9b77-f398c4acc320,product_name,LCBI,TI,Rocket Lake S81,"",product_catalog_seed
+2e508270-57a2-4c68-9b77-f398c4acc320,prodgroup3,LCBI,TI,RKLS81,"",product_catalog_seed
+09679cfa-b080-42c4-acaf-78f74a3f0616,product_name,LCBI,TI,Raptor Lake S8161 LGA,"",product_catalog_seed
+09679cfa-b080-42c4-acaf-78f74a3f0616,prodgroup3,LCBI,TI,RPL8161/RPR8161/RRC8161,"",product_catalog_seed
+c4c42a4b-58bd-4485-a4f2-49a5681c6d49,product_name,LCBI,TI,ICX HCC,"",product_catalog_seed
+c4c42a4b-58bd-4485-a4f2-49a5681c6d49,prodgroup3,LCBI,TI,ICXHCP,"",product_catalog_seed
+a0317059-302f-45dc-8706-43732d49a0d7,product_name,"",TI,Demo,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,prodgroup3,"",TI,DEMO123,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,operation,"",TI,6379,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,process_step,"",TI,Backend Test Process Step,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,backend_test_process_flow,"",TI,1_step_FACT,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,nsb,"",TI,N,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,mcp,"",TI,N,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,package,"",TI,BGA,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,bare_die_lid,"",TI,Bare die,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,foveros,"",TI,Non-Foveros,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,implementation_stage,"",TI,QS,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,segment,"",TI,Client,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,xvi_tool_type,"",TI,DVI,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,fab_technology,"",TI,Intel7,2026-08-19T01:49:29Z,current_user
+a0317059-302f-45dc-8706-43732d49a0d7,lts_ball,"",TI,N,2026-08-19T01:49:29Z,current_user
+23ae28d7-21d8-474d-acb5-3516523502c5,product_name,"",TI,Alder Lake S601 IOTG,2026-10-12T11:11:59Z,product_catalog_seed
+23ae28d7-21d8-474d-acb5-3516523502c5,prodgroup3,"",TI,ADLG601,2026-10-12T11:11:59Z,product_catalog_seed
+75872cd2-2268-4369-807c-4354d6760c0e,product_name,"",TI,Alder Lake PS282,2026-10-12T11:11:59Z,product_catalog_seed
+75872cd2-2268-4369-807c-4354d6760c0e,prodgroup3,"",TI,ADLPS2,2026-10-12T11:11:59Z,product_catalog_seed
+11656aa3-7381-486d-8522-e46cb2c2af80,product_name,"",TI,Alder Lake M282,2026-10-12T11:11:59Z,product_catalog_seed
+11656aa3-7381-486d-8522-e46cb2c2af80,prodgroup3,"",TI,ADLM282,2026-10-12T11:11:59Z,product_catalog_seed
+8845f2ef-3bc7-4dee-aaa5-794cf5446a8f,product_name,"",TI,Alder Lake N081,2026-10-12T11:11:59Z,product_catalog_seed
+8845f2ef-3bc7-4dee-aaa5-794cf5446a8f,prodgroup3,"",TI,ADLN,2026-10-12T11:11:59Z,product_catalog_seed
+4484155a-5423-48e5-83bf-63de8563cab7,product_name,"",TI,Alder Lake PS682,2026-10-12T11:11:59Z,product_catalog_seed
+4484155a-5423-48e5-83bf-63de8563cab7,prodgroup3,"",TI,ADLPS6,2026-10-12T11:11:59Z,product_catalog_seed
+ff85de1b-af80-4eb7-a3f1-a449430d2580,product_name,"",TI,Alder Lake S601,2026-10-12T11:11:59Z,product_catalog_seed
+ff85de1b-af80-4eb7-a3f1-a449430d2580,prodgroup3,"",TI,ADLS601,2026-10-12T11:11:59Z,product_catalog_seed
+7b2c5aca-36b4-42e4-a374-4afbcccbef0f,product_name,"",TI,COFFEE LAKE CPU-8,2026-10-12T11:11:59Z,product_catalog_seed
+7b2c5aca-36b4-42e4-a374-4afbcccbef0f,prodgroup3,"",TI,CFH,2026-10-12T11:11:59Z,product_catalog_seed
+dcf81424-29ca-4cb6-b206-ff98129f706e,product_name,"",TI,COMET LAKE CPU-10-24,2026-10-12T11:11:59Z,product_catalog_seed
+dcf81424-29ca-4cb6-b206-ff98129f706e,prodgroup3,"",TI,CMLS102,2026-10-12T11:11:59Z,product_catalog_seed
+5a35af0e-a4eb-4313-a75c-17a77760632a,product_name,"",TI,AlderLake S881 BGA,2026-10-12T11:11:59Z,product_catalog_seed
+5a35af0e-a4eb-4313-a75c-17a77760632a,prodgroup3,"",TI,ADLS8BGA,2026-10-12T11:11:59Z,product_catalog_seed
+77b78595-ddec-4186-b36e-e1a00c17b99f,product_name,"",TI,Alder Lake N081 IOTG,2026-10-12T11:11:59Z,product_catalog_seed
+77b78595-ddec-4186-b36e-e1a00c17b99f,prodgroup3,"",TI,ADNIOTG,2026-10-12T11:11:59Z,product_catalog_seed
+b474ae0d-a1c9-48a5-8322-2c24d71b1710,product_name,"",TI,Apollo Lake,2026-10-12T11:11:59Z,product_catalog_seed
+b474ae0d-a1c9-48a5-8322-2c24d71b1710,prodgroup3,"",TI,APK,2026-10-12T11:11:59Z,product_catalog_seed
+1168ecfe-1cc9-4558-8ccf-636da75e3b4d,product_name,"",TI,Apollo Lake,2026-10-12T11:11:59Z,product_catalog_seed
+1168ecfe-1cc9-4558-8ccf-636da75e3b4d,prodgroup3,"",TI,APL,2026-10-12T11:11:59Z,product_catalog_seed
+b78306e5-7ddd-4f0a-bf64-be45a39ba953,product_name,"",TI,Apollo Lake,2026-10-12T11:11:59Z,product_catalog_seed
+b78306e5-7ddd-4f0a-bf64-be45a39ba953,prodgroup3,"",TI,AXLF,2026-10-12T11:11:59Z,product_catalog_seed
+5e2be974-235f-4479-85be-7cd2b4c0c9fd,product_name,"",TI,BURNSIDE BRIDGE,2026-10-12T11:11:59Z,product_catalog_seed
+5e2be974-235f-4479-85be-7cd2b4c0c9fd,prodgroup3,"",TI,BBR,2026-10-12T11:11:59Z,product_catalog_seed
+6518eeb7-5640-4570-a107-ed0dae592a90,product_name,"",TI,COFFEE LAKE CPU-4-48,2026-10-12T11:11:59Z,product_catalog_seed
+6518eeb7-5640-4570-a107-ed0dae592a90,prodgroup3,"",TI,CFLU43,2026-10-12T11:11:59Z,product_catalog_seed
+7ebf2a4b-5ea8-4b7a-bed3-cef269c45fb3,product_name,"",TI,Lake Field,2026-10-12T11:11:59Z,product_catalog_seed
+7ebf2a4b-5ea8-4b7a-bed3-cef269c45fb3,prodgroup3,"",TI,LFA,2026-10-12T11:11:59Z,product_catalog_seed
+42aeb52a-f186-4848-9fd5-79783633c934,product_name,"",TI,Meadow Wood,2026-10-12T11:11:59Z,product_catalog_seed
+42aeb52a-f186-4848-9fd5-79783633c934,prodgroup3,"",TI,MDW,2026-10-12T11:11:59Z,product_catalog_seed
+0bc2889e-bf0c-4aa2-adbd-3189e0d8e2fe,product_name,"",TI,Trout Creek,2026-10-12T11:11:59Z,product_catalog_seed
+0bc2889e-bf0c-4aa2-adbd-3189e0d8e2fe,prodgroup3,"",TI,TRC,2026-10-12T11:11:59Z,product_catalog_seed
+7586627c-9a32-4e61-94c7-32c9a70efbe7,product_name,"",TI,ALDER LAKE-PCH-S,2026-10-12T11:11:59Z,product_catalog_seed
+7586627c-9a32-4e61-94c7-32c9a70efbe7,prodgroup3,"",TI,ADP,2026-10-12T11:11:59Z,product_catalog_seed
+d239e4a8-236b-4089-a655-c08cc317e781,product_name,"",TI,BRASWELL,2026-10-12T11:11:59Z,product_catalog_seed
+d239e4a8-236b-4089-a655-c08cc317e781,prodgroup3,"",TI,BSW,2026-10-12T11:11:59Z,product_catalog_seed
+1adc21e8-f40a-4989-bd50-f7b6b2ee3830,product_name,"",TI,COMET LAKE CPU-8-24,2026-10-12T11:11:59Z,product_catalog_seed
+1adc21e8-f40a-4989-bd50-f7b6b2ee3830,prodgroup3,"",TI,CMLH82,2026-10-12T11:11:59Z,product_catalog_seed
+e8201d84-8433-4fde-b7db-6d0ad73c504a,product_name,"",TI,COUGAR MOUNTAIN,2026-10-12T11:11:59Z,product_catalog_seed
+e8201d84-8433-4fde-b7db-6d0ad73c504a,prodgroup3,"",TI,CGM,2026-10-12T11:11:59Z,product_catalog_seed
+252ecc25-5ecc-46c4-a49b-2f412d30f8c6,product_name,"",TI,COFFEE LAKE CPU-6,2026-10-12T11:11:59Z,product_catalog_seed
+252ecc25-5ecc-46c4-a49b-2f412d30f8c6,prodgroup3,"",TI,CFLH62,2026-10-12T11:11:59Z,product_catalog_seed
+76067411-0965-44bd-b9ed-c21333ba3973,product_name,"",TI,COMET LAKE (COFFEE LAKE-4-24),2026-10-12T11:11:59Z,product_catalog_seed
+76067411-0965-44bd-b9ed-c21333ba3973,prodgroup3,"",TI,CMLU42,2026-10-12T11:11:59Z,product_catalog_seed
+cb523ff6-8d53-4eef-afd3-1c6de7e3ed3e,product_name,"",TI,COFFEE LAKE (KABY LAKE CPU-4),2026-10-12T11:11:59Z,product_catalog_seed
+cb523ff6-8d53-4eef-afd3-1c6de7e3ed3e,prodgroup3,"",TI,CFA,2026-10-12T11:11:59Z,product_catalog_seed
+ddf53e3e-a574-48b9-bae0-8d9a8062f5c1,product_name,"",TI,COFFEE LAKE CPU-6,2026-10-12T11:11:59Z,product_catalog_seed
+ddf53e3e-a574-48b9-bae0-8d9a8062f5c1,prodgroup3,"",TI,CFD,2026-10-12T11:11:59Z,product_catalog_seed
+d53b04c5-79e3-4478-b780-c0a0b7720ceb,product_name,"",TI,CASCADE LAKE (SKYLAKE-28),2026-10-12T11:11:59Z,product_catalog_seed
+d53b04c5-79e3-4478-b780-c0a0b7720ceb,prodgroup3,"",TI,CLXXCP,2026-10-12T11:11:59Z,product_catalog_seed
+f9dfc6d7-56d6-466c-8e1f-b9b9910e35ab,product_name,"",TI,DG2 128 GPU,2026-10-12T11:11:59Z,product_catalog_seed
+f9dfc6d7-56d6-466c-8e1f-b9b9910e35ab,prodgroup3,"",TI,DG128,2026-10-12T11:11:59Z,product_catalog_seed
+47d6ecdb-5cb2-43a7-80b5-696b9f2681eb,product_name,"",TI,COFFEE LAKE (KABY LAKE CPU-4),2026-10-12T11:11:59Z,product_catalog_seed
+47d6ecdb-5cb2-43a7-80b5-696b9f2681eb,prodgroup3,"",TI,CFZ,2026-10-12T11:11:59Z,product_catalog_seed
+1c050d84-3431-4d7f-b2fd-3c0f3db289b1,product_name,"",TI,DG2 512 GPU,2026-10-12T11:11:59Z,product_catalog_seed
+1c050d84-3431-4d7f-b2fd-3c0f3db289b1,prodgroup3,"",TI,DG512,2026-10-12T11:11:59Z,product_catalog_seed
+4eec431a-0db3-4df4-a415-8e858ff66d4b,product_name,"",TI,COMET LAKE CPU-6,2026-10-12T11:11:59Z,product_catalog_seed
+4eec431a-0db3-4df4-a415-8e858ff66d4b,prodgroup3,"",TI,CMLS62,2026-10-12T11:11:59Z,product_catalog_seed
+e124f6d9-7dc7-44d1-91f6-7a52e21a648c,product_name,"",TI,COMET LAKE PCH-H,2026-10-12T11:11:59Z,product_catalog_seed
+e124f6d9-7dc7-44d1-91f6-7a52e21a648c,prodgroup3,"",TI,CMP,2026-10-12T11:11:59Z,product_catalog_seed
+2fb00e20-7ad3-41e1-acbb-0022d7de9c14,product_name,"",TI,CANNON LAKE PCH-H,2026-10-12T11:11:59Z,product_catalog_seed
+2fb00e20-7ad3-41e1-acbb-0022d7de9c14,prodgroup3,"",TI,CNLUSFF,2026-10-12T11:11:59Z,product_catalog_seed
+cfcaf171-1b0f-47e3-8512-81a3ca1ffe7e,product_name,"",TI,CANNON LAKE PCH-H,2026-10-12T11:11:59Z,product_catalog_seed
+cfcaf171-1b0f-47e3-8512-81a3ca1ffe7e,prodgroup3,"",TI,CNP,2026-10-12T11:11:59Z,product_catalog_seed
+96fa7f75-9437-4d97-95b8-7831460e97e5,product_name,"",TI,CHERRY TRAIL-4,2026-10-12T11:11:59Z,product_catalog_seed
+96fa7f75-9437-4d97-95b8-7831460e97e5,prodgroup3,"",TI,CT1,2026-10-12T11:11:59Z,product_catalog_seed
+6863c8fe-ea12-4c9f-80e7-8ff3a1fc5f4b,product_name,"",TI,CHERRY TRAIL-4,2026-10-12T11:11:59Z,product_catalog_seed
+6863c8fe-ea12-4c9f-80e7-8ff3a1fc5f4b,prodgroup3,"",TI,CTC,2026-10-12T11:11:59Z,product_catalog_seed
+a790e21c-da2b-4f98-ac87-46496bc0fab1,product_name,"",TI,COUGAR MOUNTAIN XL,2026-10-12T11:11:59Z,product_catalog_seed
+a790e21c-da2b-4f98-ac87-46496bc0fab1,prodgroup3,"",TI,CXL,2026-10-12T11:11:59Z,product_catalog_seed
+ebbf443b-52dd-49d1-bcb8-323085f79615,product_name,"",TI,GEMINI LAKE-4,2026-10-12T11:11:59Z,product_catalog_seed
+ebbf443b-52dd-49d1-bcb8-323085f79615,prodgroup3,"",TI,GLK,2026-10-12T11:11:59Z,product_catalog_seed
+5fc0a7b0-797a-40a6-8346-d2679e33fced,product_name,"",TI,ROCKET LAKE CPU-8,2026-10-12T11:11:59Z,product_catalog_seed
+5fc0a7b0-797a-40a6-8346-d2679e33fced,prodgroup3,"",TI,RKLS81,2026-10-12T11:11:59Z,product_catalog_seed
+1e5b86dc-a7dd-401d-a4e2-87387af097c6,product_name,"",TI,Alder Lake S881 IOTG,2026-10-12T11:11:59Z,product_catalog_seed
+1e5b86dc-a7dd-401d-a4e2-87387af097c6,prodgroup3,"",TI,ADLG881,2026-10-12T11:11:59Z,product_catalog_seed
+2e311a2d-9410-42c6-85e3-8e3148a59dd3,product_name,"",TI,HASWELL-H-2,2026-10-12T11:11:59Z,product_catalog_seed
+2e311a2d-9410-42c6-85e3-8e3148a59dd3,prodgroup3,"",TI,HSWH,2026-10-12T11:11:59Z,product_catalog_seed
+e95a2db5-029f-4b6d-a0d6-fe373bf4725e,product_name,"",TI,HASWELL-HE-4,2026-10-12T11:11:59Z,product_catalog_seed
+e95a2db5-029f-4b6d-a0d6-fe373bf4725e,prodgroup3,"",TI,HSWR,2026-10-12T11:11:59Z,product_catalog_seed
+e5463706-6315-4c12-a159-faaee3921bed,product_name,"",TI,HASWELL-HE-4,2026-10-12T11:11:59Z,product_catalog_seed
+e5463706-6315-4c12-a159-faaee3921bed,prodgroup3,"",TI,HWS,2026-10-12T11:11:59Z,product_catalog_seed
+f4d62a26-23f0-4788-92af-ec79f8892275,product_name,"",TI,KABY LAKE CPU-2,2026-10-12T11:11:59Z,product_catalog_seed
+f4d62a26-23f0-4788-92af-ec79f8892275,prodgroup3,"",TI,KBC,2026-10-12T11:11:59Z,product_catalog_seed
+3ebdcd4b-e230-417c-a2b8-f88370ed7231,product_name,"",TI,KABY LAKE CPU-4,2026-10-12T11:11:59Z,product_catalog_seed
+3ebdcd4b-e230-417c-a2b8-f88370ed7231,prodgroup3,"",TI,KBZ,2026-10-12T11:11:59Z,product_catalog_seed
+9744aa5b-50bc-438a-9847-5d16431a2fd3,product_name,"",TI,SKYLAKE CPU-4,2026-10-12T11:11:59Z,product_catalog_seed
+9744aa5b-50bc-438a-9847-5d16431a2fd3,prodgroup3,"",TI,SKA,2026-10-12T11:11:59Z,product_catalog_seed
+b5f66b7d-b432-4012-a75f-54a10526568d,product_name,"",TI,SKYLAKE CPU-4,2026-10-12T11:11:59Z,product_catalog_seed
+b5f66b7d-b432-4012-a75f-54a10526568d,prodgroup3,"",TI,SKB,2026-10-12T11:11:59Z,product_catalog_seed
+c05ae10d-8dea-4d68-862f-42913cfd8f00,product_name,"",TI,SKYLAKE CPU-2,2026-10-12T11:11:59Z,product_catalog_seed
+c05ae10d-8dea-4d68-862f-42913cfd8f00,prodgroup3,"",TI,SKC,2026-10-12T11:11:59Z,product_catalog_seed
+b8e31ddc-e1d0-4bc3-8790-0106b88f085a,product_name,"",TI,TIGER LAKE PCH-H,2026-10-12T11:11:59Z,product_catalog_seed
+b8e31ddc-e1d0-4bc3-8790-0106b88f085a,prodgroup3,"",TI,TGP,2026-10-12T11:11:59Z,product_catalog_seed
+aa606435-dbc0-49f9-9da8-056eccac4df2,product_name,"",TI,VALLEYVIEW,2026-10-12T11:11:59Z,product_catalog_seed
+aa606435-dbc0-49f9-9da8-056eccac4df2,prodgroup3,"",TI,V2V,2026-10-12T11:11:59Z,product_catalog_seed
+cb422881-d15b-4362-8891-5b9bd0011474,product_name,"",TI,Alder Lake S881,2026-10-12T11:11:59Z,product_catalog_seed
+cb422881-d15b-4362-8891-5b9bd0011474,prodgroup3,"",TI,ADLS881,2026-10-12T11:11:59Z,product_catalog_seed
+5512abce-5858-4216-a204-a36b9d1ff949,product_name,"",TI,Raptor Lake 8161 (RAPTOR LAKE-CPU-24),2026-10-12T11:11:59Z,product_catalog_seed
+5512abce-5858-4216-a204-a36b9d1ff949,prodgroup3,"",TI,RPL8161,2026-10-12T11:11:59Z,product_catalog_seed
+85f9a7cc-7766-4a71-9458-febd41194bb6,product_name,"",TI,Raptor Lake S601 (ALDER LAKE-CPU-6),2026-10-12T11:11:59Z,product_catalog_seed
+85f9a7cc-7766-4a71-9458-febd41194bb6,prodgroup3,"",TI,RPLG601,2026-10-12T11:11:59Z,product_catalog_seed
+732f71a3-c13c-4ec6-b422-b05644104833,product_name,"",TI,COMET LAKE CPU-6-24,2026-10-12T11:11:59Z,product_catalog_seed
+732f71a3-c13c-4ec6-b422-b05644104833,prodgroup3,"",TI,CMLU62,2026-10-12T11:11:59Z,product_catalog_seed
+1ae8813a-ba72-4932-82bc-89a9d877801f,product_name,"",TI,Raptor Lake S881 (ALDER LAKE-CPU-16),2026-10-12T11:11:59Z,product_catalog_seed
+1ae8813a-ba72-4932-82bc-89a9d877801f,prodgroup3,"",TI,RPLG881,2026-10-12T11:11:59Z,product_catalog_seed
+55f41801-3880-4ff4-9489-460606246a22,product_name,"",TI,Raptor Lake S601 (ALDER LAKE-CPU-6),2026-10-12T11:11:59Z,product_catalog_seed
+55f41801-3880-4ff4-9489-460606246a22,prodgroup3,"",TI,RPLS601,2026-10-12T11:11:59Z,product_catalog_seed
+e7ea31f5-49c5-4923-8d39-95b784e57d19,product_name,"",TI,Raptor Lake S881 BGA (ALDER LAKE-CPU-16),2026-10-12T11:11:59Z,product_catalog_seed
+e7ea31f5-49c5-4923-8d39-95b784e57d19,prodgroup3,"",TI,RPLS8BGA,2026-10-12T11:11:59Z,product_catalog_seed
+a1c008a4-8563-4d6d-a49e-6ba02bec9e78,product_name,"",TI,ELKHART LAKE,2026-10-12T11:11:59Z,product_catalog_seed
+a1c008a4-8563-4d6d-a49e-6ba02bec9e78,prodgroup3,"",TI,EHB,2026-10-12T11:11:59Z,product_catalog_seed
+9d6bb0ef-cb58-48b0-88ec-a2740f88d413,product_name,"",TI,ELKHART LAKE,2026-10-12T11:11:59Z,product_catalog_seed
+9d6bb0ef-cb58-48b0-88ec-a2740f88d413,prodgroup3,"",TI,EHL,2026-10-12T11:11:59Z,product_catalog_seed
+1020d4e2-a75f-4b60-af03-4bcd2cd54494,product_name,"",TI,JASPER LAKE CPU-4,2026-10-12T11:11:59Z,product_catalog_seed
+1020d4e2-a75f-4b60-af03-4bcd2cd54494,prodgroup3,"",TI,JSL,2026-10-12T11:11:59Z,product_catalog_seed
+2b1f0118-619f-4a2a-9aed-0fcc4babecd9,product_name,"",TI,TIGER LAKE CPU-4-96,2026-10-12T11:11:59Z,product_catalog_seed
+2b1f0118-619f-4a2a-9aed-0fcc4babecd9,prodgroup3,"",TI,TGLUP3,2026-10-12T11:11:59Z,product_catalog_seed
+79704672-fa62-4643-859a-e990123e432e,product_name,"",TI,TIGER LAKE CPU-4-96,2026-10-12T11:11:59Z,product_catalog_seed
+79704672-fa62-4643-859a-e990123e432e,prodgroup3,"",TI,TGLUP4,2026-10-12T11:11:59Z,product_catalog_seed
+6ec93278-e487-4e51-a62b-89c71c4b8e16,product_name,"",TI,KABY LAKE CPU-2-24,2026-10-12T11:11:59Z,product_catalog_seed
+6ec93278-e487-4e51-a62b-89c71c4b8e16,prodgroup3,"",TI,KBLU22,2026-10-12T11:11:59Z,product_catalog_seed
+9c80ed10-ca0d-4b1f-9ced-73c29430862c,product_name,"",TI,TIGER LAKE CPU-4-96,2026-10-12T11:11:59Z,product_catalog_seed
+9c80ed10-ca0d-4b1f-9ced-73c29430862c,prodgroup3,"",TI,TGRUP3,2026-10-12T11:11:59Z,product_catalog_seed
+9db0e0b6-0c09-48da-81d8-feaeaadeeb14,product_name,"",TI,Shadow Wood,2026-10-12T11:11:59Z,product_catalog_seed
+9db0e0b6-0c09-48da-81d8-feaeaadeeb14,prodgroup3,"",TI,SDW,2026-10-12T11:11:59Z,product_catalog_seed
+15f8fd48-fd20-4d43-b490-224ce7e45301,product_name,"",TI,KABY LAKE CPU-4-24,2026-10-12T11:11:59Z,product_catalog_seed
+15f8fd48-fd20-4d43-b490-224ce7e45301,prodgroup3,"",TI,KBLU42,2026-10-12T11:11:59Z,product_catalog_seed
+5d3b0515-4e53-4d81-85c5-4d7991417406,product_name,"",TI,Raptor Lake S881 (ALDER LAKE-CPU-16),2026-10-12T11:11:59Z,product_catalog_seed
+5d3b0515-4e53-4d81-85c5-4d7991417406,prodgroup3,"",TI,RPLS881,2026-10-12T11:11:59Z,product_catalog_seed
+ff86e8eb-42b7-40ce-8794-6380395e4c0a,product_name,"",TI,WHISKEY LAKE (COFFEE LAKE-4-24),2026-10-12T11:11:59Z,product_catalog_seed
+ff86e8eb-42b7-40ce-8794-6380395e4c0a,prodgroup3,"",TI,WHLU42,2026-10-12T11:11:59Z,product_catalog_seed
+7da5a4fd-b547-4a1f-84b7-7300d90a556d,product_name,"",TI,Snow Ridge (SNR),2026-10-12T11:11:59Z,product_catalog_seed
+7da5a4fd-b547-4a1f-84b7-7300d90a556d,prodgroup3,"",TI,SNWRDG,2026-10-12T11:11:59Z,product_catalog_seed
+5d783b72-795e-46f2-90ec-80c4dc9ade8a,product_name,"",TI,Alder Lake P282 IOTG,2026-10-12T11:11:59Z,product_catalog_seed
+5d783b72-795e-46f2-90ec-80c4dc9ade8a,prodgroup3,"",TI,ADL282IOTG,2026-10-12T11:11:59Z,product_catalog_seed
+9967eaf8-76c5-4a6f-9c23-2f16eba497e6,product_name,"",TI,Alder Lake P282,2026-10-12T11:11:59Z,product_catalog_seed
+9967eaf8-76c5-4a6f-9c23-2f16eba497e6,prodgroup3,"",TI,ADLP282,2026-10-12T11:11:59Z,product_catalog_seed
+2a25363e-85d7-438e-bb7f-4e2d7fc9a525,product_name,"",TI,Alder Lake P682,2026-10-12T11:11:59Z,product_catalog_seed
+2a25363e-85d7-438e-bb7f-4e2d7fc9a525,prodgroup3,"",TI,ADLP682,2026-10-12T11:11:59Z,product_catalog_seed
+7dc2636a-76c2-4680-a6bf-ae41245162f8,product_name,"",TI,Raptor Lake P282 (RAPTOR LAKE-CPU-10),2026-10-12T11:11:59Z,product_catalog_seed
+7dc2636a-76c2-4680-a6bf-ae41245162f8,prodgroup3,"",TI,RPLP282,2026-10-12T11:11:59Z,product_catalog_seed
+b10785e2-fa05-41d3-b605-3b0cc3fed1c0,product_name,"",TI,Raptor Lake P282 (RAPTOR LAKE-CPU-10),2026-10-12T11:11:59Z,product_catalog_seed
+b10785e2-fa05-41d3-b605-3b0cc3fed1c0,prodgroup3,"",TI,RPLP282IOTG,2026-10-12T11:11:59Z,product_catalog_seed
+f3f29548-745d-4269-91b9-a5c62ac05cf0,product_name,"",TI,Raptor Lake P682 (RAPTOR LAKE-CPU-14),2026-10-12T11:11:59Z,product_catalog_seed
+f3f29548-745d-4269-91b9-a5c62ac05cf0,prodgroup3,"",TI,RPLP682,2026-10-12T11:11:59Z,product_catalog_seed
+200dba14-c7ee-46ae-8257-c8d83d066218,product_name,"",TI,Raptor Lake P682 (RAPTOR LAKE-CPU-14),2026-10-12T11:11:59Z,product_catalog_seed
+200dba14-c7ee-46ae-8257-c8d83d066218,prodgroup3,"",TI,RPLP682IOTG,2026-10-12T11:11:59Z,product_catalog_seed
+88962a6c-18db-4db7-b51c-894499d1c818,product_name,"",TI,Meteor Lake (METEOR LAKE-BASE-M282),2026-10-12T11:11:59Z,product_catalog_seed
+88962a6c-18db-4db7-b51c-894499d1c818,prodgroup3,"",TI,MTLU282,2026-10-12T11:11:59Z,product_catalog_seed
+8d3bf51b-1b88-4c28-9df7-37fa738b00bb,product_name,"",TI,Meteor Lake (METEOR LAKE-BASE-P281),2026-10-12T11:11:59Z,product_catalog_seed
+8d3bf51b-1b88-4c28-9df7-37fa738b00bb,prodgroup3,"",TI,MTLU281,2026-10-12T11:11:59Z,product_catalog_seed
+6b6b3984-3578-41e2-bd63-79ad84a819c5,product_name,"",TI,Tarpon Creek,2026-10-12T11:11:59Z,product_catalog_seed
+6b6b3984-3578-41e2-bd63-79ad84a819c5,prodgroup3,"",TI,TRK,2026-10-12T11:11:59Z,product_catalog_seed
+2f31d35c-efc9-4421-bb29-173d835a56bb,product_name,"",TI,Grand Ridge,2026-10-12T11:11:59Z,product_catalog_seed
+2f31d35c-efc9-4421-bb29-173d835a56bb,prodgroup3,"",TI,GRR,2026-10-12T11:11:59Z,product_catalog_seed
+61b1117e-6e7c-40d5-bc0f-ad0f4e78f46c,product_name,"",TI,Meteor Lake PS682,2026-10-12T11:11:59Z,product_catalog_seed
+61b1117e-6e7c-40d5-bc0f-ad0f4e78f46c,prodgroup3,"",TI,MTLPS6,2026-10-12T11:11:59Z,product_catalog_seed
+925bc492-1e3d-439b-b00d-2627356d48a0,product_name,"",TI,Meteor Lake PS282,2026-10-12T11:11:59Z,product_catalog_seed
+925bc492-1e3d-439b-b00d-2627356d48a0,prodgroup3,"",TI,MTLPS2,2026-10-12T11:11:59Z,product_catalog_seed
+35794faf-1793-4367-84ea-a3ae414cf41d,product_name,"",TI,Raptor Lake PS682,2026-10-12T11:11:59Z,product_catalog_seed
+35794faf-1793-4367-84ea-a3ae414cf41d,prodgroup3,"",TI,RPLPS6,2026-10-12T11:11:59Z,product_catalog_seed
+7482390f-9aa9-4e57-a7d2-d60b102145ea,product_name,"",TI,Raptor Lake PS282,2026-10-12T11:11:59Z,product_catalog_seed
+7482390f-9aa9-4e57-a7d2-d60b102145ea,prodgroup3,"",TI,RPLPS2,2026-10-12T11:11:59Z,product_catalog_seed
+103248e1-7bfc-4d9e-8582-331afbdbf6bf,product_name,"",TI,Raptor Lake S601 (ALDER LAKE-CPU-6) Refresh,2026-10-12T11:11:59Z,product_catalog_seed
+103248e1-7bfc-4d9e-8582-331afbdbf6bf,prodgroup3,"",TI,RPRS601,2026-10-12T11:11:59Z,product_catalog_seed
+44de9f74-ef8f-4f95-9730-dc385fbad0b6,product_name,"",TI,Raptor Lake S881 (ALDER LAKE-CPU-16) Refresh,2026-10-12T11:11:59Z,product_catalog_seed
+44de9f74-ef8f-4f95-9730-dc385fbad0b6,prodgroup3,"",TI,RPRS881,2026-10-12T11:11:59Z,product_catalog_seed
+588707ff-1060-45c3-bb0b-f374c5d99aaa,product_name,"",TI,Raptor Lake 8161 (RAPTOR LAKE-CPU-24) Refresh,2026-10-12T11:11:59Z,product_catalog_seed
+588707ff-1060-45c3-bb0b-f374c5d99aaa,prodgroup3,"",TI,RPR8161,2026-10-12T11:11:59Z,product_catalog_seed
+2474f04d-b4c4-44ca-b8eb-8f490cceae0a,product_name,"",TI,Amston lake,2026-10-12T11:11:59Z,product_catalog_seed
+2474f04d-b4c4-44ca-b8eb-8f490cceae0a,prodgroup3,"",TI,ASL,2026-10-12T11:11:59Z,product_catalog_seed
+9f56b649-a430-4d97-bc54-b08b763e3359,product_name,"",TI,Lunarlake M442,2026-10-12T11:11:59Z,product_catalog_seed
+9f56b649-a430-4d97-bc54-b08b763e3359,prodgroup3,"",TI,LNLM442,2026-10-12T11:11:59Z,product_catalog_seed
+64b06be4-8696-448e-96e4-a8b19a80888b,product_name,"",TI,Arrrow Lake S8161 BGA,2026-10-12T11:11:59Z,product_catalog_seed
+64b06be4-8696-448e-96e4-a8b19a80888b,prodgroup3,"",TI,ARLS816B,2026-10-12T11:11:59Z,product_catalog_seed
+d9a1afca-e51e-403a-b56f-08d2bcb41b48,product_name,"",TI,Meteor Lake H682,2026-10-12T11:11:59Z,product_catalog_seed
+d9a1afca-e51e-403a-b56f-08d2bcb41b48,prodgroup3,"",TI,MTLH682,2026-10-12T11:11:59Z,product_catalog_seed
+504fc733-3510-4e8a-b38b-aecdaa170739,product_name,"",TI,Arrow Lake S8161 LGA,2026-10-12T11:11:59Z,product_catalog_seed
+504fc733-3510-4e8a-b38b-aecdaa170739,prodgroup3,"",TI,ARLS816L,2026-10-12T11:11:59Z,product_catalog_seed
+e0d93cdb-a03c-4b52-84bc-ced521d6cde1,product_name,"",TI,Arrow Lake S681 LGA,2026-10-12T11:11:59Z,product_catalog_seed
+e0d93cdb-a03c-4b52-84bc-ced521d6cde1,prodgroup3,"",TI,ARLS681,2026-10-12T11:11:59Z,product_catalog_seed
+6dc034ea-7b6a-4636-822f-07ca3c2b1beb,product_name,"",TI,Bartlett Lake S12 P,2026-10-12T11:11:59Z,product_catalog_seed
+6dc034ea-7b6a-4636-822f-07ca3c2b1beb,prodgroup3,"",TI,BTL12P,2026-10-12T11:11:59Z,product_catalog_seed
+cc3b2bd7-77d6-410a-b09c-47cfe4459e25,product_name,"",TI,Sapphire Rapid XCC,2026-10-12T11:11:59Z,product_catalog_seed
+cc3b2bd7-77d6-410a-b09c-47cfe4459e25,prodgroup3,"",TI,SPRXCC,2026-10-12T11:11:59Z,product_catalog_seed
+1cd8ec73-d262-4349-87dc-eefe3230ab2e,product_name,"",TI,Sapphire Rapid MCC,2026-10-12T11:11:59Z,product_catalog_seed
+1cd8ec73-d262-4349-87dc-eefe3230ab2e,prodgroup3,"",TI,SPRMCC,2026-10-12T11:11:59Z,product_catalog_seed
+1428988b-7d56-4659-b708-33c3be8145c3,product_name,"",TI,Sapphire Rapid 112L XCC,2026-10-12T11:11:59Z,product_catalog_seed
+1428988b-7d56-4659-b708-33c3be8145c3,prodgroup3,"",TI,SPR112L,2026-10-12T11:11:59Z,product_catalog_seed
+944d1334-4518-4580-a114-b5c7ff49cf76,product_name,"",TI,Sapphire Rapid WS MCC,2026-10-12T11:11:59Z,product_catalog_seed
+944d1334-4518-4580-a114-b5c7ff49cf76,prodgroup3,"",TI,SPRWS,2026-10-12T11:11:59Z,product_catalog_seed
+08431a3e-1b16-4466-b482-15342bf80eee,product_name,"",TI,Ice Lake,2026-10-12T11:11:59Z,product_catalog_seed
+08431a3e-1b16-4466-b482-15342bf80eee,prodgroup3,"",TI,ICX,2026-10-12T11:11:59Z,product_catalog_seed
+4b5d593d-ed64-41bd-b9b1-097c082c1e4b,product_name,"",TI,Wildcat Lake N,2026-10-12T11:11:59Z,product_catalog_seed
+4b5d593d-ed64-41bd-b9b1-097c082c1e4b,prodgroup3,"",TI,WCL,2026-10-12T11:11:59Z,product_catalog_seed
+c2e72ad3-cf90-472d-8a5b-74f8c417ed47,product_name,"",TI,PANTHER LAKE U404,2026-10-12T11:11:59Z,product_catalog_seed
+c2e72ad3-cf90-472d-8a5b-74f8c417ed47,prodgroup3,"",TI,PTL U404,2026-10-12T11:11:59Z,product_catalog_seed
+da519beb-5c64-4230-b5d9-afa7190ee001,product_name,"",TI,Arrow Lake S8161 BGA Refresh,2026-10-12T11:11:59Z,product_catalog_seed
+da519beb-5c64-4230-b5d9-afa7190ee001,prodgroup3,"",TI,ARLR816B,2026-10-12T11:11:59Z,product_catalog_seed
+c77684d7-1fcb-4452-bb6a-12f62280a240,product_name,"",TI,Shaddow Wood,2026-10-12T11:11:59Z,product_catalog_seed
+c77684d7-1fcb-4452-bb6a-12f62280a240,prodgroup3,"",TI,SDW,2026-10-12T11:11:59Z,product_catalog_seed
+7d16b383-96ab-4be5-97e3-4e5ade896b8c,product_name,"",TI,Alder Lake S881 BGA,2026-10-12T11:11:59Z,product_catalog_seed
+7d16b383-96ab-4be5-97e3-4e5ade896b8c,prodgroup3,"",TI,"",2026-10-12T11:11:59Z,product_catalog_seed
+03176406-ff5f-4906-9047-e155f60e5044,product_name,"",TI,Raptor Lake S881 BGA,2026-10-12T11:11:59Z,product_catalog_seed
+03176406-ff5f-4906-9047-e155f60e5044,prodgroup3,"",TI,"",2026-10-12T11:11:59Z,product_catalog_seed
+b1b52445-6a57-46ee-84a0-ac010b4f1aad,product_name,"",TI,Bartlett Lake S/ S12P,2026-10-12T11:11:59Z,product_catalog_seed
+b1b52445-6a57-46ee-84a0-ac010b4f1aad,prodgroup3,"",TI,BTLS/BTL S12P,2026-10-12T11:11:59Z,product_catalog_seed
+4ab41caa-d854-4ebe-b0df-faec73cbb808,product_name,"",TI,Skylake LGA 2+2,2026-10-12T11:11:59Z,product_catalog_seed
+4ab41caa-d854-4ebe-b0df-faec73cbb808,prodgroup3,"",TI,SKC,2026-10-12T11:11:59Z,product_catalog_seed
+7e36cfba-9236-4bf3-b773-8340eb6fbe04,product_name,"",TI,Skylake LGA 4+2,2026-10-12T11:11:59Z,product_catalog_seed
+7e36cfba-9236-4bf3-b773-8340eb6fbe04,prodgroup3,"",TI,SKA/SKB/SKZ,2026-10-12T11:11:59Z,product_catalog_seed
+19d52b63-4c5c-4a3c-8c61-6d9f1ab265b9,product_name,"",TI,Kaby Lake U22,2026-10-12T11:11:59Z,product_catalog_seed
+19d52b63-4c5c-4a3c-8c61-6d9f1ab265b9,prodgroup3,"",TI,KBLU22,2026-10-12T11:11:59Z,product_catalog_seed
+19950517-66fe-4fb4-bbb4-052f0955d51c,product_name,"",TI,Coffee Lake,2026-10-12T11:11:59Z,product_catalog_seed
+19950517-66fe-4fb4-bbb4-052f0955d51c,prodgroup3,"",TI,CFA/CFD/CFH/CFG/CFZ,2026-10-12T11:11:59Z,product_catalog_seed
+73fdcfa3-89da-4895-84f6-3547764f22d0,product_name,"",TI,Tiger Lake UP3,2026-10-12T11:11:59Z,product_catalog_seed
+73fdcfa3-89da-4895-84f6-3547764f22d0,prodgroup3,"",TI,TGLUP3,2026-10-12T11:11:59Z,product_catalog_seed
+e1a56e07-420a-4d55-a1b5-c33c77009fe6,product_name,"",TI,Alder Lake P682,2026-10-12T11:11:59Z,product_catalog_seed
+e1a56e07-420a-4d55-a1b5-c33c77009fe6,prodgroup3,"",TI,ADL P682,2026-10-12T11:11:59Z,product_catalog_seed
+8f3c8a54-8205-418b-9be7-8dcd2a3b997f,product_name,"",TI,Raptor Lake P682 / Raptor Lake Refresh P682,2026-10-12T11:11:59Z,product_catalog_seed
+8f3c8a54-8205-418b-9be7-8dcd2a3b997f,prodgroup3,"",TI,RPLP682 / RPRP682,2026-10-12T11:11:59Z,product_catalog_seed
+90e6f0a8-6c5e-4cc5-b140-f0aedddf7bef,product_name,"",TI,Alder Lake P282,2026-10-12T11:11:59Z,product_catalog_seed
+90e6f0a8-6c5e-4cc5-b140-f0aedddf7bef,prodgroup3,"",TI,ADL P282 / RPL P282,2026-10-12T11:11:59Z,product_catalog_seed
+ba92a85d-68f1-4c3b-8271-1b02c8c62905,product_name,"",TI,ADL N0+8+1,2026-10-12T11:11:59Z,product_catalog_seed
+ba92a85d-68f1-4c3b-8271-1b02c8c62905,prodgroup3,"",TI,ADLN081/ ASL / ASL Auto (RDL),2026-10-12T11:11:59Z,product_catalog_seed
+cfa9ceb5-2183-4b64-aa22-db5515cae77a,product_name,"",TI,DG512,2026-10-12T11:11:59Z,product_catalog_seed
+cfa9ceb5-2183-4b64-aa22-db5515cae77a,prodgroup3,"",TI,DG2-512/ DG2-256/ ACM G21,2026-10-12T11:11:59Z,product_catalog_seed
+1ecdd4a8-7cf1-4393-82f4-3e5ee0f85354,product_name,"",TI,Comet Lake S62,2026-10-12T11:11:59Z,product_catalog_seed
+1ecdd4a8-7cf1-4393-82f4-3e5ee0f85354,prodgroup3,"",TI,CMLS62,2026-10-12T11:11:59Z,product_catalog_seed
+863ea3b8-a69d-4afb-8745-c2bf485d871b,product_name,"",TI,Comet Lake S102,2026-10-12T11:11:59Z,product_catalog_seed
+863ea3b8-a69d-4afb-8745-c2bf485d871b,prodgroup3,"",TI,CMLS102,2026-10-12T11:11:59Z,product_catalog_seed
+2e508270-57a2-4c68-9b77-f398c4acc320,product_name,"",TI,Rocket Lake S81,2026-10-12T11:11:59Z,product_catalog_seed
+2e508270-57a2-4c68-9b77-f398c4acc320,prodgroup3,"",TI,RKLS81,2026-10-12T11:11:59Z,product_catalog_seed
+09679cfa-b080-42c4-acaf-78f74a3f0616,product_name,"",TI,Raptor Lake S8161 LGA,2026-10-12T11:11:59Z,product_catalog_seed
+09679cfa-b080-42c4-acaf-78f74a3f0616,prodgroup3,"",TI,RPL8161/RPR8161/RRC8161,2026-10-12T11:11:59Z,product_catalog_seed
+c4c42a4b-58bd-4485-a4f2-49a5681c6d49,product_name,"",TI,ICX HCC,2026-10-12T11:11:59Z,product_catalog_seed
+c4c42a4b-58bd-4485-a4f2-49a5681c6d49,prodgroup3,"",TI,ICXHCP,2026-10-12T11:11:59Z,product_catalog_seed
+c082a5f1-9de0-4109-a989-85f4342fb944,product_name,HDMX_CLASS,TI,hi,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,product_name,STHI,TI,hi,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,product_name,LCBI,TI,hi,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,product_name,HDMX_AHMT,TI,hi,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,product_name,HDMX_CLASS,TI,hi,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,product_name,OLB,TI,hi,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,prodgroup3,HDMX_CLASS,TI,ADLG601,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,prodgroup3,STHI,TI,ADLP682,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,prodgroup3,LCBI,TI,ADLP682,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,prodgroup3,HDMX_AHMT,TI,ADLP682,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,prodgroup3,HDMX_CLASS,TI,ADLP682,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,prodgroup3,OLB,TI,ADLP682,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,operation,HDMX_CLASS,TI,5138|5166|5208|5212,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,operation,STHI,TI,2295|2395|2397|2463,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,process_step,HDMX_CLASS,TI,aaa,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,backend_test_process_flow,HDMX_CLASS,TI,1_step_FACT,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,backend_test_process_flow,HDMX_AHMT,TI,1_step_FACT,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,backend_test_process_flow,HDMX_CLASS,TI,1_step_FACT,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,nsb,HDMX_CLASS,TI,N,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,nsb,STHI,TI,N,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,nsb,LCBI,TI,N,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,nsb,HDMX_AHMT,TI,N,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,nsb,HDMX_CLASS,TI,N,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,nsb,OLB,TI,N,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,mcp,HDMX_CLASS,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,mcp,STHI,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,mcp,LCBI,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,mcp,HDMX_AHMT,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,mcp,HDMX_CLASS,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,mcp,OLB,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,package,HDMX_CLASS,TI,BGA,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,package,STHI,TI,LGA,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,package,LCBI,TI,LGA,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,package,HDMX_AHMT,TI,LGA,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,package,HDMX_CLASS,TI,LGA,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,package,OLB,TI,LGA,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,bare_die_lid,HDMX_CLASS,TI,Bare die,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,bare_die_lid,STHI,TI,Lidded,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,bare_die_lid,LCBI,TI,Lidded,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,bare_die_lid,HDMX_AHMT,TI,Lidded,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,bare_die_lid,HDMX_CLASS,TI,Lidded,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,bare_die_lid,OLB,TI,Lidded,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,foveros,HDMX_CLASS,TI,Foveros,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,foveros,STHI,TI,Foveros,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,foveros,LCBI,TI,Foveros,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,foveros,HDMX_AHMT,TI,Foveros,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,foveros,HDMX_CLASS,TI,Foveros,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,foveros,OLB,TI,Foveros,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,implementation_stage,HDMX_CLASS,TI,8,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,implementation_stage,STHI,TI,8,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,implementation_stage,LCBI,TI,8,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,implementation_stage,HDMX_AHMT,TI,8,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,implementation_stage,HDMX_CLASS,TI,8,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,implementation_stage,OLB,TI,8,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,segment,HDMX_CLASS,TI,Client Desktop,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,segment,STHI,TI,Client Desktop,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,segment,LCBI,TI,Client Desktop,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,segment,HDMX_AHMT,TI,Client Desktop,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,segment,HDMX_CLASS,TI,Client Desktop,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,segment,OLB,TI,Client Desktop,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,xvi_tool_type,HDMX_CLASS,TI,DVI,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,xvi_tool_type,STHI,TI,DVI,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,xvi_tool_type,LCBI,TI,DVI,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,xvi_tool_type,HDMX_AHMT,TI,DVI,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,xvi_tool_type,HDMX_CLASS,TI,DVI,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,xvi_tool_type,OLB,TI,DVI,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,fab_technology,HDMX_CLASS,TI,kkk,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,fab_technology,STHI,TI,kkk,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,fab_technology,LCBI,TI,kkk,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,fab_technology,HDMX_AHMT,TI,kkk,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,fab_technology,HDMX_CLASS,TI,kkk,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,fab_technology,OLB,TI,kkk,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,lts_ball,HDMX_CLASS,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,lts_ball,STHI,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,lts_ball,LCBI,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,lts_ball,HDMX_AHMT,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,lts_ball,HDMX_CLASS,TI,Y,2026-10-15T03:07:24Z,current_user
+c082a5f1-9de0-4109-a989-85f4342fb944,lts_ball,OLB,TI,Y,2026-10-15T03:07:24Z,current_user

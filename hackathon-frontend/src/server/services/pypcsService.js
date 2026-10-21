@@ -1,12 +1,19 @@
 import { config } from '../config/env.js';
+import { identityHeaders } from '../utils/identityHeaders.js';
 
 const BACKEND_BASE_URL = config.djangoBaseUrl || 'http://127.0.0.1:8000';
 
-async function proxyRequest(res, url, options = {}) {
+async function proxyRequest(req, res, url, options = {}) {
     try {
         console.log('[PYPCS proxy] forwarding to:', url);
 
-        const response = await fetch(url, options);
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                ...options.headers,
+                ...identityHeaders(req.user),
+            },
+        });
         const text = await response.text();
 
         res.status(response.status);
@@ -39,11 +46,17 @@ async function proxyRequest(res, url, options = {}) {
     }
 }
 
-async function proxyRawRequest(res, url, options = {}) {
+async function proxyRawRequest(req, res, url, options = {}) {
     try {
         console.log('[PYPCS proxy] forwarding raw response to:', url);
 
-        const response = await fetch(url, options);
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                ...options.headers,
+                ...identityHeaders(req.user),
+            },
+        });
         const body = Buffer.from(await response.arrayBuffer());
         res.status(response.status);
 
@@ -79,20 +92,21 @@ async function proxyRawRequest(res, url, options = {}) {
 }
 
 export async function getPypcsModules(req, res) {
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/modules`);
+    return proxyRequest(req, res, `${BACKEND_BASE_URL}/pypcs/modules`);
 }
 
 export async function getPypcsQuestions(req, res) {
     const queryString = new URLSearchParams(req.query).toString();
     const suffix = queryString ? `?${queryString}` : '';
 
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/questions${suffix}`);
+    return proxyRequest(req, res, `${BACKEND_BASE_URL}/pypcs/questions${suffix}`);
 }
 
 export async function updatePypcsQuestionDescription(req, res) {
     const { questionId } = req.params;
 
     return proxyRequest(
+        req,
         res,
         `${BACKEND_BASE_URL}/pypcs/questions/${questionId}`,
         {
@@ -106,7 +120,7 @@ export async function updatePypcsQuestionDescription(req, res) {
 }
 
 export async function getPypcsVisibleQuestions(req, res) {
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/visible-questions`, {
+    return proxyRequest(req, res, `${BACKEND_BASE_URL}/pypcs/visible-questions`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -120,6 +134,7 @@ export async function getPypcsSubmissions(req, res) {
     const suffix = queryString ? `?${queryString}` : '';
 
     return proxyRequest(
+        req,
         res,
         `${BACKEND_BASE_URL}/pypcs/submissions${suffix}`,
     );
@@ -129,6 +144,7 @@ export async function getPypcsSubmissionDetail(req, res) {
     const { submissionId } = req.params;
 
     return proxyRequest(
+        req,
         res,
         `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}`,
     );
@@ -138,6 +154,7 @@ export async function getPypcsSubmissionHistory(req, res) {
     const { submissionId } = req.params;
 
     return proxyRequest(
+        req,
         res,
         `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}/history`,
     );
@@ -147,6 +164,7 @@ export async function verifyPypcsEditPin(req, res) {
     const { submissionId } = req.params;
 
     return proxyRequest(
+        req,
         res,
         `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}/verify-edit-pin`,
         {
@@ -166,6 +184,7 @@ export async function deletePypcsSubmission(req, res) {
     if (editPin) headers['X-Edit-Pin'] = editPin;
 
     return proxyRequest(
+        req,
         res,
         `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}${suffix}`,
         { method: 'DELETE', headers },
@@ -177,7 +196,7 @@ export async function submitPypcsMatrixSubmission(req, res) {
     const editPin = req.get('x-edit-pin');
     if (editPin) headers['X-Edit-Pin'] = editPin;
 
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/matrix-submission`, {
+    return proxyRequest(req, res, `${BACKEND_BASE_URL}/pypcs/matrix-submission`, {
         method: 'POST',
         headers,
         body: JSON.stringify(req.body),
@@ -185,15 +204,15 @@ export async function submitPypcsMatrixSubmission(req, res) {
 }
 
 export async function getPypcsActionItems(req, res) {
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items`);
+    return proxyRequest(req, res, `${BACKEND_BASE_URL}/pypcs/action-items`);
 }
 
 export async function getPypcsActionItemOptions(req, res) {
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items/options`);
+    return proxyRequest(req, res, `${BACKEND_BASE_URL}/pypcs/action-items/options`);
 }
 
 export async function createPypcsActionItem(req, res) {
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items`, {
+    return proxyRequest(req, res, `${BACKEND_BASE_URL}/pypcs/action-items`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -205,7 +224,7 @@ export async function createPypcsActionItem(req, res) {
 export async function updatePypcsActionItem(req, res) {
     const nbr = encodeURIComponent(String(req.params.nbr));
 
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items/${nbr}`, {
+    return proxyRequest(req, res, `${BACKEND_BASE_URL}/pypcs/action-items/${nbr}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -219,6 +238,7 @@ export async function getPypcsProductActionMatrix(req, res) {
     const suffix = queryString ? `?${queryString}` : '';
 
     return proxyRawRequest(
+        req,
         res,
         `${BACKEND_BASE_URL}/pypcs/product-action-matrix${suffix}`,
     );
@@ -226,6 +246,7 @@ export async function getPypcsProductActionMatrix(req, res) {
 
 export async function updatePypcsProductActionMatrixRow(req, res) {
     return proxyRawRequest(
+        req,
         res,
         `${BACKEND_BASE_URL}/pypcs/product-action-matrix/rows`,
         {
@@ -243,6 +264,7 @@ export async function exportPypcsProductActionMatrix(req, res) {
     const suffix = queryString ? `?${queryString}` : '';
 
     return proxyRawRequest(
+        req,
         res,
         `${BACKEND_BASE_URL}/pypcs/product-action-matrix/export${suffix}`,
     );

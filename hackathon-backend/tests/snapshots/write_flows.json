@@ -1,0 +1,687 @@
+{
+  "action_item_create": {
+    "body": {
+      "actionable_item": "Characterization action",
+      "ar_follow_up": "",
+      "bare_die_lid": [
+        "All"
+      ],
+      "description": "",
+      "event_id": "CHAR-EVENT-1",
+      "foveros": [
+        "All"
+      ],
+      "hdmx_ap_pan": [
+        "All"
+      ],
+      "lts_ball": [
+        "All"
+      ],
+      "nbr": 14,
+      "owner": "TRB",
+      "package": [
+        "All"
+      ],
+      "reference": "REF-1",
+      "scenario": "",
+      "segment": [
+        "All"
+      ],
+      "update_by": "characterization",
+      "updated_at": "<volatile>",
+      "version": "<volatile>",
+      "xvi_tool_comment": "",
+      "xvi_tool_type": [
+        "DVI"
+      ]
+    },
+    "status": 201
+  },
+  "action_item_create_bytes": "7b0f212e44266a50f7817fa0f81f28d958f1b98d509676fc9e0dc8b3902f2f60",
+  "action_item_invalid_event_id": {
+    "body": {
+      "detail": {
+        "field": "event_id",
+        "message": "event_id must be at most 50 characters and cannot contain '|'."
+      }
+    },
+    "status": 422
+  },
+  "action_item_invalid_event_id_bytes": {
+    "after": "9180d84458b33e1d250b539d6a213cb4b84f4ff003f8324608c9f18b48b8b1d6",
+    "before": "9180d84458b33e1d250b539d6a213cb4b84f4ff003f8324608c9f18b48b8b1d6"
+  },
+  "action_item_update": {
+    "body": {
+      "actionable_item": "Updated characterization action",
+      "ar_follow_up": "",
+      "bare_die_lid": [
+        "All"
+      ],
+      "description": "",
+      "event_id": "CHAR-EVENT-1",
+      "foveros": [
+        "All"
+      ],
+      "hdmx_ap_pan": [
+        "All"
+      ],
+      "lts_ball": [
+        "All"
+      ],
+      "nbr": 14,
+      "owner": "TRB",
+      "package": [
+        "All"
+      ],
+      "reference": "REF-1",
+      "scenario": "",
+      "segment": [
+        "All"
+      ],
+      "update_by": "characterization",
+      "updated_at": "<volatile>",
+      "version": "<volatile>",
+      "xvi_tool_comment": "",
+      "xvi_tool_type": [
+        "DVI"
+      ]
+    },
+    "status": 200
+  },
+  "action_item_update_bytes": "9180d84458b33e1d250b539d6a213cb4b84f4ff003f8324608c9f18b48b8b1d6",
+  "decision_draft": {
+    "body": {
+      "bare_die_lid": "Bare die",
+      "cells": {
+        "1": {
+          "comment": "",
+          "decision_state": "draft",
+          "status": "Y",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "characterization",
+          "version": "<volatile>"
+        },
+        "10": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "11": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "12": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "13": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "14": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "2": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "3": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "4": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "5": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "6": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "7": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "8": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "9": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        }
+      },
+      "fab_technology": "",
+      "foveros": "",
+      "hdmx_ap_pan": "",
+      "lts_ball": "",
+      "module_group": "LCBI",
+      "module_keys": [
+        "LCBI"
+      ],
+      "operations": [
+        "7460",
+        "7462",
+        "7463",
+        "7465"
+      ],
+      "package": "BGA",
+      "prodgroup3": "ACM G21",
+      "product_key": "acm g21||acm g21",
+      "product_name": "ACM G21",
+      "segment": "",
+      "submission_id": "<volatile>",
+      "submission_status": "draft",
+      "submission_updated_at": "2026-10-16T09:19:43Z",
+      "xvi_tool_type": ""
+    },
+    "status": 200
+  },
+  "decision_draft_bytes": "9de35ece83b9d819bab1a6a53d690b902ad1d55df28eaee61c1d933b395a559d",
+  "decision_final": {
+    "body": {
+      "bare_die_lid": "Bare die",
+      "cells": {
+        "1": {
+          "comment": "Characterization final comment",
+          "decision_state": "final",
+          "status": "Y",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "characterization",
+          "version": "<volatile>"
+        },
+        "10": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "11": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "12": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "13": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "14": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "2": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "3": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "4": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "5": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "6": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "7": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "8": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "",
+          "suggested_status": "",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        },
+        "9": {
+          "comment": "",
+          "decision_state": "",
+          "status": "",
+          "suggested_comment": "Auto: package BGA in BGA",
+          "suggested_status": "Y",
+          "updated_at": "<volatile>",
+          "updated_by": "",
+          "version": "<volatile>"
+        }
+      },
+      "fab_technology": "",
+      "foveros": "",
+      "hdmx_ap_pan": "",
+      "lts_ball": "",
+      "module_group": "LCBI",
+      "module_keys": [
+        "LCBI"
+      ],
+      "operations": [
+        "7460",
+        "7462",
+        "7463",
+        "7465"
+      ],
+      "package": "BGA",
+      "prodgroup3": "ACM G21",
+      "product_key": "acm g21||acm g21",
+      "product_name": "ACM G21",
+      "segment": "",
+      "submission_id": "<volatile>",
+      "submission_status": "draft",
+      "submission_updated_at": "2026-10-16T09:19:43Z",
+      "xvi_tool_type": ""
+    },
+    "status": 200
+  },
+  "decision_final_bytes": "dd74c6769b9e0ca95320879e99982ce70c1b6cdde177ec241be5ff8d4b2cafa8",
+  "decision_final_comment_required": {
+    "body": {
+      "detail": {
+        "field": "cells[0].comment",
+        "message": "comment is required when status is not blank."
+      }
+    },
+    "status": 422
+  },
+  "decision_final_comment_required_bytes": {
+    "after": "9de35ece83b9d819bab1a6a53d690b902ad1d55df28eaee61c1d933b395a559d",
+    "before": "9de35ece83b9d819bab1a6a53d690b902ad1d55df28eaee61c1d933b395a559d"
+  },
+  "pdsolutions_update": {
+    "body": {
+      "count": 1,
+      "message": "updated",
+      "module": "STHI"
+    },
+    "status": 200
+  },
+  "pdsolutions_update_bytes": "b89fdbc96106d3fe275824505bdf043cfac54c0ae0fa75afd480baf0bfffa8df",
+  "product_basis_create": {
+    "body": {
+      "item": {
+        "fab_tech": "",
+        "fusion_or_apse": "",
+        "lts_ball": "",
+        "mcp": "",
+        "module": "STHI",
+        "nsb": "",
+        "pkg": "",
+        "pkg_1": "",
+        "prd_seg": "",
+        "prodgroup3": "CHARACTERIZATION-001",
+        "product": "Characterization Product",
+        "socket_type": "",
+        "sw_platform": "",
+        "thermal_tech": "",
+        "xvi_tool_type": ""
+      },
+      "message": "created"
+    },
+    "status": 200
+  },
+  "product_basis_create_bytes": "93fa24986661d1e1954c212fabbebf185f0c277790cfa35711c9c096d9891999",
+  "product_basis_delete": {
+    "body": {
+      "item": {
+        "fab_tech": "",
+        "fusion_or_apse": "",
+        "lts_ball": "",
+        "mcp": "",
+        "module": "STHI",
+        "nsb": "",
+        "pkg": "LGA",
+        "pkg_1": "",
+        "prd_seg": "",
+        "prodgroup3": "CHARACTERIZATION-001",
+        "product": "Updated Characterization Product",
+        "socket_type": "",
+        "sw_platform": "",
+        "thermal_tech": "",
+        "xvi_tool_type": ""
+      },
+      "message": "deleted"
+    },
+    "status": 200
+  },
+  "product_basis_delete_bytes": "e083ba99be88222af7e69bd9e64f0cd77dc47921779e250bfa32465594e72022",
+  "product_basis_patch": {
+    "body": {
+      "item": {
+        "fab_tech": "",
+        "fusion_or_apse": "",
+        "lts_ball": "",
+        "mcp": "",
+        "module": "STHI",
+        "nsb": "",
+        "pkg": "LGA",
+        "pkg_1": "",
+        "prd_seg": "",
+        "prodgroup3": "CHARACTERIZATION-001",
+        "product": "Updated Characterization Product",
+        "socket_type": "",
+        "sw_platform": "",
+        "thermal_tech": "",
+        "xvi_tool_type": ""
+      },
+      "message": "patched"
+    },
+    "status": 200
+  },
+  "product_basis_patch_bytes": "9e86ee7b73e16f363a335f855933147c1844d2e88c309cb0996566a080a8034c",
+  "product_basis_update": {
+    "body": {
+      "item": {
+        "fab_tech": "",
+        "fusion_or_apse": "",
+        "lts_ball": "",
+        "mcp": "",
+        "module": "STHI",
+        "nsb": "",
+        "pkg": "",
+        "pkg_1": "",
+        "prd_seg": "",
+        "prodgroup3": "CHARACTERIZATION-001",
+        "product": "Updated Characterization Product",
+        "socket_type": "",
+        "sw_platform": "",
+        "thermal_tech": "",
+        "xvi_tool_type": ""
+      },
+      "message": "updated"
+    },
+    "status": 200
+  },
+  "product_basis_update_bytes": "620e84a952b8629832b1e5a0dd90dddd94ecefd9610fc55bd77c2ab84d8dc14f",
+  "question_update": {
+    "body": {
+      "description": "Characterization description",
+      "message": "updated",
+      "question_id": "product_name"
+    },
+    "status": 200
+  },
+  "question_update_bytes": "be9ae3dc1a240318dab441698ee665811d506ae1fb927e1ed975f942e09b8132",
+  "solution_create": {
+    "body": {
+      "item": {
+        "excursion_related": "N",
+        "id": "136",
+        "key_summary": "Initial summary",
+        "module": "STHI",
+        "solution": "Characterization Solution"
+      },
+      "message": "created"
+    },
+    "status": 200
+  },
+  "solution_create_bytes": "675beaa5bcaef950bf38768b4f4f99e4383fad875f69c5496e103a5183978b7f",
+  "solution_delete": {
+    "body": {
+      "item": {
+        "excursion_related": "N",
+        "id": "136",
+        "key_summary": "Initial summary",
+        "module": "STHI",
+        "solution": "Updated Solution"
+      },
+      "message": "deleted"
+    },
+    "status": 200
+  },
+  "solution_delete_bytes": "472aab586eeb4a262c7ca1dfc5f2234e8075f1579726ad53815555bdced6d473",
+  "solution_patch": {
+    "body": {
+      "item": {
+        "excursion_related": "N",
+        "id": "136",
+        "key_summary": "Initial summary",
+        "module": "STHI",
+        "solution": "Updated Solution"
+      },
+      "message": "patched"
+    },
+    "status": 200
+  },
+  "solution_patch_bytes": "ac5202609d0ef7cbec1638de2320624873abd822b196b233e17d0c148595fe54",
+  "submission_create": {
+    "body": {
+      "cell_count": 1,
+      "cell_file": "QualityMatrix/PYPCS_SubmissionCells.csv",
+      "created_at": "<volatile>",
+      "message": "created",
+      "role": "TI",
+      "selected_modules": [
+        "LCBI"
+      ],
+      "status": "draft",
+      "submission_file": "QualityMatrix/PYPCS_Submissions.csv",
+      "submission_id": "<volatile>",
+      "updated_at": "<volatile>",
+      "versions": {
+        "ALL": "65ee4869a55ef494",
+        "ME": "b236dd899411b12c",
+        "TI": "65ee4869a55ef494"
+      }
+    },
+    "status": 200
+  },
+  "submission_create_bytes": {
+    "cells": "ed650b77780fedf315fd6ed1fc4a93de2337eb1d4d1ca235b3226e353b982963",
+    "submissions": "b2792df31b5801abadd2c6151e882fee97ca91646d112d2152695442d0e955eb"
+  },
+  "submission_delete": {
+    "body": {
+      "message": "deleted",
+      "submission_id": "<volatile>"
+    },
+    "status": 200
+  },
+  "submission_delete_bytes": {
+    "cells": "b89a39874d05ad75cdbef07388edd800bbb965c158889b92ef2909046870c8d2",
+    "submissions": "7e8b43876cfc895071d6277347f1ef222a6cf10a0c4987b94fdc9a2a5b521f3a"
+  },
+  "submission_stale_conflict": {
+    "body": {
+      "detail": {
+        "code": "conflict",
+        "current_versions": {
+          "ALL": "440f079717c6a946",
+          "ME": "b236dd899411b12c",
+          "TI": "440f079717c6a946"
+        },
+        "message": "This submission was changed by someone else. Reload it to see the latest answers."
+      }
+    },
+    "status": 409
+  },
+  "submission_stale_conflict_bytes": {
+    "cells": "ca3e750ea5042472053efda1d3f06d99ce446923d805383bda25e4f015a4cd61",
+    "submissions": "da7952f79c4194d1d76257dbfcc2c8dfcd38493c40b156815428cb8f8c8e6172"
+  },
+  "submission_update": {
+    "body": {
+      "cell_count": 1,
+      "cell_file": "QualityMatrix/PYPCS_SubmissionCells.csv",
+      "created_at": "<volatile>",
+      "message": "updated",
+      "role": "TI",
+      "selected_modules": [
+        "LCBI"
+      ],
+      "status": "draft",
+      "submission_file": "QualityMatrix/PYPCS_Submissions.csv",
+      "submission_id": "<volatile>",
+      "updated_at": "<volatile>",
+      "versions": {
+        "ALL": "440f079717c6a946",
+        "ME": "b236dd899411b12c",
+        "TI": "440f079717c6a946"
+      }
+    },
+    "status": 200
+  },
+  "submission_update_bytes": {
+    "cells": "ca3e750ea5042472053efda1d3f06d99ce446923d805383bda25e4f015a4cd61",
+    "submissions": "da7952f79c4194d1d76257dbfcc2c8dfcd38493c40b156815428cb8f8c8e6172"
+  }
+}
