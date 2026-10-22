@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from app.auth import get_current_user
+from app.auth import require_writer
 from app.io.csv_excel import get_path, read_data, write_data
 from app.io.concurrency import locked_files
 from app.models.common import PdSolutionItem
@@ -50,7 +50,7 @@ def list_pdsolutions(module: str, q: str | None = None):
 def update_pdsolutions(
     module: str,
     payload: list[PdSolutionItem],
-    _user: dict = Depends(get_current_user),
+    _user: dict = Depends(require_writer),
 ):
     config = get_module_solution_config(module)
     with locked_files(get_path(config)):

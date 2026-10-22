@@ -4,6 +4,7 @@ import {
     disableUser,
     getMe,
     getUsers,
+    guest,
     login,
     logout,
     rejectUser,
@@ -13,6 +14,7 @@ import {
 const router = express.Router();
 
 router.post('/auth/login', login);
+router.post('/auth/guest', guest);
 router.post('/auth/logout', logout);
 router.post('/auth/request-account', requestAccount);
 router.get('/auth/me', getMe);

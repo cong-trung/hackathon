@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 
-from app.auth import get_current_user
+from app.auth import require_writer
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
 from app.services.product_action_matrix_service import (
@@ -37,7 +37,7 @@ def get_pypcs_product_action_matrix(
 
 @router.put("/pypcs/product-action-matrix/rows")
 def update_pypcs_product_action_matrix_row(
-    payload: Any = Body(...), user: dict = Depends(get_current_user)
+    payload: Any = Body(...), user: dict = Depends(require_writer)
 ):
     if not isinstance(payload, dict):
         raise _field_error(422, "body", "Request body must be an object.")

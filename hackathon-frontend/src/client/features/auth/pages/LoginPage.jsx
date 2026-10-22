@@ -7,7 +7,7 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react
 import { z } from 'zod';
 
 import { apiSlice } from '@/app/api/apiSlice';
-import { useLoginMutation, useRequestAccountMutation } from '@/app/api/authApi';
+import { useGuestLoginMutation, useLoginMutation, useRequestAccountMutation } from '@/app/api/authApi';
 import { routesConfig } from '@/routes/constants';
 import {
     Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
@@ -35,7 +35,9 @@ const requestSchema = z.object({
 });
 
 const inputClassName = 'h-11 border-0 bg-[#1f2029] pl-11 pr-4 text-[#f4f3f5] shadow-inner shadow-black/10 placeholder:text-[#c4c3ca] placeholder:transition-opacity focus:placeholder:opacity-80 focus-visible:ring-2 focus-visible:ring-[#ffeba7] md:text-sm';
-const actionClassName = 'inline-flex min-h-11 items-center justify-center rounded bg-[#ffeba7] px-6 text-xs font-bold uppercase tracking-widest text-[#102770] shadow-lg shadow-black/20 transition-colors hover:bg-[#102770] hover:text-[#ffeba7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ffeba7] disabled:cursor-not-allowed disabled:opacity-60';
+const actionClassName = 'inline-flex min-h-11 items-center justify-center rounded px-6 text-xs font-bold uppercase tracking-widest shadow-lg shadow-black/20 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ffeba7] disabled:cursor-not-allowed disabled:opacity-60';
+const primaryActionClassName = `${actionClassName} bg-[#ffeba7] text-[#102770] hover:bg-[#102770] hover:text-[#ffeba7]`;
+const guestActionClassName = `${actionClassName} bg-[#2b2d3a] text-[#ffeba7] hover:bg-[#ffeba7] hover:text-[#102770]`;
 
 const loginBrandPoints = [
     'Track products, questions and answers',
@@ -112,6 +114,7 @@ export default function LoginPage() {
         !/[\r\n]/.test(next) ? next : routesConfig.homepage;
     const { isAuthenticated, isLoading } = useAuth();
     const [login, { isLoading: loggingIn }] = useLoginMutation();
+    const [guestLogin, { isLoading: guestLoggingIn }] = useGuestLoginMutation();
     const [requestAccount, { isLoading: requesting }] = useRequestAccountMutation();
     const [loginError, setLoginError] = useState('');
     const [requestError, setRequestError] = useState('');
@@ -150,6 +153,17 @@ export default function LoginPage() {
         setLoginError('');
         try {
             await login(values).unwrap();
+            dispatch(apiSlice.util.resetApiState());
+            navigate(destination, { replace: true });
+        } catch (failure) {
+            setLoginError(authErrorMessage(failure));
+        }
+    }
+
+    async function onGuest() {
+        setLoginError('');
+        try {
+            await guestLogin().unwrap();
             dispatch(apiSlice.util.resetApiState());
             navigate(destination, { replace: true });
         } catch (failure) {
@@ -234,9 +248,17 @@ export default function LoginPage() {
                                         <AuthField form={loginForm} name="username" label="Username" autoComplete="username" icon={UserRound} inputRef={loginFirstRef} />
                                         <AuthField form={loginForm} name="password" label="Password" type="password" autoComplete="current-password" icon={LockKeyhole} />
                                         {loginError && <p role="alert" className="text-sm text-[#ffb4ad]">{loginError}</p>}
-                                        <button type="submit" disabled={loggingIn} className={`${actionClassName} w-full`}>{loggingIn ? 'Logging in...' : 'Log In'}</button>
+                                        <button type="submit" disabled={loggingIn} className={`${primaryActionClassName} w-full`}>{loggingIn ? 'Logging in...' : 'Log In'}</button>
                                     </form>
                                 </Form>
+                                <div className="my-5 flex items-center gap-3 text-xs text-[#9b9aab]" aria-hidden="true">
+                                    <span className="h-px flex-1 bg-white/10" />
+                                    <span>or</span>
+                                    <span className="h-px flex-1 bg-white/10" />
+                                </div>
+                                <button type="button" disabled={guestLoggingIn} onClick={onGuest} className={`${guestActionClassName} w-full`}>
+                                    {guestLoggingIn ? 'Entering...' : 'Continue as Guest (view only)'}
+                                </button>
                                 <button type="button" onClick={() => switchTo(true)} className="mt-6 text-center text-sm text-[#ffeba7] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ffeba7]">Need access? Request an account</button>
                             </div>
                         </section>
@@ -255,7 +277,7 @@ export default function LoginPage() {
                                         </div>
                                         <h2 className="text-2xl font-semibold text-[#f4f3f5]">Request received</h2>
                                         <p className="text-sm leading-6 text-[#c4c3ca]">An admin must approve your account before you can log in and edit.</p>
-                                        <button ref={successRef} type="button" onClick={() => switchTo(false)} className={`${actionClassName} w-full`}>Log In</button>
+                                        <button ref={successRef} type="button" onClick={() => switchTo(false)} className={`${primaryActionClassName} w-full`}>Log In</button>
                                     </div>
                                 ) : (
                                     <>
@@ -269,7 +291,7 @@ export default function LoginPage() {
                                                 <AuthField form={requestForm} name="password" label="Password" type="password" autoComplete="new-password" icon={LockKeyhole} />
                                                 <AuthField form={requestForm} name="confirm" label="Confirm password" type="password" autoComplete="new-password" icon={LockKeyhole} />
                                                 {requestError && <p role="alert" className="text-sm text-[#ffb4ad]">{requestError}</p>}
-                                                <button type="submit" disabled={requesting} className={`${actionClassName} mt-2 w-full`}>{requesting ? 'Sending...' : 'Request account'}</button>
+                                                <button type="submit" disabled={requesting} className={`${primaryActionClassName} mt-2 w-full`}>{requesting ? 'Sending...' : 'Request account'}</button>
                                             </form>
                                         </Form>
                                         <button type="button" onClick={() => switchTo(false)} className="mt-6 text-center text-sm text-[#ffeba7] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ffeba7]">Already approved? Log in</button>

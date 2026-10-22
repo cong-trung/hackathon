@@ -17,6 +17,7 @@ from app.auth import (
     _DUMMY_SALT,
     _read_csv,
     _write_users,
+    ensure_guest_user,
     get_current_user,
     hash_password,
     issue_token,
@@ -180,6 +181,14 @@ def login(payload: LoginRequest, request: Request):
         raise HTTPException(status_code=403, detail={"code": "account_disabled"})
     token, expires_at = issue_token(username)
     return {"token": token, "expires_at": expires_at, "user": public_user(row)}
+
+
+@router.post("/auth/guest")
+def guest_login():
+    """One-click, password-less sign in for the read-only guest account."""
+    user = ensure_guest_user()
+    token, expires_at = issue_token(user["username"])
+    return {"token": token, "expires_at": expires_at, "user": user}
 
 
 @router.get("/auth/me")

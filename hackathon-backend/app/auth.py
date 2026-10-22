@@ -32,6 +32,9 @@ USER_HEADERS = [
 ]
 AUDIT_HEADERS = ["timestamp", "username", "method", "path", "status_code"]
 TOKEN_SECRET = QUALITY_MATRIX_AUTH_SECRET.encode("utf-8")
+
+# Reserved username used by the one-click guest (view-only) login.
+GUEST_USERNAME = "guest"
 _DUMMY_SALT = secrets.token_bytes(16)
 _DUMMY_HASH = hashlib.scrypt(
     b"unknown-user-password", salt=_DUMMY_SALT, n=2**14, r=8, p=1, dklen=32
@@ -225,6 +228,44 @@ async def require_admin(user: dict[str, str] = Depends(get_current_user)) -> dic
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail={"code": "admin_required"})
     return user
+
+
+async def require_writer(user: dict[str, str] = Depends(get_current_user)) -> dict[str, str]:
+    """Allow any authenticated user except the read-only guest."""
+    if user.get("role") == "guest":
+        raise HTTPException(status_code=403, detail={"code": "guest_read_only"})
+    return user
+
+
+def ensure_guest_user() -> dict[str, str]:
+    """Create (or refresh) the shared guest account used by one-click guest login.
+
+    The guest has no password and stays active; the require_writer guard keeps
+    guest sessions strictly view-only.
+    """
+    with locked_files(USER_FILE):
+        rows = _read_csv(USER_FILE, USER_HEADERS)
+        row = next(
+            (item for item in rows if item.get("username", "").lower() == GUEST_USERNAME),
+            None,
+        )
+        if row is None:
+            row = {
+                "username": GUEST_USERNAME,
+                "display_name": "Guest",
+                "email": "",
+                "password_hash": "",
+                "role": "guest",
+                "status": "active",
+                "created_at": timestamp_now(),
+                "decided_by": "system",
+                "decided_at": "",
+            }
+            rows.append(row)
+        else:
+            row.update(password_hash="", role="guest", status="active", decided_by="system")
+        _write_users(rows)
+        return public_user(row)
 
 
 def bootstrap_admin() -> None:

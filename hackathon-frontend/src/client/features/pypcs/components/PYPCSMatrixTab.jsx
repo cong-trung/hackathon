@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
+
+import { useAuth } from '@/shared/hooks/useAuth';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -37,7 +39,8 @@ async function requestJson(path, options = {}) {
 }
 
 export default function PYPCSMatrixTab() {
-    const [activeMode, setActiveMode] = useState('matrix');
+    const { isGuest } = useAuth();
+    const [activeMode, setActiveMode] = useState(isGuest ? 'review' : 'matrix');
     const [resumeSubmission, setResumeSubmission] = useState(null);
     const [statusMessage, setStatusMessage] = useState('');
     const [dirty, setDirty] = useState(false);
@@ -79,18 +82,20 @@ export default function PYPCSMatrixTab() {
 
     const modeSwitch = (
         <div className="flex shrink-0 gap-2">
-                <button
-                    type="button"
-                    aria-pressed={activeMode === 'matrix'}
-                    className={`rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring ${
-                        activeMode === 'matrix'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-card'
-                    }`}
-                    onClick={() => changeMode('matrix')}
-                >
-                    Matrix Submission
-                </button>
+                {!isGuest && (
+                    <button
+                        type="button"
+                        aria-pressed={activeMode === 'matrix'}
+                        className={`rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring ${
+                            activeMode === 'matrix'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-card'
+                        }`}
+                        onClick={() => changeMode('matrix')}
+                    >
+                        Matrix Submission
+                    </button>
+                )}
 
                 <button
                     type="button"

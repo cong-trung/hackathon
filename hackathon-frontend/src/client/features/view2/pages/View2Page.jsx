@@ -175,7 +175,7 @@ const columns = columnsFor();
 const sortableColumns = new Set(['nbr', 'event_id', 'actionable_item', 'owner', 'updated_at']);
 
 export default function View2Page() {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isGuest } = useAuth();
     const location = useLocation();
     const { data, isLoading, isError, refetch } = useGetActionItemsQuery();
     const [search, setSearch] = useState('');
@@ -216,7 +216,7 @@ export default function View2Page() {
     const table = useReactTable({
         data: visibleItems,
         columns,
-        meta: { onEdit: (item) => { if (isAuthenticated) setActiveItem(item); }, canEdit: isAuthenticated },
+        meta: { onEdit: (item) => { if (isAuthenticated && !isGuest) setActiveItem(item); }, canEdit: isAuthenticated && !isGuest },
         getRowId: (row) => String(row.nbr),
         getCoreRowModel: getCoreRowModel(),
     });

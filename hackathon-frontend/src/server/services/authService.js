@@ -47,6 +47,23 @@ export async function login(req, res) {
     }
 }
 
+export async function guest(req, res) {
+    try {
+        const result = await forwardRequest('/auth/guest', req);
+        const maxAge = Math.max(
+            0,
+            new Date(result.expires_at).getTime() - Date.now(),
+        );
+        res.cookie('qm_token', result.token, {
+            ...cookieOptions(),
+            maxAge,
+        });
+        return res.json({ user: result.user, expires_at: result.expires_at });
+    } catch (error) {
+        return sendForwardError(res, error);
+    }
+}
+
 export function logout(req, res) {
     res.clearCookie('qm_token', cookieOptions());
     return res.status(204).end();

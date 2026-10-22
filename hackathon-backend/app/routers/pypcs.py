@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.auth import get_current_user
+from app.auth import require_writer
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
 from app.io.generic_csv import (
@@ -217,7 +217,7 @@ def get_pypcs_action_item_options():
 
 @router.post("/pypcs/action-items", status_code=201)
 def create_pypcs_action_item(
-    payload: PYPCSActionItemRequest, user: dict = Depends(get_current_user)
+    payload: PYPCSActionItemRequest, user: dict = Depends(require_writer)
 ):
     payload.update_by = user["username"]
     validate_action_item(payload)
@@ -238,7 +238,7 @@ def create_pypcs_action_item(
 def update_pypcs_action_item(
     nbr: int,
     payload: PYPCSActionItemRequest,
-    user: dict = Depends(get_current_user),
+    user: dict = Depends(require_writer),
 ):
     payload.update_by = user["username"]
     validate_action_item(payload)
@@ -618,7 +618,7 @@ def get_pypcs_questions(role: str | None = None):
 def update_pypcs_question_description(
     question_id: str,
     payload: PYPCSQuestionDescriptionUpdate,
-    _user: dict = Depends(get_current_user),
+    _user: dict = Depends(require_writer),
 ):
     target = value_to_str(question_id)
     with locked_files(PYPCS_QUESTIONS_FILE):
@@ -898,7 +898,7 @@ def get_pypcs_submission_history(submission_id: str):
 def delete_pypcs_submission(
     submission_id: str,
     edit_reason: str | None = None,
-    user: dict = Depends(get_current_user),
+    user: dict = Depends(require_writer),
 ):
     target_id = value_to_str(submission_id)
     with locked_files(
@@ -950,7 +950,7 @@ def delete_pypcs_submission(
 @router.post("/pypcs/matrix-submission")
 def create_pypcs_matrix_submission(
     req: PYPCSMatrixSubmissionRequest,
-    user: dict = Depends(get_current_user),
+    user: dict = Depends(require_writer),
 ):
     if not req.selected_modules:
         raise HTTPException(

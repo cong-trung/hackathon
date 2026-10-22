@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.auth import get_current_user
+from app.auth import require_writer
 from app.io.csv_excel import find_by_key, get_path, read_data, value_to_str, write_data
 from app.io.concurrency import locked_files
 from app.models.common import FlexiblePayload, ProductBasisPayload
@@ -51,7 +51,7 @@ def get_product_basis(module: str, prodgroup3: str):
 def create_product_basis(
     module: str,
     payload: ProductBasisPayload,
-    _user: dict = Depends(get_current_user),
+    _user: dict = Depends(require_writer),
 ):
     config = get_module_config(module)
     with locked_files(get_path(config)):
@@ -72,7 +72,7 @@ def update_product_basis(
     module: str,
     prodgroup3: str,
     payload: ProductBasisPayload,
-    _user: dict = Depends(get_current_user),
+    _user: dict = Depends(require_writer),
 ):
     config = get_module_config(module)
     with locked_files(get_path(config)):
@@ -91,7 +91,7 @@ def patch_product_basis(
     module: str,
     prodgroup3: str,
     payload: FlexiblePayload,
-    _user: dict = Depends(get_current_user),
+    _user: dict = Depends(require_writer),
 ):
     config = get_module_config(module)
     with locked_files(get_path(config)):
@@ -107,7 +107,7 @@ def patch_product_basis(
 
 @router.delete("/product-basis/{module}/{prodgroup3}")
 def delete_product_basis(
-    module: str, prodgroup3: str, _user: dict = Depends(get_current_user)
+    module: str, prodgroup3: str, _user: dict = Depends(require_writer)
 ):
     config = get_module_config(module)
     with locked_files(get_path(config)):

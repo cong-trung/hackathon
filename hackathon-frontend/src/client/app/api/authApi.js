@@ -10,6 +10,10 @@ export const authApi = apiSlice.injectEndpoints({
             query: (body) => ({ url: '/auth/login', method: 'POST', body }),
             invalidatesTags: ['Auth', 'Users'],
         }),
+        guestLogin: builder.mutation({
+            query: () => ({ url: '/auth/guest', method: 'POST', body: {} }),
+            invalidatesTags: ['Auth', 'Users'],
+        }),
         logout: builder.mutation({
             query: () => ({ url: '/auth/logout', method: 'POST', body: {} }),
             invalidatesTags: ['Auth', 'Users'],
@@ -50,6 +54,7 @@ export const authApi = apiSlice.injectEndpoints({
 
 export const {
     useGetMeQuery,
+    useGuestLoginMutation,
     useLoginMutation,
     useLogoutMutation,
     useRequestAccountMutation,

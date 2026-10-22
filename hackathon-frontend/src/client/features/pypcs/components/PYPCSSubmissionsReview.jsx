@@ -77,7 +77,7 @@ export default function PYPCSSubmissionsReview({
     const [statusMessage, setStatusMessage] = useState('');
     const [statusKind, setStatusKind] = useState('success');
     const [pendingDeleteId, setPendingDeleteId] = useState(null);
-    const { isAuthenticated, isAdmin } = useAuth();
+    const { isAuthenticated, isAdmin, isGuest } = useAuth();
     const location = useLocation();
     const [history, setHistory] = useState([]);
     const [historyError, setHistoryError] = useState('');
@@ -216,7 +216,7 @@ export default function PYPCSSubmissionsReview({
     }, []);
 
     function renderDeleteControl(submissionId) {
-        if (!isAuthenticated || (!isAdmin && submissions.find((item) => item.submission_id === submissionId)?.status === 'final')) return null;
+        if (isGuest || !isAuthenticated || (!isAdmin && submissions.find((item) => item.submission_id === submissionId)?.status === 'final')) return null;
         if (pendingDeleteId === submissionId) {
             return (
                 <div className="flex items-center gap-1">
@@ -385,7 +385,7 @@ export default function PYPCSSubmissionsReview({
             <div>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                     <div className="flex flex-wrap items-center gap-2">
-                        {selectedDetail.submission?.status === 'draft' && isAuthenticated ? (
+                        {selectedDetail.submission?.status === 'draft' && isAuthenticated && !isGuest ? (
                             <Button
                                 type="button"
                                 size="sm"
@@ -592,7 +592,7 @@ export default function PYPCSSubmissionsReview({
                                                 View
                                             </button>
 
-                                            {isDraft && isAuthenticated ? (
+                                            {isDraft && isAuthenticated && !isGuest ? (
                                                 <button
                                                     type="button"
                                                     className="rounded-md border border-amber-700 px-3 py-1 text-amber-800 dark:text-amber-300"

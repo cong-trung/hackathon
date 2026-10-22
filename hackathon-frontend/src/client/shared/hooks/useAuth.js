@@ -8,6 +8,7 @@ export function useAuth() {
         isLoading: isLoading || (isFetching && !data),
         isAuthenticated: Boolean(user),
         isAdmin: user?.role === 'admin',
+        isGuest: user?.role === 'guest',
     };
 }
 

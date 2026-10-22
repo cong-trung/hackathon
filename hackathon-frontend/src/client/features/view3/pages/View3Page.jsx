@@ -171,7 +171,7 @@ function columnsFor(actions) {
 }
 
 export default function View3Page() {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isGuest } = useAuth();
     const location = useLocation();
     const [moduleGroup, setModuleGroup] = useState('');
     const [search, setSearch] = useState('');
@@ -209,9 +209,9 @@ export default function View3Page() {
         );
     const columns = useMemo(() => columnsFor(actions), [actions]);
     const onEdit = useCallback((row, actionNbr) => {
-        if (isAuthenticated) setEditor({ row, actionNbr });
-    }, [isAuthenticated]);
-    const tableMeta = useMemo(() => ({ onEdit, canEdit: isAuthenticated }), [onEdit, isAuthenticated]);
+        if (isAuthenticated && !isGuest) setEditor({ row, actionNbr });
+    }, [isAuthenticated, isGuest]);
+    const tableMeta = useMemo(() => ({ onEdit, canEdit: isAuthenticated && !isGuest }), [onEdit, isAuthenticated, isGuest]);
     const table = useReactTable({
         data: pagedRows,
         columns,
@@ -385,7 +385,7 @@ export default function View3Page() {
                 {!query.isLoading && !query.isError && <ClientPagination label="Products" total={sortedRows.length}
                     page={currentPage} pageSize={pageSize} onPageChange={setPage}
                     onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
-                {isAuthenticated && editor && <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
+                {isAuthenticated && !isGuest && editor && <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
                     row={editor.row} actions={actions} focusedAction={editor.actionNbr}
                     onReload={async () => {
                         const latest = await query.refetch().unwrap();
