@@ -5,9 +5,13 @@
  * @returns {Object} A standardized error object with status and formatted error message
  */
 export function parseError(error) {
-    // Handle other error types
-    return {
-        status: error.response?.status || 500,
-        error: error.response?.data || error.message,
-    };
+    const status = error.response?.status;
+    if (!status || status >= 500) {
+        console.error('Backend proxy request failed:', error);
+        return {
+            status: 502,
+            body: { code: 'proxy_error', message: 'Backend unavailable' },
+        };
+    }
+    return { status, body: error.response.data };
 }

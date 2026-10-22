@@ -8,6 +8,6 @@ export const getSolutions = async (req, res) => {
     } catch (error) {
         console.error('Error fetching solutions:', error);
         const parsedError = parseError(error);
-        res.status(parsedError.status).json(parsedError);
+        res.status(parsedError.status).json(parsedError.body);
     }
 };

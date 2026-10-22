@@ -7,6 +7,7 @@ import solutionsRouter from './api/solutions.js';
 import pdSolutionsRouter from './api/pdSolutions.js';
 import glMqrRouter from './api/glMqr.js';
 import chatRouter from './api/chat.js';
+import authRouter from './api/auth.js';
 import {
     getPypcsModules,
     getPypcsQuestions,
@@ -15,7 +16,6 @@ import {
     getPypcsSubmissions,
     getPypcsSubmissionDetail,
     getPypcsSubmissionHistory,
-    verifyPypcsEditPin,
     deletePypcsSubmission,
     submitPypcsMatrixSubmission,
     getPypcsActionItems,
@@ -40,12 +40,12 @@ router.use(solutionsRouter);
 router.use(pdSolutionsRouter);
 router.use(glMqrRouter);
 router.use(chatRouter);
+router.use(authRouter);
 router.get('/pypcs/modules', getPypcsModules);
 router.get('/pypcs/questions', getPypcsQuestions);
 router.patch('/pypcs/questions/:questionId', updatePypcsQuestionDescription);
 router.post('/pypcs/visible-questions', getPypcsVisibleQuestions);
 router.get('/pypcs/submissions', getPypcsSubmissions);
-router.post('/pypcs/submissions/:submissionId/verify-edit-pin', verifyPypcsEditPin);
 router.get('/pypcs/submissions/:submissionId/history', getPypcsSubmissionHistory);
 router.get('/pypcs/submissions/:submissionId', getPypcsSubmissionDetail);
 router.delete('/pypcs/submissions/:submissionId', deletePypcsSubmission);

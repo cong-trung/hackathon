@@ -4,11 +4,26 @@ import {
     TablePropertiesIcon,
     ListChecksIcon,
     Grid3x3Icon,
+    UsersIcon,
+    HomeIcon,
 } from 'lucide-react';
 
 import { routesConfig } from './constants';
 
 export const routes = [
+    {
+        route_name: routesConfig.homepage,
+        key: 'home',
+        title: 'Home',
+        icon: HomeIcon,
+        breadcrumb: ['Home'],
+        component: lazy(() => import('@/features/home/pages/HomePage')),
+    },
+    {
+        route_name: routesConfig.admin_users,
+        key: 'admin-users', title: 'Users', icon: UsersIcon, adminOnly: true,
+        component: lazy(() => import('@/features/auth/pages/UsersPage')),
+    },
     // {
     //     route_name: routesConfig.homepage,
     //     key: 'homepage',
@@ -114,17 +129,17 @@ export const routes = [
     {
         route_name: routesConfig.view2_page,
         key: 'view2_page',
-        title: 'View 2',
+        title: 'Action Items',
         icon: ListChecksIcon,
-        breadcrumb: ['View 2'],
+        breadcrumb: ['Action Items'],
         component: lazy(() => import('@/features/view2/pages/View2Page')),
     },
     {
         route_name: routesConfig.view3_page,
         key: 'view3_page',
-        title: 'View 3',
+        title: 'Action Plan',
         icon: Grid3x3Icon,
-        breadcrumb: ['View 3'],
+        breadcrumb: ['Action Plan'],
         component: lazy(() => import('@/features/view3/pages/View3Page')),
     },
     {

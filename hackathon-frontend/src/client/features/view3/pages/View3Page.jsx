@@ -1,4 +1,6 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { loginPath, useAuth } from '@/shared/hooks/useAuth';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { ArrowDown, ArrowDownUp, ArrowUp, CircleAlert, CircleCheck, DownloadIcon, PencilIcon, PencilLine, SearchIcon } from 'lucide-react';
 
@@ -84,11 +86,11 @@ function ProductCell({ row, table }) {
                 <span className="min-w-0 break-words font-semibold">{row.original.product_name || 'Unnamed product'}</span>
                 {row.original.submission_status === 'draft' && <Badge variant="outline" className="shrink-0 text-[10px]">Draft</Badge>}
             </div>
-            <Button variant="outline" size="sm" type="button" className="mt-1 h-7 gap-1 px-2 text-xs"
+            {table.options.meta.canEdit && <Button variant="outline" size="sm" type="button" className="mt-1 h-7 gap-1 px-2 text-xs"
                 onClick={() => table.options.meta.onEdit(row.original, null)}
                 aria-label={`Edit ${row.original.product_name} ${row.original.module_group}`}>
                 <PencilIcon className="size-3" /> Edit
-            </Button>
+            </Button>}
         </div>
     );
 }
@@ -136,7 +138,7 @@ function StatusCell({ row, column, table }) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <button type="button" className={`h-10 w-full truncate rounded-sm px-2 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${style}`}
+                <button type="button" disabled={!table.options.meta.canEdit} className={`h-10 w-full truncate rounded-sm px-2 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${style}`}
                     aria-label={`${row.original.product_name} ${action.event_id || `#${action.nbr}`}: ${label}`}
                     onClick={() => table.options.meta.onEdit(row.original, action.nbr)}>
                     {draft ? <span className="flex items-center gap-1 truncate">
@@ -169,6 +171,8 @@ function columnsFor(actions) {
 }
 
 export default function View3Page() {
+    const { isAuthenticated } = useAuth();
+    const location = useLocation();
     const [moduleGroup, setModuleGroup] = useState('');
     const [search, setSearch] = useState('');
     const [needsReview, setNeedsReview] = useState(false);
@@ -204,8 +208,10 @@ export default function View3Page() {
             [sortedRows, currentPage, pageSize],
         );
     const columns = useMemo(() => columnsFor(actions), [actions]);
-    const onEdit = useCallback((row, actionNbr) => setEditor({ row, actionNbr }), []);
-    const tableMeta = useMemo(() => ({ onEdit }), [onEdit]);
+    const onEdit = useCallback((row, actionNbr) => {
+        if (isAuthenticated) setEditor({ row, actionNbr });
+    }, [isAuthenticated]);
+    const tableMeta = useMemo(() => ({ onEdit, canEdit: isAuthenticated }), [onEdit, isAuthenticated]);
     const table = useReactTable({
         data: pagedRows,
         columns,
@@ -233,7 +239,8 @@ export default function View3Page() {
     return (
         <TooltipProvider>
             <div className="flex min-w-0 flex-col gap-3 md:h-full md:min-h-0 md:overflow-hidden">
-                <h1 className="sr-only">View 3</h1>
+                <h1 className="sr-only">Action Plan</h1>
+                {!isAuthenticated && <Link className="text-sm underline" to={loginPath(location.pathname + location.search)}>Log in to edit</Link>}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Decision legend">
                     <span><span className="mr-1 inline-block size-3 bg-green-600 align-middle" />Y</span>
                     <span><span className="mr-1 inline-block size-3 bg-red-600 align-middle" />N</span>
@@ -378,7 +385,7 @@ export default function View3Page() {
                 {!query.isLoading && !query.isError && <ClientPagination label="Products" total={sortedRows.length}
                     page={currentPage} pageSize={pageSize} onPageChange={setPage}
                     onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
-                {editor && <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
+                {isAuthenticated && editor && <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
                     row={editor.row} actions={actions} focusedAction={editor.actionNbr}
                     onReload={async () => {
                         const latest = await query.refetch().unwrap();

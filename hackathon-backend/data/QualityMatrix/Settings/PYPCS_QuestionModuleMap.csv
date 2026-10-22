@@ -59,6 +59,16 @@ nsb,7,V8,Y,Y,"0 common","Common field applies to all modules"
 nsb,8,OLB,Y,Y,"0 common","Common field applies to all modules"
 nsb,9,STHI,Y,Y,"0 common","Common field applies to all modules"
 nsb,10,HSX,Y,Y,"0 common","Common field applies to all modules"
+nsb_comment,1,LCBI,N,Y,0 common,Common field applies to all modules
+nsb_comment,2,HDBI,N,Y,0 common,Common field applies to all modules
+nsb_comment,3,HDMx_AHMT,N,Y,0 common,Common field applies to all modules
+nsb_comment,4,HDMx_Class,N,Y,0 common,Common field applies to all modules
+nsb_comment,5,HDMx_Cfuse,N,Y,0 common,Common field applies to all modules
+nsb_comment,6,HDMx_EQA,N,Y,0 common,Common field applies to all modules
+nsb_comment,7,V8,N,Y,0 common,Common field applies to all modules
+nsb_comment,8,OLB,N,Y,0 common,Common field applies to all modules
+nsb_comment,9,STHI,N,Y,0 common,Common field applies to all modules
+nsb_comment,10,HSX,N,Y,0 common,Common field applies to all modules
 mcp,1,LCBI,Y,Y,"0 common","Common field applies to all modules"
 mcp,2,HDBI,Y,Y,"0 common","Common field applies to all modules"
 mcp,3,HDMx_AHMT,Y,Y,"0 common","Common field applies to all modules"
@@ -162,3 +172,13 @@ fusion_or_apse,9,STHI,N,Y,"prefix 9","STHI field"
 socket_type,9,STHI,N,Y,"prefix 9","STHI field"
 thermal_technology,9,STHI,N,Y,"prefix 9","STHI field"
 hsx_placeholder,10,HSX,N,Y,"prefix 10","HSX placeholder"
+pdo_owner,1,LCBI,N,Y,0 per module,Per-module owner email
+pdo_owner,2,HDBI,N,Y,0 per module,Per-module owner email
+pdo_owner,3,HDMx_AHMT,N,Y,0 per module,Per-module owner email
+pdo_owner,4,HDMx_Class,N,Y,0 per module,Per-module owner email
+pdo_owner,5,HDMx_Cfuse,N,Y,0 per module,Per-module owner email
+pdo_owner,6,HDMx_EQA,N,Y,0 per module,Per-module owner email
+pdo_owner,7,V8,N,Y,0 per module,Per-module owner email
+pdo_owner,8,OLB,N,Y,0 per module,Per-module owner email
+pdo_owner,9,STHI,N,Y,0 per module,Per-module owner email
+pdo_owner,10,HSX,N,Y,0 per module,Per-module owner email

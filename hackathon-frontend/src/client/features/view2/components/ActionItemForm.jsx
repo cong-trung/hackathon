@@ -3,6 +3,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { authErrorMessage } from '@/shared/hooks/useAuth';
 import { ChevronsUpDownIcon } from 'lucide-react';
 
 import {
@@ -91,7 +92,6 @@ const schema = (options) => z
         hdmx_ap_pan: z.array(z.string()),
         owner: requiredText('Owner'),
         owner_other: z.string(),
-        update_by: requiredText('Update by'),
         scenario: z.string(),
         ...Object.fromEntries(applicabilityFields.map(({ name }) => [`${name}_other`, z.string()])),
     })
@@ -151,7 +151,6 @@ function defaults(item, options) {
         xvi_tool_comment: item?.xvi_tool_comment ?? '',
         owner: item?.owner && options?.owner?.includes(item.owner) ? item.owner : item?.owner ? 'Other' : '',
         owner_other: item?.owner && !options?.owner?.includes(item.owner) ? item.owner : '',
-        update_by: item?.update_by ?? '',
         scenario: item?.scenario ?? '',
     };
 }
@@ -345,7 +344,9 @@ export default function ActionItemForm({ item, onClose, onReload }) {
             toast.success(item ? 'Action item updated.' : 'Action item added.');
             onClose();
         } catch (error) {
-            if (error?.status === 409 && error.data?.detail?.code === 'conflict') {
+            if (error?.status === 401 || error?.status === 403) {
+                toast.error(authErrorMessage(error));
+            } else if (error?.status === 409 && error.data?.detail?.code === 'conflict') {
                 setConflict(error.data.detail);
             } else {
                 applyServerErrors(error, form);
@@ -471,17 +472,6 @@ export default function ActionItemForm({ item, onClose, onReload }) {
                                         )}
                                     />
                                 )}
-                                <FormField
-                                    control={form.control}
-                                    name="update_by"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Update by *</FormLabel>
-                                            <FormControl><Input {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                                 <FormField
                                     control={form.control}
                                     name="scenario"

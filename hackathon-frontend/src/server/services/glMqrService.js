@@ -8,7 +8,7 @@ export const getSTHI = async (req, res) => {
     } catch (error) {
         console.error('Error fetching STHI:', error);
         const parsedError = parseError(error);
-        res.status(parsedError.status).json(parsedError);
+        res.status(parsedError.status).json(parsedError.body);
     }
 };
 
@@ -19,6 +19,6 @@ export const getLCBI = async (req, res) => {
     } catch (error) {
         console.error('Error fetching LCBI:', error);
         const parsedError = parseError(error);
-        res.status(parsedError.status).json(parsedError);
+        res.status(parsedError.status).json(parsedError.body);
     }
 };

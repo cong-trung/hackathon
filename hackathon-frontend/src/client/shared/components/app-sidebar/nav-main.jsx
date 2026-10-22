@@ -20,10 +20,12 @@ import {
 
 // Route configuration
 import { routes } from '@/routes/routes';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 const NavMain = memo(() => {
   const location = useLocation();
   const { theme } = useTheme();
+  const { isAdmin } = useAuth();
 
   const activeBg = '!bg-sidebar-primary !text-sidebar-primary-foreground hover:!bg-sidebar-primary hover:!text-sidebar-primary-foreground focus-visible:!ring-inset focus-visible:!ring-white';
   const nonActiveHover = 'hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground';
@@ -32,7 +34,7 @@ const NavMain = memo(() => {
     <SidebarGroup>
       <SidebarMenu>
         {routes
-          .filter((route) => !route.hideInSidebar)
+          .filter((route) => !route.hideInSidebar && (!route.adminOnly || isAdmin))
           .map((route) => {
             // If route has no children, render as simple nav item
             const path = route.route_name;

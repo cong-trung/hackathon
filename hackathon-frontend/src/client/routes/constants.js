@@ -7,4 +7,7 @@ export const routesConfig = {
     view2_page: '/view-2',
     view3_page: '/view-3',
     chat_page: '/chat',
+    login: '/login',
+    request_account: '/request-account',
+    admin_users: '/admin/users',
 };

@@ -46,8 +46,10 @@ No test suite or lint config exists yet.
 - [app/services/chat_service.py](app/services/chat_service.py) — `get_nyra_client()` for the AI
   chat endpoints.
 - [app/routers/](app/routers) — one FastAPI `APIRouter` per feature area (`health`,
-  `product_basis`, `solutions`, `pdsolutions`, `pypcs`, `chat`), wired up in
+  `auth`, `product_basis`, `solutions`, `pdsolutions`, `pypcs`, `chat`), wired up in
   [app/main.py](app/main.py).
+- [app/auth.py](app/auth.py) and [app/routers/auth.py](app/routers/auth.py) — local account
+  validation, scrypt password hashes, signed bearer tokens, admin approval, and audit logging.
 - Row identity: product-basis rows are keyed by `prodgroup3`, solutions by `id` (auto-incremented
   in `create_solution`).
 - `MODULE_SOLUTION_CONFIG` (`ProductSolutionMatrix_{STHI,LCBI}.csv`) backs `/pdsolutions/{module}`
@@ -58,11 +60,18 @@ No test suite or lint config exists yet.
 ## Conventions
 
 - `DATA_DIR` (env `QUALITY_MATRIX_DATA_DIR`, default `data`) and `ALLOWED_ORIGINS` (env, comma
-  separated, default covers Vite `:5173` and CRA `:3000`) are the only configurable settings.
+  separated, default covers Vite `:5173` and CRA `:3000`) configure storage and CORS.
+- `QUALITY_MATRIX_AUTH_SECRET` signs tokens; when unset, a random per-process secret is generated
+  and a warning is logged, so tokens reset on restart; configured secrets must be at least 32
+  characters. `QUALITY_MATRIX_TRUSTED_PROXIES` is a comma-separated IP list, defaulting to
+  `127.0.0.1,::1`. `QUALITY_MATRIX_TOKEN_TTL_HOURS` defaults
+  to 12. `QUALITY_MATRIX_ADMIN_USERNAME` and `QUALITY_MATRIX_ADMIN_PASSWORD` bootstrap an active
+  admin on startup when no active admin exists.
 - The app refuses to import if any legacy data file remains directly in `DATA_DIR`; migrate the
   files before starting the backend.
-- Endpoints are no-auth by design (see app description in [app/main.py](app/main.py)); don't add
-  auth without being asked.
+- GET endpoints remain open; every data mutation requires an active local account. Account requests
+  remain pending until an admin approves them. Only admins may edit or delete final PYPCS
+  submissions.
 - Wrap every read-modify-write in `locked_files(...)` for all touched files; writes use atomic replace.
 - Keep a single uvicorn worker; editable flows accept optional `expected_version` and return 409 `{"code": "conflict"}`.
 
@@ -82,6 +91,9 @@ No test suite or lint config exists yet.
 
 ## Data Layout and Migration
 
+- Local accounts and mutation audit rows are stored in `data/Auth/Users.csv` and
+  `data/Auth/AuditLog.csv`; both are created on demand and updated under `locked_files(...)` with
+  atomic replacement. Never expose `password_hash` in API responses.
 - Quality Matrix submissions and slim cells live under `data/QualityMatrix/`; modules,
   questions, question/module mappings, and operation steps live under `data/QualityMatrix/Settings/`.
 - Cells have exactly `submission_id, question_id, module_key, role, answer, updated_at,

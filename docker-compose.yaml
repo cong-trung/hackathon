@@ -1,3 +1,15 @@
+# Portable deployment for Quality Matrix.
+#
+# Works out of the box on a fresh Docker server: data is baked into the backend
+# image from hackathon-backend/data and both services pick safe defaults.
+#
+# Optional runtime overrides (secrets, NYRA, proxies) live in .env.production:
+#   cp .env.example .env.production   # then edit values
+#
+# If you are outside the Intel network, skip the internal-only nyra-services
+# package at build time by setting NYRA_INDEX_URL to an empty value:
+#   NYRA_INDEX_URL= docker compose up -d --build
+
 services:
   hackathon-frontend:
     build:
@@ -13,12 +25,18 @@ services:
         ftp_proxy: ${ftp_proxy:-}
         no_proxy: ${no_proxy:-}
     env_file:
-      - .env.production
+      - path: .env.production
+        required: false
     container_name: hackathon-frontend
     image: hackathon-frontend:latest
     ports:
       - "8005:8005"
     environment:
+      NODE_ENV: production
+      PORT: 8005
+      DJANGO_BASE_URL: http://hackathon-backend:8004
+      VITE_ENCRYPTION_KEY: ${VITE_ENCRYPTION_KEY:-}
+      ALLOWED_ORIGINS: http://localhost:8005
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       FTP_PROXY: ${FTP_PROXY:-}
@@ -27,6 +45,8 @@ services:
       https_proxy: ${https_proxy:-}
       ftp_proxy: ${ftp_proxy:-}
       no_proxy: ${no_proxy:-}
+    depends_on:
+      - hackathon-backend
     restart: always
 
   hackathon-backend:
@@ -34,6 +54,7 @@ services:
       context: ./hackathon-backend
       dockerfile: Dockerfile
       args:
+        NYRA_INDEX_URL: ${NYRA_INDEX_URL-https://devpi.intel.com/general/nyra/+simple/}
         HTTP_PROXY: ${HTTP_PROXY:-}
         HTTPS_PROXY: ${HTTPS_PROXY:-}
         FTP_PROXY: ${FTP_PROXY:-}
@@ -43,7 +64,8 @@ services:
         ftp_proxy: ${ftp_proxy:-}
         no_proxy: ${no_proxy:-}
     env_file:
-      - .env.production
+      - path: .env.production
+        required: false
     container_name: hackathon-backend
     image: hackathon-backend:latest
     ports:
@@ -58,8 +80,11 @@ services:
       https_proxy: ${https_proxy:-}
       ftp_proxy: ${ftp_proxy:-}
       no_proxy: ${no_proxy:-}
-    volumes:
-      - /mnt/x/Quality:/app/data
+    # Data is baked into the image from hackathon-backend/data, so a fresh
+    # deploy works with no external share. Intel production only: uncomment to
+    # override the baked-in data with the network share.
+    # volumes:
+    #   - /mnt/x/Quality:/app/data
     restart: always
 
   # celery-beat:

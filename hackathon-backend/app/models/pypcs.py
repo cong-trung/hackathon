@@ -31,10 +31,6 @@ class PYPCSMatrixSubmissionRequest(BaseModel):
     edit_reason: str | None = None
 
 
-class PYPCSEditPinVerificationRequest(BaseModel):
-    pin: str
-
-
 class PYPCSQuestionDescriptionUpdate(BaseModel):
     description: str = ""
 

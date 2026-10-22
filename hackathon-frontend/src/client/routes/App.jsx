@@ -1,9 +1,12 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
 
 import AppLayout from '@/shared/layout/AppLayout';
+import RequireAuth from '@/shared/components/auth/RequireAuth';
+import { routesConfig } from '@/routes/constants';
 import { routes } from '@/routes/routes';
 
+const AuthPage = lazy(() => import('@/features/auth/pages/LoginPage'));
 const NotFound = lazy(() => import('@/features/home/pages/NotFound'));
 
 import { Agentation } from 'agentation';
@@ -45,14 +48,25 @@ const buildRouteObjects = (routeList) =>
 
 const router = createBrowserRouter([
     {
-        element: <AppLayout />,
+        element: <AuthPage />,
         children: [
-            { index: true, element: <Navigate to="/pypcs" replace /> },
-            ...buildRouteObjects(routes),
+            { path: routesConfig.login },
+            { path: routesConfig.request_account },
+        ],
+    },
+    {
+        element: <RequireAuth />,
+        children: [
             {
-                path: '*',
-                element: <NotFound />,
-                id: 'not-found',
+                element: <AppLayout />,
+                children: [
+                    ...buildRouteObjects(routes),
+                    {
+                        path: '*',
+                        element: <NotFound />,
+                        id: 'not-found',
+                    },
+                ],
             },
         ],
     },

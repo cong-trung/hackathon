@@ -1,100 +1,61 @@
-import { memo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronsUpDown, RotateCcwKey } from 'lucide-react';
-
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ChevronsUpDown, LogIn, LogOut } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { toast } from 'sonner';
+import { useLogoutMutation } from '@/app/api/authApi';
+import { apiSlice } from '@/app/api/apiSlice';
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@/shared/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from '@/shared/components/ui/sidebar';
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/shared/components/ui/sidebar';
+import { useAuth, authErrorMessage, loginPath } from '@/shared/hooks/useAuth';
 
-import LogoutMenuItem from '@/features/auth/components/LogoutMenuItem';
+export default function NavUser() {
+    const { user, isLoading } = useAuth();
+    const [logout, { isLoading: loggingOut }] = useLogoutMutation();
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const location = useLocation();
 
-import { useAuth } from '@/shared/hooks/useAuth';
+    if (isLoading) return null;
+    if (!user) return (
+        <SidebarMenu>
+            <SidebarMenuItem><SidebarMenuButton asChild tooltip="Log in">
+                <Link to={loginPath(location.pathname + location.search)}><LogIn /><span>Log in</span></Link>
+            </SidebarMenuButton></SidebarMenuItem>
+            <SidebarMenuItem><SidebarMenuButton asChild tooltip="Request account">
+                <Link to="/request-account"><span>Request account</span></Link>
+            </SidebarMenuButton></SidebarMenuItem>
+        </SidebarMenu>
+    );
 
-function NavUser() {
-  const navigate = useNavigate();
-  const { isMobile } = useSidebar();
-  const { user, isLoading } = useAuth();
+    async function handleLogout() {
+        try {
+            await logout().unwrap();
+            dispatch(apiSlice.util.resetApiState());
+            navigate('/login', { replace: true });
+        } catch (error) {
+            toast.error(authErrorMessage(error));
+        }
+    }
 
-  if (isLoading || !user) return null;
-
-  return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="select-none data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">
-                  {user.fallback}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? 'bottom' : 'right'}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm select-none">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">
-                    {user.fallback}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {user.username !== 'guest_user' ? (
-              <>
-                <DropdownMenuItem
-                  className="w-full"
-                  onClick={() =>
-                    navigate('/change-password', { replace: true })
-                  }
-                >
-                  <RotateCcwKey />
-                  Đổi mật khẩu
+    return (
+        <SidebarMenu><SidebarMenuItem><DropdownMenu>
+            <DropdownMenuTrigger asChild><SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
+                <span className="grid size-8 shrink-0 place-items-center rounded bg-sidebar-accent font-semibold">
+                    {user.display_name.slice(0, 1).toUpperCase()}
+                </span>
+                <span className="min-w-0 flex-1 text-left text-sm">
+                    <span className="block truncate font-semibold">{user.display_name}</span>
+                    <span className="block capitalize text-xs text-muted-foreground">{user.role}</span>
+                </span>
+                <ChevronsUpDown className="size-4" />
+            </SidebarMenuButton></DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="end" className="min-w-48">
+                <DropdownMenuItem onSelect={handleLogout} disabled={loggingOut}>
+                    <LogOut className="mr-2 size-4" /> Log out
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            ) : null}
-            <LogoutMenuItem />
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
-  );
+            </DropdownMenuContent>
+        </DropdownMenu></SidebarMenuItem></SidebarMenu>
+    );
 }
-
-export default memo(NavUser);

@@ -25,12 +25,14 @@ export const config = {
     nodeEnv: process.env.NODE_ENV,
     djangoBaseUrl: process.env.DJANGO_BASE_URL,
     encryptionKey: process.env.VITE_ENCRYPTION_KEY,
+    allowedOrigins: (process.env.ALLOWED_ORIGINS ||
+        'http://localhost:5173,http://localhost:3000')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
 };
 
-// Log to confirm variables are loaded
 console.log('Environment config loaded:', {
     port: config.port,
     nodeEnv: config.nodeEnv,
-    djangoBaseUrl: config.djangoBaseUrl,
-    encryptionKey: config.encryptionKey,
 });

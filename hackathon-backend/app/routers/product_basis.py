@@ -1,7 +1,8 @@
 """CRUD endpoints for per-module product-basis rows (STHI/LCBI)."""
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.auth import get_current_user
 from app.io.csv_excel import find_by_key, get_path, read_data, value_to_str, write_data
 from app.io.concurrency import locked_files
 from app.models.common import FlexiblePayload, ProductBasisPayload
@@ -47,7 +48,11 @@ def get_product_basis(module: str, prodgroup3: str):
 
 
 @router.post("/product-basis/{module}")
-def create_product_basis(module: str, payload: ProductBasisPayload):
+def create_product_basis(
+    module: str,
+    payload: ProductBasisPayload,
+    _user: dict = Depends(get_current_user),
+):
     config = get_module_config(module)
     with locked_files(get_path(config)):
         headers, rows = read_data(config)
@@ -63,7 +68,12 @@ def create_product_basis(module: str, payload: ProductBasisPayload):
 
 
 @router.put("/product-basis/{module}/{prodgroup3}")
-def update_product_basis(module: str, prodgroup3: str, payload: ProductBasisPayload):
+def update_product_basis(
+    module: str,
+    prodgroup3: str,
+    payload: ProductBasisPayload,
+    _user: dict = Depends(get_current_user),
+):
     config = get_module_config(module)
     with locked_files(get_path(config)):
         headers, rows = read_data(config)
@@ -77,7 +87,12 @@ def update_product_basis(module: str, prodgroup3: str, payload: ProductBasisPayl
 
 
 @router.patch("/product-basis/{module}/{prodgroup3}")
-def patch_product_basis(module: str, prodgroup3: str, payload: FlexiblePayload):
+def patch_product_basis(
+    module: str,
+    prodgroup3: str,
+    payload: FlexiblePayload,
+    _user: dict = Depends(get_current_user),
+):
     config = get_module_config(module)
     with locked_files(get_path(config)):
         headers, rows = read_data(config)
@@ -91,7 +106,9 @@ def patch_product_basis(module: str, prodgroup3: str, payload: FlexiblePayload):
 
 
 @router.delete("/product-basis/{module}/{prodgroup3}")
-def delete_product_basis(module: str, prodgroup3: str):
+def delete_product_basis(
+    module: str, prodgroup3: str, _user: dict = Depends(get_current_user)
+):
     config = get_module_config(module)
     with locked_files(get_path(config)):
         headers, rows = read_data(config)

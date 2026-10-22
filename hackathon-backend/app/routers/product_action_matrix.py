@@ -3,8 +3,9 @@
 import re
 from typing import Any
 
-from fastapi import APIRouter, Body, HTTPException, Query, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 
+from app.auth import get_current_user
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
 from app.services.product_action_matrix_service import (
@@ -35,17 +36,16 @@ def get_pypcs_product_action_matrix(
 
 
 @router.put("/pypcs/product-action-matrix/rows")
-def update_pypcs_product_action_matrix_row(payload: Any = Body(...)):
+def update_pypcs_product_action_matrix_row(
+    payload: Any = Body(...), user: dict = Depends(get_current_user)
+):
     if not isinstance(payload, dict):
         raise _field_error(422, "body", "Request body must be an object.")
     product_key = value_to_str(payload.get("product_key", ""))
     module_group = value_to_str(payload.get("module_group", ""))
-    updated_by = value_to_str(payload.get("updated_by", ""))
     mode = payload.get("mode", "final")
     if not isinstance(mode, str) or mode not in {"draft", "final"}:
         raise _field_error(422, "mode", "mode must be 'draft' or 'final'.")
-    if not updated_by:
-        raise _field_error(422, "updated_by", "updated_by is required.")
     if not product_key:
         raise _field_error(422, "product_key", "product_key is required.")
     if not module_group:
@@ -84,9 +84,7 @@ def update_pypcs_product_action_matrix_row(payload: Any = Body(...)):
             }
         )
 
-    return _update_matrix_row(
-        product_key, module_group, updated_by, mode, cells
-    )
+    return _update_matrix_row(product_key, module_group, user["username"], mode, cells)
 
 
 def _update_matrix_row(product_key, module_group, updated_by, mode, cells):

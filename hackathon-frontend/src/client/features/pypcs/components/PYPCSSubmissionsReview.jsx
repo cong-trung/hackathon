@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownUp, ArrowDown, ArrowUp } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import store from '@/app/store';
+import { apiSlice } from '@/app/api/apiSlice';
+import { authErrorMessage, loginPath, useAuth } from '@/shared/hooks/useAuth';
 import ClientPagination from '@/shared/components/data-table/ClientPagination';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
-import {
-    Dialog, DialogContent, DialogDescription, DialogFooter,
-    DialogHeader, DialogTitle,
-} from '@/shared/components/ui/dialog';
 import {
     Sheet,
     SheetContent,
@@ -23,6 +23,9 @@ async function requestJson(path, options = {}) {
     const text = await response.text();
 
     if (!response.ok) {
+        if (response.status === 401 && options.method) {
+            store.dispatch(apiSlice.util.invalidateTags(['Auth']));
+        }
         const error = new Error(text || response.statusText);
         error.status = response.status;
         try { error.detail = JSON.parse(text)?.detail; } catch { error.detail = undefined; }
@@ -74,9 +77,8 @@ export default function PYPCSSubmissionsReview({
     const [statusMessage, setStatusMessage] = useState('');
     const [statusKind, setStatusKind] = useState('success');
     const [pendingDeleteId, setPendingDeleteId] = useState(null);
-    const [pinDialogId, setPinDialogId] = useState(null);
-    const [pin, setPin] = useState('');
-    const [pinError, setPinError] = useState('');
+    const { isAuthenticated, isAdmin } = useAuth();
+    const location = useLocation();
     const [history, setHistory] = useState([]);
     const [historyError, setHistoryError] = useState('');
     const [search, setSearch] = useState('');
@@ -174,11 +176,7 @@ export default function PYPCSSubmissionsReview({
 
     function requestDeleteSubmission(submissionId) {
         const submission = submissions.find((item) => item.submission_id === submissionId);
-        if (submission?.status === 'final') {
-            setPinDialogId(submissionId);
-            setPinError('');
-            return;
-        }
+        if (!isAuthenticated || (submission?.status === 'final' && !isAdmin)) return;
         setPendingDeleteId(submissionId);
     }
 
@@ -186,14 +184,13 @@ export default function PYPCSSubmissionsReview({
         setPendingDeleteId(null);
     }
 
-    async function confirmDeleteSubmission(submissionId, editPin = '') {
+    async function confirmDeleteSubmission(submissionId) {
         setLoading(true);
         setStatusMessage('');
 
         try {
             await requestJson(`/pypcs/submissions/${submissionId}`, {
                 method: 'DELETE',
-                headers: editPin ? { 'X-Edit-Pin': editPin } : {},
             });
 
             if (selectedDetail?.submission?.submission_id === submissionId) {
@@ -201,42 +198,14 @@ export default function PYPCSSubmissionsReview({
             }
 
             setPendingDeleteId(null);
-            setPinDialogId(null);
-            setPin('');
             if (await loadSubmissions()) {
                 setStatusKind('success');
                 setStatusMessage('Submission deleted.');
             }
         } catch (error) {
             setStatusKind('error');
-            if (editPin) {
-                setPinError(error.status === 423 && error.detail?.code === 'final_edit_disabled'
-                    ? 'Editing final submissions is disabled on this server'
-                    : error.detail?.message || 'Unable to delete final submission.');
-            } else {
-                setStatusMessage(`Failed to delete submission: ${error.message}`);
-            }
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function confirmFinalDelete(event) {
-        event.preventDefault();
-        setLoading(true);
-        setPinError('');
-        try {
-            await requestJson(`/pypcs/submissions/${pinDialogId}/verify-edit-pin`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin }),
-            });
-            await confirmDeleteSubmission(pinDialogId, pin);
-        } catch (error) {
-            setPinError(error.status === 429
-                ? 'Too many attempts. Try again in a few minutes.'
-                : error.status === 403 ? 'Incorrect PIN'
-                    : error.detail?.message || 'Unable to verify PIN.');
+            setStatusMessage(error.status === 401 || error.status === 403
+                ? authErrorMessage(error) : `Failed to delete submission: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -247,6 +216,7 @@ export default function PYPCSSubmissionsReview({
     }, []);
 
     function renderDeleteControl(submissionId) {
+        if (!isAuthenticated || (!isAdmin && submissions.find((item) => item.submission_id === submissionId)?.status === 'final')) return null;
         if (pendingDeleteId === submissionId) {
             return (
                 <div className="flex items-center gap-1">
@@ -415,7 +385,7 @@ export default function PYPCSSubmissionsReview({
             <div>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                     <div className="flex flex-wrap items-center gap-2">
-                        {selectedDetail.submission?.status === 'draft' ? (
+                        {selectedDetail.submission?.status === 'draft' && isAuthenticated ? (
                             <Button
                                 type="button"
                                 size="sm"
@@ -428,6 +398,9 @@ export default function PYPCSSubmissionsReview({
                         {renderDeleteControl(
                             selectedDetail.submission?.submission_id,
                         )}
+                        {!isAuthenticated && <Link className="text-sm underline" to={loginPath(location.pathname + location.search)}>Log in to edit</Link>}
+                        {selectedDetail.submission?.status === 'final' && isAuthenticated && !isAdmin &&
+                            <span className="text-sm text-muted-foreground">Only admins can edit final submissions</span>}
                     </div>
                 </div>
 
@@ -619,7 +592,7 @@ export default function PYPCSSubmissionsReview({
                                                 View
                                             </button>
 
-                                            {isDraft ? (
+                                            {isDraft && isAuthenticated ? (
                                                 <button
                                                     type="button"
                                                     className="rounded-md border border-amber-700 px-3 py-1 text-amber-800 dark:text-amber-300"
@@ -681,26 +654,6 @@ export default function PYPCSSubmissionsReview({
                     </div>
                 </SheetContent>
             </Sheet>
-            <Dialog open={Boolean(pinDialogId)} onOpenChange={(open) => {
-                if (!open) { setPinDialogId(null); setPin(''); setPinError(''); }
-            }}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Delete final submission?</DialogTitle>
-                        <DialogDescription>Enter the edit PIN to delete this submission.</DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={confirmFinalDelete} className="space-y-3">
-                        <label htmlFor="review-edit-pin" className="block text-sm font-medium">Edit PIN</label>
-                        <Input id="review-edit-pin" type="password" inputMode="numeric" autoComplete="off"
-                            required value={pin} onChange={(event) => setPin(event.target.value)}
-                            aria-invalid={Boolean(pinError)} aria-describedby={pinError ? 'review-pin-error' : undefined} />
-                        {pinError ? <p id="review-pin-error" role="alert" className="text-sm text-destructive">{pinError}</p> : null}
-                        <DialogFooter><Button type="submit" variant="destructive" disabled={loading}>
-                            {loading ? 'Working...' : 'Delete final submission'}
-                        </Button></DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

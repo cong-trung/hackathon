@@ -30,8 +30,5 @@ babi.py
 .env.*
 !.env.example
 env.production
-Dockerfile
-docker-compose.yaml
 docker-entrypoint.sh
 ecosystem.config.cjs
-.dockerignore

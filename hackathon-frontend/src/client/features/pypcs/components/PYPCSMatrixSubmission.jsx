@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, ChevronsUpDown, CopyCheck, Info, X } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import store from '@/app/store';
+import { apiSlice } from '@/app/api/apiSlice';
+import { authErrorMessage, loginPath, useAuth } from '@/shared/hooks/useAuth';
 
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -7,10 +11,6 @@ import {
 } from '@/shared/components/ui/alert-dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
-import {
-    Dialog, DialogContent, DialogDescription, DialogFooter,
-    DialogHeader, DialogTitle,
-} from '@/shared/components/ui/dialog';
 import {
     Command,
     CommandEmpty,
@@ -61,6 +61,9 @@ async function requestJson(path, options = {}) {
     const text = await response.text();
 
     if (!response.ok) {
+        if (response.status === 401 && options.method) {
+            store.dispatch(apiSlice.util.invalidateTags(['Auth']));
+        }
         const error = new Error(text || response.statusText);
         error.status = response.status;
         try {
@@ -293,12 +296,7 @@ export default function PYPCSMatrixSubmission({
     const [applicableOpen, setApplicableOpen] = useState(false);
     const [pendingRemove, setPendingRemove] = useState(null);
     const [pendingApply, setPendingApply] = useState(null);
-    const [editPin, setEditPin] = useState('');
-    const [pinDraft, setPinDraft] = useState('');
     const [editReason, setEditReason] = useState('');
-    const [pinError, setPinError] = useState('');
-    const [pinOpen, setPinOpen] = useState(false);
-    const [verifying, setVerifying] = useState(false);
     const [missingIndex, setMissingIndex] = useState(-1);
     const [pulseKey, setPulseKey] = useState(null);
     const baseline = useRef(formSnapshot([], 'TI', {}));
@@ -313,7 +311,9 @@ export default function PYPCSMatrixSubmission({
     const selectedModuleDetails = sortedModules.filter((module) =>
         visibleModules.includes(module.module_key),
     );
-    const locked = submissionStatus === 'final' && !editPin;
+    const { isAuthenticated, isAdmin } = useAuth();
+    const location = useLocation();
+    const locked = !isAuthenticated || (submissionStatus === 'final' && !isAdmin);
     const nsbQuestion = questions.find((question) => question.question_id === 'nsb');
     const showNsbReason = nsbQuestion && String(getFirstAnswerForQuestion(
         nsbQuestion, selectedModules, cells,
@@ -377,28 +377,6 @@ export default function PYPCSMatrixSubmission({
         return () => clearTimeout(timer);
     }, [pulseKey]);
 
-    async function verifyPin(event) {
-        event.preventDefault();
-        setVerifying(true);
-        setPinError('');
-        try {
-            await requestJson(`/pypcs/submissions/${submissionId}/verify-edit-pin`, {
-                method: 'POST',
-                body: JSON.stringify({ pin: pinDraft }),
-            });
-            setEditPin(pinDraft);
-            setPinDraft('');
-            setPinOpen(false);
-        } catch (error) {
-            setPinError(error.status === 429
-                ? 'Too many attempts. Try again in a few minutes.'
-                : error.status === 403 ? 'Incorrect PIN'
-                    : error.detail?.message || 'Unable to verify PIN.');
-        } finally {
-            setVerifying(false);
-        }
-    }
-
     function backendRole(currentRole) {
         return currentRole === 'ALL' ? null : currentRole;
     }
@@ -416,7 +394,6 @@ export default function PYPCSMatrixSubmission({
         setConflict(null);
         setStatusMessage('');
         setPendingApply(null);
-        setEditPin('');
         setEditReason('');
         baseline.current = formSnapshot([], 'TI', {});
     }
@@ -515,7 +492,6 @@ export default function PYPCSMatrixSubmission({
         setRole(nextRole);
         setCells(nextCells);
         baseline.current = formSnapshot(nextModules, nextRole, nextCells);
-        setEditPin('');
         setEditReason('');
         setErrors({});
         setSubmissionId(sub.submission_id || null);
@@ -695,7 +671,8 @@ export default function PYPCSMatrixSubmission({
             setEditingDescriptionId(null);
         } catch (error) {
             setStatusKind('error');
-            setStatusMessage(`Failed to save description: ${error.message}`);
+            setStatusMessage(error.status === 401 || error.status === 403
+                ? authErrorMessage(error) : `Failed to save description: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -929,7 +906,6 @@ export default function PYPCSMatrixSubmission({
         const payload = {
             selected_modules: selectedModules,
             role: backendRole(role),
-            submitted_by: 'current_user',
             product_name: findAnswer('product_name'),
             prodgroup3: findAnswer('prodgroup3'),
             operation: findAnswer('operation'),
@@ -947,7 +923,6 @@ export default function PYPCSMatrixSubmission({
         try {
             const result = await requestJson('/pypcs/matrix-submission', {
                 method: 'POST',
-                headers: editPin ? { 'X-Edit-Pin': editPin } : {},
                 body: JSON.stringify(payload),
             });
 
@@ -956,7 +931,6 @@ export default function PYPCSMatrixSubmission({
             setVersions(result.versions || {});
             baseline.current = currentSnapshot;
             onDirtyChange(false);
-            setEditPin('');
             setEditReason('');
             setStatusKind('success');
             setStatusMessage(
@@ -966,12 +940,8 @@ export default function PYPCSMatrixSubmission({
             );
         } catch (error) {
             setStatusKind('error');
-            if (error.status === 423) {
-                setEditPin('');
-                setEditReason('');
-                setStatusMessage(error.detail?.code === 'final_edit_disabled'
-                    ? 'Editing final submissions is disabled on this server'
-                    : error.detail?.message || 'Final submission is locked.');
+            if (error.status === 401 || error.status === 403) {
+                setStatusMessage(authErrorMessage(error));
             } else if (error.status === 409 && error.detail?.code === 'conflict') {
                 setConflict(error.detail);
             } else {
@@ -1002,7 +972,6 @@ export default function PYPCSMatrixSubmission({
             setCells(nextCells);
             baseline.current = formSnapshot(nextModules, nextRole, nextCells);
             onDirtyChange(false);
-            setEditPin('');
             setEditReason('');
             setErrors({});
             setConflict(null);
@@ -1318,6 +1287,7 @@ export default function PYPCSMatrixSubmission({
                     {missingKeys.length ? `Next missing (${missingKeys.length})` : 'All required filled'}
                 </Button>
                 <div className="ml-auto flex items-center gap-2">
+                    {!isAuthenticated && <Link className="text-sm underline" to={loginPath(location.pathname + location.search)}>Log in to edit</Link>}
                     <Button type="button" size="sm" variant="outline" onClick={handleSaveDraft} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>
                         {loading ? 'Working...' : 'Save Draft'}
                     </Button>
@@ -1329,11 +1299,11 @@ export default function PYPCSMatrixSubmission({
 
             {submissionStatus === 'final' ? (
                 <div className="flex shrink-0 items-center justify-between gap-2 rounded border border-table-border bg-muted px-3 py-2 text-sm">
-                    <span>{locked ? 'Final submission — read-only' : 'Editing final submission (unlocked)'}</span>
-                    <Button type="button" size="sm" variant="outline" onClick={() => {
-                        if (locked) setPinOpen(true);
-                        else { setEditPin(''); setEditReason(''); }
-                    }}>{locked ? 'Edit final submission' : 'Lock again'}</Button>
+                    <span>{isAdmin ? 'Editing final submission' : 'Only admins can edit final submissions'}</span>
+                    {isAdmin && <label className="flex items-center gap-2">Reason for edit (optional)
+                        <input className="rounded border bg-background px-2 py-1" value={editReason}
+                            onChange={(event) => setEditReason(event.target.value)} />
+                    </label>}
                 </div>
             ) : null}
 
@@ -1542,29 +1512,6 @@ export default function PYPCSMatrixSubmission({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <Dialog open={pinOpen} onOpenChange={(open) => {
-                setPinOpen(open);
-                if (!open) { setPinDraft(''); setPinError(''); }
-            }}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit final submission</DialogTitle>
-                        <DialogDescription>Enter the edit PIN to unlock this submission.</DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={verifyPin} className="space-y-3">
-                        <label className="block text-sm font-medium" htmlFor={`${instanceId}-pin`}>Edit PIN</label>
-                        <input id={`${instanceId}-pin`} type="password" inputMode="numeric" autoComplete="off"
-                            required value={pinDraft} onChange={(event) => setPinDraft(event.target.value)}
-                            aria-invalid={Boolean(pinError)} aria-describedby={pinError ? `${instanceId}-pin-error` : undefined}
-                            className="w-full rounded border bg-background p-2" />
-                        {pinError ? <p id={`${instanceId}-pin-error`} role="alert" className="text-sm text-destructive">{pinError}</p> : null}
-                        <label className="block text-sm font-medium" htmlFor={`${instanceId}-reason`}>Reason for edit (optional)</label>
-                        <textarea id={`${instanceId}-reason`} value={editReason}
-                            onChange={(event) => setEditReason(event.target.value)} className="w-full rounded border bg-background p-2" />
-                        <DialogFooter><Button type="submit" disabled={verifying}>{verifying ? 'Verifying...' : 'Unlock'}</Button></DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

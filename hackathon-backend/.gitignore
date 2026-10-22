@@ -14,3 +14,9 @@ env/
 
 # Corporate CA cert used only for Docker build context
 intel-ca.crt
+
+# Runtime noise
+*.log
+.pytest_cache/
+data/backups/
+data/Auth/

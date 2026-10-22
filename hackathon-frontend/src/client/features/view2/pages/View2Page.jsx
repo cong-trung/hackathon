@@ -1,4 +1,6 @@
 import { useDeferredValue, useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { loginPath, useAuth } from '@/shared/hooks/useAuth';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import { ArrowDown, ArrowDownUp, ArrowUp, PencilIcon, PlusIcon, SearchIcon } from 'lucide-react';
 
@@ -112,6 +114,7 @@ function UpdatedAtCell({ getValue }) {
 }
 
 function ActionCell({ row, table }) {
+    if (!table.options.meta.canEdit) return null;
     return (
         <Button
             type="button"
@@ -172,6 +175,8 @@ const columns = columnsFor();
 const sortableColumns = new Set(['nbr', 'event_id', 'actionable_item', 'owner', 'updated_at']);
 
 export default function View2Page() {
+    const { isAuthenticated } = useAuth();
+    const location = useLocation();
     const { data, isLoading, isError, refetch } = useGetActionItemsQuery();
     const [search, setSearch] = useState('');
     const [sort, setSort] = useState({ key: 'nbr', direction: 'ascending' });
@@ -211,7 +216,7 @@ export default function View2Page() {
     const table = useReactTable({
         data: visibleItems,
         columns,
-        meta: { onEdit: setActiveItem },
+        meta: { onEdit: (item) => { if (isAuthenticated) setActiveItem(item); }, canEdit: isAuthenticated },
         getRowId: (row) => String(row.nbr),
         getCoreRowModel: getCoreRowModel(),
     });
@@ -237,7 +242,7 @@ export default function View2Page() {
 
     return (
         <div className="flex min-w-0 flex-col gap-3 md:h-full md:min-h-0 md:overflow-hidden">
-            <h1 className="sr-only">View 2</h1>
+            <h1 className="sr-only">Action Items</h1>
             <div className="flex flex-wrap items-center gap-3">
                 <div className="relative w-full max-w-sm">
                 <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -251,9 +256,10 @@ export default function View2Page() {
                 />
                 </div>
                 <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{filtered.length} action items found</span>
-                <Button size="sm" className="ml-auto" onClick={() => setActiveItem(null)}>
+                {!isAuthenticated && <Link className="ml-auto text-sm underline" to={loginPath(location.pathname + location.search)}>Log in to edit</Link>}
+                {isAuthenticated && <Button size="sm" className="ml-auto" onClick={() => setActiveItem(null)}>
                     <PlusIcon className="mr-2 size-4" /> Add new item
-                </Button>
+                </Button>}
             </div>
 
             {isError ? (
@@ -340,7 +346,7 @@ export default function View2Page() {
             {!isLoading && !isError && <ClientPagination label="Action items" total={sorted.length} page={currentPage}
                 pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
 
-            {activeItem !== undefined && (
+            {isAuthenticated && activeItem !== undefined && (
                 <ActionItemForm
                     key={activeItem?.nbr ?? 'new'}
                     item={activeItem}

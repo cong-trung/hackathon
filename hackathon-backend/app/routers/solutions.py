@@ -1,7 +1,8 @@
 """CRUD endpoints for the global Solution list."""
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException
 
+from app.auth import get_current_user
 from app.io.csv_excel import find_by_key, get_path, read_data, value_to_str, write_data
 from app.io.concurrency import locked_files
 from app.models.common import FlexiblePayload, SolutionPayload
@@ -36,7 +37,9 @@ def list_solutions(
 
 
 @router.post("/solutions")
-def create_solution(payload: SolutionPayload):
+def create_solution(
+    payload: SolutionPayload, _user: dict = Depends(get_current_user)
+):
     with locked_files(get_path(SOLUTION_CONFIG)):
         headers, rows = read_data(SOLUTION_CONFIG)
         data = payload.model_dump()
@@ -50,7 +53,11 @@ def create_solution(payload: SolutionPayload):
 
 
 @router.patch("/solutions/{solution_id}")
-def patch_solution(solution_id: str, payload: FlexiblePayload):
+def patch_solution(
+    solution_id: str,
+    payload: FlexiblePayload,
+    _user: dict = Depends(get_current_user),
+):
     with locked_files(get_path(SOLUTION_CONFIG)):
         headers, rows = read_data(SOLUTION_CONFIG)
         idx = find_by_key(rows, "id", solution_id)
@@ -63,7 +70,9 @@ def patch_solution(solution_id: str, payload: FlexiblePayload):
 
 
 @router.delete("/solutions/{solution_id}")
-def delete_solution(solution_id: str):
+def delete_solution(
+    solution_id: str, _user: dict = Depends(get_current_user)
+):
     with locked_files(get_path(SOLUTION_CONFIG)):
         headers, rows = read_data(SOLUTION_CONFIG)
         idx = find_by_key(rows, "id", solution_id)

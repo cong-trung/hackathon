@@ -3,6 +3,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { authErrorMessage } from '@/shared/hooks/useAuth';
 
 import { useUpdateProductActionMatrixRowMutation } from '@/app/api/productActionMatrixApi';
 import {
@@ -17,7 +18,6 @@ import {
 import {
     Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from '@/shared/components/ui/form';
-import { Input } from '@/shared/components/ui/input';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/shared/components/ui/select';
@@ -25,7 +25,6 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { scrollbarClassName } from '@/shared/utils/scrollbar';
 
 const schema = z.object({
-    updated_by: z.string().trim().min(1, 'Updated by is required.'),
     cells: z.array(z.object({
         status: z.enum(['', 'Y', 'N', 'NA']),
         comment: z.string().trim().max(2000, 'Max 2000 characters.'),
@@ -66,10 +65,6 @@ function mapError(error, form, sentIndices) {
                 type: 'server', message: String(message),
             });
             firstField ??= name;
-            mapped = true;
-        } else if (field === 'updated_by') {
-            form.setError('updated_by', { type: 'server', message: String(message) });
-            firstField ??= 'updated_by';
             mapped = true;
         }
     });
@@ -127,7 +122,6 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
     const form = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
-            updated_by: localStorage.getItem('view3.updatedBy') ?? '',
             cells: actions.map((action) => savedCell(loadedRow, action)),
         },
     });
@@ -149,7 +143,6 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
             const latest = await onReload();
             setLoadedRow(latest);
             form.reset({
-                updated_by: localStorage.getItem('view3.updatedBy') ?? '',
                 cells: actions.map((action) => savedCell(latest, action)),
             });
             setConflict(null);
@@ -161,11 +154,8 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
     }
 
     function onInvalid(errors) {
-        if (errors.updated_by) form.setFocus('updated_by');
-        else {
-            const index = errors.cells?.findIndex((cell) => cell?.status || cell?.comment);
-            if (index >= 0) form.setFocus(`cells.${index}.${errors.cells[index].status ? 'status' : 'comment'}`);
-        }
+        const index = errors.cells?.findIndex((cell) => cell?.status || cell?.comment);
+        if (index >= 0) form.setFocus(`cells.${index}.${errors.cells[index].status ? 'status' : 'comment'}`);
     }
 
     function handleSave(mode) {
@@ -202,15 +192,15 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
             await updateRow({
                 product_key: loadedRow.product_key,
                 module_group: loadedRow.module_group,
-                updated_by: values.updated_by,
                 mode,
                 cells: changes,
             }).unwrap();
-            localStorage.setItem('view3.updatedBy', values.updated_by);
             toast.success(mode === 'draft' ? 'Draft saved.' : 'Saved.');
             onClose();
         } catch (error) {
-            if (error?.status === 409 && error.data?.detail?.code === 'conflict') {
+            if (error?.status === 401 || error?.status === 403) {
+                toast.error(authErrorMessage(error));
+            } else if (error?.status === 409 && error.data?.detail?.code === 'conflict') {
                 setConflict(error.data.detail);
             } else {
                 mapError(error, form, sentIndices);
@@ -257,13 +247,6 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
                             </div>
                         )}
                         <div className={`min-h-0 overflow-y-auto px-6 ${scrollbarClassName}`}>
-                            <FormField control={form.control} name="updated_by" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Updated by *</FormLabel>
-                                    <FormControl><Input autoComplete="name" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
                             {actions.map((action, index) => (
                                 <ActionEditor key={action.nbr} action={action} index={index}
                                     cell={loadedRow.cells?.[action.nbr]} form={form} focusRef={focusRef}

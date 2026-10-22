@@ -33,21 +33,35 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Place intel-ca.crt in build context (copy from /etc/ssl/certs/ca-certificates.crt on dev machine)
-COPY intel-ca.crt /usr/local/share/ca-certificates/intel-ca.crt
-RUN update-ca-certificates
+# Trust the Intel corporate CA only when intel-ca.crt is present in the build
+# context (needed inside Intel networks). On external hosts the file is absent,
+# so the install step is skipped and the public CA bundle is used.
+RUN --mount=type=bind,target=/build-context \
+    if [ -f /build-context/intel-ca.crt ]; then \
+      cp /build-context/intel-ca.crt /usr/local/share/ca-certificates/intel-ca.crt \
+      && update-ca-certificates; \
+    else \
+      echo "intel-ca.crt not in build context; skipping corporate CA install"; \
+    fi
 
 COPY requirements.txt /app/requirements.txt
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system -r requirements.txt
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system --native-tls nyra-services --index-url https://devpi.intel.com/general/nyra/+simple/
+# Optional internal-only package. Leave NYRA_INDEX_URL empty on external hosts
+# to skip the install; the chat endpoint then returns a clean error until the
+# package and NYRA_API_KEY are configured.
+ARG NYRA_INDEX_URL=https://devpi.intel.com/general/nyra/+simple/
+RUN if [ -n "${NYRA_INDEX_URL}" ]; then \
+      uv pip install --system --native-tls nyra-services --index-url "${NYRA_INDEX_URL}"; \
+    else \
+      echo "NYRA_INDEX_URL is empty; skipping nyra-services install"; \
+    fi
 
 COPY . /app
 
 EXPOSE 8004
 
 # Run the application
-CMD ["uvicorn", "main:app", "--port", "8004", "--host", "0.0.0.0", "--workers", "1", "--env-file", ".env.production"]
+CMD ["uvicorn", "main:app", "--port", "8004", "--host", "0.0.0.0", "--workers", "1"]

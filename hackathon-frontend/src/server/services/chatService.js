@@ -8,6 +8,6 @@ export const sendChatMessage = async (req, res) => {
     } catch (error) {
         console.error('Error calling chat API:', error);
         const parsedError = parseError(error);
-        res.status(parsedError.status).json(parsedError);
+        res.status(parsedError.status).json(parsedError.body);
     }
 };

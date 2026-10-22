@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import ALLOWED_ORIGINS, DATA_DIR
+from app.auth import bootstrap_admin, record_audit
 
 LEGACY_ROOT_DATA_FILES = (
     "PYPCS_Submissions.csv",
@@ -34,6 +35,7 @@ if legacy_files:
     )
 
 from app.routers import (
+    auth,
     chat,
     health,
     pdsolutions,
@@ -46,7 +48,7 @@ from app.routers import (
 app = FastAPI(
     title="Quality Matrix Multi-Module API",
     version="1.0.0",
-    description="No-auth GitHub-ready API for STHI, LCBI product basic info and module solutions.",
+    description="Local-account API for STHI, LCBI product basic info and module solutions.",
 )
 
 app.add_middleware(
@@ -57,7 +59,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.on_event("startup")
+def initialize_auth_store():
+    bootstrap_admin()
+
+
+@app.middleware("http")
+async def audit_authenticated_mutations(request, call_next):
+    response = await call_next(request)
+    user = getattr(request.state, "auth_user", None)
+    if (
+        user
+        and request.method in {"POST", "PUT", "PATCH", "DELETE"}
+        and request.url.path not in {"/auth/login", "/auth/request-account"}
+    ):
+        record_audit(user["username"], request.method, request.url.path, response.status_code)
+    return response
+
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(product_basis.router)
 app.include_router(solutions.router)
 app.include_router(pdsolutions.router)
