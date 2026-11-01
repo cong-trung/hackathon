@@ -1,5 +1,5 @@
-import { useCallback, useDeferredValue, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { loginPath, useAuth } from '@/shared/hooks/useAuth';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { ArrowDown, ArrowDownUp, ArrowUp, CircleAlert, CircleCheck, DownloadIcon, PencilIcon, PencilLine, SearchIcon } from 'lucide-react';
@@ -182,7 +182,7 @@ function columnsFor(actions) {
 export default function QualityProductMatrixPage() {
     const { isAuthenticated, isGuest } = useAuth();
     const location = useLocation();
-    const [moduleGroup, setModuleGroup] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
     const [search, setSearch] = useState('');
     const [needsReview, setNeedsReview] = useState(false);
     const [sort, setSort] = useState({ key: 'product_name', direction: 'ascending' });
@@ -191,6 +191,17 @@ export default function QualityProductMatrixPage() {
     const [editor, setEditor] = useState(null);
     const [activeDescription, setActiveDescription] = useState(null);
     const allQuery = useGetProductActionMatrixQuery({});
+    const groups = allQuery.currentData?.module_groups ?? EMPTY;
+    const requestedModule = searchParams.get('module');
+    const moduleGroup = groups.find((group) => group.key.toLowerCase() === requestedModule?.toLowerCase())?.key ?? '';
+    useEffect(() => {
+        if (!allQuery.currentData || requestedModule === null || moduleGroup) return;
+        setSearchParams((previous) => {
+            const next = new URLSearchParams(previous);
+            next.delete('module');
+            return next;
+        }, { replace: true });
+    }, [allQuery.currentData, requestedModule, moduleGroup, setSearchParams]);
     const filteredQuery = useGetProductActionMatrixQuery({ moduleGroup }, { skip: !moduleGroup });
     const query = moduleGroup ? filteredQuery : allQuery;
     const data = query.currentData;
@@ -198,7 +209,6 @@ export default function QualityProductMatrixPage() {
         ? (data?.actions ?? EMPTY).filter((action) => action.modules?.some((module) => module.toLowerCase() === moduleGroup.toLowerCase()))
         : data?.actions ?? EMPTY, [data?.actions, moduleGroup]);
     const rows = data?.rows ?? EMPTY;
-    const groups = allQuery.currentData?.module_groups ?? data?.module_groups ?? EMPTY;
     const term = useDeferredValue(search).trim().toLowerCase();
     const visibleRows = useMemo(() => rows.filter((row) => {
         const matches = !term || [row.product_name, row.prodgroup3, displayValue(row.prodgroup3), row.module_group, ...(row.module_keys ?? [])]
@@ -259,7 +269,15 @@ export default function QualityProductMatrixPage() {
                     <span><span className="mr-1 inline-block size-3 border border-dashed border-border bg-green-200 align-middle dark:bg-green-900" />Draft</span>
                     <span>N (default) = not reviewed yet</span>
                 </div>
-                <Tabs value={moduleGroup || '__all__'} onValueChange={(value) => { setModuleGroup(value === '__all__' ? '' : value); setPage(1); }} className="min-w-0">
+                <Tabs value={moduleGroup || '__all__'} onValueChange={(value) => {
+                    setSearchParams((previous) => {
+                        const next = new URLSearchParams(previous);
+                        if (value === '__all__') next.delete('module');
+                        else next.set('module', value);
+                        return next;
+                    }, { replace: true });
+                    setPage(1);
+                }} className="min-w-0">
                     <div className={`overflow-x-auto ${scrollbarClassName}`}>
                         <TabsList className="h-auto w-max justify-start gap-1">
                             <TabsTrigger value="__all__">All ({allQuery.data?.rows?.length ?? rows.length})</TabsTrigger>

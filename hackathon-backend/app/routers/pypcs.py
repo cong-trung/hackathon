@@ -1,11 +1,12 @@
 """PYPCS dynamic questionnaire/matrix endpoints: modules, questions, submissions."""
 
 import json
+import logging
 import re
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from app.auth import require_writer
 from app.io.csv_excel import value_to_str
@@ -44,8 +45,10 @@ from app.services.pypcs_service import (
     normalize_pypcs_module,
     normalize_pypcs_question,
 )
+from app.services.notification_service import notify_final_submission
 from app.services.product_action_matrix_service import invalidate_product_action_matrix_cache
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # TP name must be a real identifier, not a short placeholder.
@@ -370,6 +373,9 @@ def _persist_matrix_submission(
     question_rows: list[dict[str, str]],
     username: str,
     user_role: str,
+    submitter_email: str,
+    submitter_display_name: str,
+    background_tasks: BackgroundTasks,
 ) -> dict:
     with locked_files(
         PYPCS_SUBMISSIONS_FILE,
@@ -581,6 +587,26 @@ def _persist_matrix_submission(
             for row in read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE)
             if value_to_str(row.get("submission_id", "")) == submission_id
         ]
+        became_final = req.status == "final" and (
+            not existing_submission
+            or normalize_status(existing_submission.get("status", "")) != "final"
+        )
+        if became_final:
+            logger.info(
+                "Final-submission notification queued for %s (%s, %s).",
+                submission_id,
+                product_name,
+                prodgroup3,
+            )
+            background_tasks.add_task(
+                notify_final_submission,
+                submission_id=submission_id,
+                cells=saved_cells,
+                product_name=product_name,
+                prodgroup3=prodgroup3,
+                submitter_name=submitter_display_name or username,
+                submitter_email=submitter_email,
+            )
         return {
             "message": "created" if not existing_submission else "updated",
             "submission_id": submission_id,
@@ -1024,6 +1050,7 @@ def delete_pypcs_submission(
 @router.post("/pypcs/matrix-submission")
 def create_pypcs_matrix_submission(
     req: PYPCSMatrixSubmissionRequest,
+    background_tasks: BackgroundTasks,
     user: dict = Depends(require_writer),
 ):
     if not req.selected_modules:
@@ -1299,4 +1326,7 @@ def create_pypcs_matrix_submission(
         question_rows,
         user["username"],
         user["role"],
+        user.get("email", ""),
+        user.get("display_name", ""),
+        background_tasks,
     )

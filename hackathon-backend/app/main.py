@@ -1,10 +1,22 @@
 """FastAPI app factory: wires CORS and all routers together."""
 
+import logging
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import ALLOWED_ORIGINS, DATA_DIR
 from app.auth import bootstrap_admin, record_audit
+
+# Uvicorn configures only its own loggers, so give the app package a handler.
+_app_logger = logging.getLogger("app")
+if not _app_logger.handlers:
+    _log_level = getattr(logging, os.getenv("QUALITY_MATRIX_LOG_LEVEL", "INFO").strip().upper(), None)
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s - %(message)s"))
+    _app_logger.addHandler(_handler)
+    _app_logger.setLevel(_log_level if isinstance(_log_level, int) else logging.INFO)
 
 LEGACY_ROOT_DATA_FILES = (
     "PYPCS_Submissions.csv",

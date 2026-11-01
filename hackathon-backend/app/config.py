@@ -3,6 +3,7 @@
 import logging
 import os
 import secrets
+import sys
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -51,3 +52,39 @@ QUALITY_MATRIX_TRUSTED_PROXIES = frozenset(
     for value in os.getenv("QUALITY_MATRIX_TRUSTED_PROXIES", "127.0.0.1,::1").split(",")
     if value.strip()
 )
+QUALITY_MATRIX_PUBLIC_URL = os.getenv(
+    "QUALITY_MATRIX_PUBLIC_URL", "http://localhost:5173"
+).strip().rstrip("/")
+QUALITY_MATRIX_MAIL_ENABLED = os.getenv("QUALITY_MATRIX_MAIL_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+QUALITY_MATRIX_MAIL_FROM = os.getenv("QUALITY_MATRIX_MAIL_FROM", "no-reply@localhost").strip()
+QUALITY_MATRIX_SMTP_HOST = os.getenv("QUALITY_MATRIX_SMTP_HOST", "").strip()
+try:
+    QUALITY_MATRIX_SMTP_PORT = int(os.getenv("QUALITY_MATRIX_SMTP_PORT", "25"))
+except ValueError:
+    QUALITY_MATRIX_SMTP_PORT = 25
+QUALITY_MATRIX_SMTP_STARTTLS = os.getenv("QUALITY_MATRIX_SMTP_STARTTLS", "false").strip().lower() in {"1", "true", "yes", "on"}
+QUALITY_MATRIX_SMTP_USERNAME = os.getenv("QUALITY_MATRIX_SMTP_USERNAME", "").strip()
+QUALITY_MATRIX_SMTP_PASSWORD = os.getenv("QUALITY_MATRIX_SMTP_PASSWORD", "")
+
+_MAIL_TRANSPORTS = frozenset({"outlook", "smtp", "log"})
+_mail_transport_env = os.getenv("QUALITY_MATRIX_MAIL_TRANSPORT", "").strip().lower()
+if _mail_transport_env and _mail_transport_env not in _MAIL_TRANSPORTS:
+    logging.getLogger(__name__).warning(
+        "Unknown QUALITY_MATRIX_MAIL_TRANSPORT=%r; using the default transport.",
+        _mail_transport_env,
+    )
+    _mail_transport_env = ""
+if not QUALITY_MATRIX_MAIL_ENABLED:
+    QUALITY_MATRIX_MAIL_TRANSPORT = "log"
+elif _mail_transport_env:
+    QUALITY_MATRIX_MAIL_TRANSPORT = _mail_transport_env
+elif QUALITY_MATRIX_SMTP_HOST:
+    QUALITY_MATRIX_MAIL_TRANSPORT = "smtp"
+elif sys.platform == "win32":
+    QUALITY_MATRIX_MAIL_TRANSPORT = "outlook"
+else:
+    QUALITY_MATRIX_MAIL_TRANSPORT = "log"
+if QUALITY_MATRIX_MAIL_TRANSPORT == "smtp" and not QUALITY_MATRIX_SMTP_HOST:
+    logging.getLogger(__name__).warning(
+        "QUALITY_MATRIX_MAIL_TRANSPORT=smtp but QUALITY_MATRIX_SMTP_HOST is empty; emails will be logged only."
+    )
