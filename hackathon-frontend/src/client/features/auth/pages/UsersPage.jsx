@@ -27,7 +27,7 @@ export default function UsersPage() {
     if (isLoading) return <p role="status">Checking session...</p>;
     if (!user) return <Navigate to={loginPath(location.pathname + location.search)} replace />;
     if (!isAdmin) return <main role="alert"><h1 className="text-xl font-semibold">403 · Access denied</h1>
-        <p>Only admins can manage users.</p><Link to="/pypcs" className="underline">Back to Quality Matrix</Link></main>;
+        <p>Only admins can manage users.</p><Link to="/product-info" className="underline">Back to Product Info</Link></main>;
 
     async function confirmAction() {
         if (!pending) return;

@@ -8,10 +8,12 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from app.auth import require_writer
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
+from app.io.generic_csv import safe_int
 from app.services.product_action_matrix_service import (
     PRODUCT_ACTION_DECISIONS_FILE,
     _decision_values,
     build_product_action_matrix,
+    canonical_module_group,
     export_product_action_matrix,
     get_product_action_matrix,
     matrix_timestamp,
@@ -31,8 +33,9 @@ def _field_error(status_code: int, field: str, message: str) -> HTTPException:
 @router.get("/pypcs/product-action-matrix")
 def get_pypcs_product_action_matrix(
     module_group: str | None = Query(default=None),
+    prodgroup3: str | None = Query(default=None),
 ):
-    return get_product_action_matrix(module_group)
+    return get_product_action_matrix(module_group, prodgroup3=prodgroup3)
 
 
 @router.put("/pypcs/product-action-matrix/rows")
@@ -42,7 +45,7 @@ def update_pypcs_product_action_matrix_row(
     if not isinstance(payload, dict):
         raise _field_error(422, "body", "Request body must be an object.")
     product_key = value_to_str(payload.get("product_key", ""))
-    module_group = value_to_str(payload.get("module_group", ""))
+    module_group = canonical_module_group(payload.get("module_group", ""))
     mode = payload.get("mode", "final")
     if not isinstance(mode, str) or mode not in {"draft", "final"}:
         raise _field_error(422, "mode", "mode must be 'draft' or 'final'.")
@@ -99,14 +102,16 @@ def _update_matrix_row(product_key, module_group, updated_by, mode, cells):
         if not target_rows:
             raise _field_error(404, "product_key", "Product/module group not found.")
 
-        valid_actions = {action["nbr"] for action in built["actions"]}
+        valid_actions = {safe_int(row["action_nbr"]) for row in target_rows}
         decision_updates = {}
         conflicts = []
         timestamp = matrix_timestamp()
         for index, cell in enumerate(cells):
             field = f"cells[{index}]"
             if cell["action_nbr"] not in valid_actions:
-                raise _field_error(422, f"{field}.action_nbr", "Unknown action_nbr.")
+                raise _field_error(
+                    422, f"{field}.action_nbr", "action_nbr is not tagged for this module_group."
+                )
             status = cell["status"]
             comment = cell["comment"]
             if status not in {"", "Y", "N", "NA"}:

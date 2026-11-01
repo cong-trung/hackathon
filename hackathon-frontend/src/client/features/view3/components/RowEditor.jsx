@@ -113,6 +113,8 @@ function ActionEditor({ action, index, cell, form, focusRef, focused }) {
 }
 
 export default function RowEditor({ row, actions, focusedAction, onClose, onReload }) {
+    const applicable = actions.filter((action) => action.modules?.some((module) =>
+        module.toLowerCase() === row.module_group?.toLowerCase()));
     const focusRef = useRef(null);
     const cancelRef = useRef(null);
     const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -122,14 +124,14 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
     const form = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
-            cells: actions.map((action) => savedCell(loadedRow, action)),
+            cells: applicable.map((action) => savedCell(loadedRow, action)),
         },
     });
     const { isDirty } = form.formState;
     const cells = useWatch({ control: form.control, name: 'cells' });
     const [updateRow, { isLoading: saving }] = useUpdateProductActionMatrixRowMutation();
-    const changed = actions.some((action, index) => isChanged(loadedRow, action, cells?.[index]));
-    const hasDrafts = actions.some((action) => loadedRow.cells?.[action.nbr]?.decision_state === 'draft');
+    const changed = applicable.some((action, index) => isChanged(loadedRow, action, cells?.[index]));
+    const hasDrafts = applicable.some((action) => loadedRow.cells?.[action.nbr]?.decision_state === 'draft');
 
     function requestClose() {
         if (saving || reloading) return;
@@ -143,7 +145,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
             const latest = await onReload();
             setLoadedRow(latest);
             form.reset({
-                cells: actions.map((action) => savedCell(latest, action)),
+                cells: applicable.map((action) => savedCell(latest, action)),
             });
             setConflict(null);
         } catch {
@@ -165,7 +167,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
     async function onSubmit(values, mode) {
         if (mode === 'final') {
             const result = schema.superRefine((data, context) => {
-                actions.forEach((action, index) => {
+                applicable.forEach((action, index) => {
                     const cell = data.cells[index];
                     if (cell && shouldSend(loadedRow, action, cell, 'final') && cell.status && !cell.comment) {
                         context.addIssue({ code: 'custom', path: ['cells', index, 'comment'], message: 'Comment is required for a decision.' });
@@ -179,7 +181,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
             }
         }
         const sentIndices = [];
-        const changes = actions.flatMap((action, index) => {
+        const changes = applicable.flatMap((action, index) => {
             const cell = values.cells[index];
             if (!shouldSend(loadedRow, action, cell, mode)) return [];
             sentIndices.push(index);
@@ -231,7 +233,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
                                 {conflict.conflicts?.length > 0 && (
                                     <ul className="mt-1 list-disc pl-5">
                                         {conflict.conflicts.map(({ action_nbr, current }) => {
-                                            const action = actions.find((entry) => entry.nbr === action_nbr);
+                                            const action = applicable.find((entry) => entry.nbr === action_nbr);
                                             return (
                                                 <li key={action_nbr}>
                                                     {action?.event_id || `#${action_nbr}`}: changed by {current?.updated_by || 'unknown'}
@@ -247,7 +249,7 @@ export default function RowEditor({ row, actions, focusedAction, onClose, onRelo
                             </div>
                         )}
                         <div className={`min-h-0 overflow-y-auto px-6 ${scrollbarClassName}`}>
-                            {actions.map((action, index) => (
+                            {applicable.map((action, index) => (
                                 <ActionEditor key={action.nbr} action={action} index={index}
                                     cell={loadedRow.cells?.[action.nbr]} form={form} focusRef={focusRef}
                                     focused={action.nbr === focusedAction} />

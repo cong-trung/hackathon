@@ -37,6 +37,9 @@ from app.services.pypcs_service import (
     PYPCS_ACTION_ITEMS_FILE,
     build_action_item_options,
     build_pypcs_visible_questions,
+    canonical_multiselect_answer,
+    canonical_module_group,
+    canonical_module_key,
     normalize_pypcs_map,
     normalize_pypcs_module,
     normalize_pypcs_question,
@@ -84,6 +87,16 @@ def _append_submission_history(
     headers = read_generic_csv_headers(PYPCS_SUBMISSION_HISTORY_FILE)
     if not headers:
         headers = PYPCS_SUBMISSION_HISTORY_HEADERS
+    canonical_submission = dict(submission)
+    if "selected_modules" in canonical_submission:
+        canonical_submission["selected_modules"] = "|".join(
+            canonical_module_key(module)
+            for module in split_pipe_value(canonical_submission["selected_modules"])
+        )
+    canonical_cells = [
+        {**cell, "module_key": canonical_module_key(cell.get("module_key", ""))}
+        for cell in cells
+    ]
     history_rows.append(
         {
             "history_id": str(uuid.uuid4()),
@@ -93,10 +106,10 @@ def _append_submission_history(
             "changed_by": changed_by,
             "reason": reason,
             "previous_submission_json": json.dumps(
-                submission, ensure_ascii=False, separators=(",", ":")
+                canonical_submission, ensure_ascii=False, separators=(",", ":")
             ),
             "previous_cells_json": json.dumps(
-                cells, ensure_ascii=False, separators=(",", ":")
+                canonical_cells, ensure_ascii=False, separators=(",", ":")
             ),
         }
     )
@@ -121,6 +134,23 @@ def validate_action_item(payload: PYPCSActionItemRequest) -> None:
         )
 
     allowed_by_field = build_action_item_options()["fields"]
+
+    module_options = allowed_by_field["module"]
+    modules = [canonical_module_group(value) for value in payload.module if value.strip()]
+    if not modules:
+        raise HTTPException(
+            status_code=422,
+            detail={"field": "module", "message": "module is required."},
+        )
+    if any(module not in module_options for module in modules):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "field": "module",
+                "message": f"Values must be selected from: {', '.join(module_options)}.",
+            },
+        )
+    payload.module = [option for option in module_options if option in modules]
 
     for field in ACTION_ITEM_APPLICABILITY_FIELDS:
         options = allowed_by_field[field]
@@ -180,6 +210,7 @@ def action_item_row(
     for field in ACTION_ITEM_APPLICABILITY_FIELDS:
         values = row[field]
         row[field] = "All" if "All" in values else "|".join(values)
+    row["module"] = "|".join(row["module"])
     row["nbr"] = str(nbr)
     row["updated_at"] = updated_at
     return row
@@ -190,10 +221,16 @@ def normalize_action_item(row: dict[str, str]) -> dict:
         key: value_to_str(row.get(key, ""))
         for key in ACTION_ITEM_HEADERS
         if key not in ACTION_ITEM_APPLICABILITY_FIELDS
-        and key not in {"nbr", "updated_at"}
+        and key not in {"nbr", "updated_at", "module"}
     }
     item["nbr"] = safe_int(row.get("nbr", ""))
     item["updated_at"] = value_to_str(row.get("updated_at", ""))
+    item["module"] = list(
+        dict.fromkeys(
+            canonical_module_group(module)
+            for module in split_pipe_value(row.get("module", ""))
+        )
+    )
     for field in ACTION_ITEM_APPLICABILITY_FIELDS:
         item[field] = split_pipe_value(row.get(field, ""))
     item["version"] = record_version(
@@ -298,7 +335,7 @@ def matrix_submission_versions(
             [
                 [
                     value_to_str(cell.get("question_id", "")),
-                    value_to_str(cell.get("module_key", "")).upper(),
+                    canonical_module_key(cell.get("module_key", "")).casefold(),
                     value_to_str(cell.get("answer", "")),
                 ]
                 for cell in cells
@@ -311,8 +348,11 @@ def matrix_submission_versions(
         )
         versions[scope] = record_version(
             {
-                "selected_modules": value_to_str(
-                    submission.get("selected_modules", "")
+                "selected_modules": "|".join(
+                    canonical_module_key(module)
+                    for module in split_pipe_value(
+                        submission.get("selected_modules", "")
+                    )
                 ),
                 "status": normalize_status(submission.get("status", "")),
                 "cells": json.dumps(
@@ -425,6 +465,20 @@ def _persist_matrix_submission(
             operation = operation or value_to_str(
                 existing_submission.get("operation", "")
             )
+        prodgroup3_question = next(
+            (
+                normalize_pypcs_question(row)
+                for row in question_rows
+                if value_to_str(row.get("question_id", "")) == "prodgroup3"
+            ),
+            {},
+        )
+        if prodgroup3_question.get("field_type", "").casefold() == "multiselect":
+            prodgroup3 = canonical_multiselect_answer(
+                prodgroup3,
+                prodgroup3_question.get("options", []),
+                field="prodgroup3",
+            )
         if not product_name:
             raise HTTPException(
                 status_code=400,
@@ -478,6 +532,10 @@ def _persist_matrix_submission(
                 and value_to_str(row.get("role", "")).strip().upper() != scope
             )
         ] + cell_rows
+        merged_cells = [
+            {**row, "module_key": canonical_module_key(row.get("module_key", ""))}
+            for row in merged_cells
+        ]
         submission_row["answer_count"] = str(
             sum(
                 value_to_str(row.get("submission_id", "")) == submission_id
@@ -671,10 +729,16 @@ def list_pypcs_submissions(
         ]
 
     if prodgroup3:
-        target = value_to_str(prodgroup3).lower()
+        targets = {
+            value.casefold()
+            for value in split_pipe_value(value_to_str(prodgroup3))
+        }
         rows = [
             row for row in rows
-            if value_to_str(row.get("prodgroup3", "")).lower() == target
+            if targets.intersection(
+                value.casefold()
+                for value in split_pipe_value(row.get("prodgroup3", ""))
+            )
         ]
 
     if submitted_by:
@@ -685,12 +749,12 @@ def list_pypcs_submissions(
         ]
 
     if module:
-        module_upper = value_to_str(module).upper()
+        module_folded = canonical_module_key(module).casefold()
 
         rows = [
             row for row in rows
-            if module_upper in [
-                item.upper()
+            if module_folded in [
+                canonical_module_key(item).casefold()
                 for item in split_pipe_value(row.get("selected_modules", ""))
             ]
         ]
@@ -711,7 +775,10 @@ def list_pypcs_submissions(
                 "submitted_by": value_to_str(row.get("submitted_by", "")),
                 "role": value_to_str(row.get("role", "")),
                 "selected_modules": split_pipe_value(
-                    row.get("selected_modules", "")
+                    "|".join(
+                        canonical_module_key(item)
+                        for item in split_pipe_value(row.get("selected_modules", ""))
+                    )
                 ),
                 "product_name": value_to_str(row.get("product_name", "")),
                 "prodgroup3": value_to_str(row.get("prodgroup3", "")),
@@ -761,7 +828,9 @@ def get_pypcs_submission_detail(submission_id: str):
     for row in read_optional_csv(PYPCS_QUESTION_MODULE_MAP_FILE):
         mapping = normalize_pypcs_map(row)
         if mapping["visible_default"]:
-            mapping_by_pair[(mapping["question_id"], mapping["module_key"].upper())] = mapping
+            mapping_by_pair[
+                (mapping["question_id"], mapping["module_key"].casefold())
+            ] = mapping
 
     all_cells = read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE)
     submission_cells = [
@@ -777,7 +846,10 @@ def get_pypcs_submission_detail(submission_id: str):
         row for row in submission_cells
         if value_to_str(row.get("module_key", "")).strip()
     ]
-    selected_modules = split_pipe_value(submission.get("selected_modules", ""))
+    selected_modules = [
+        canonical_module_key(module)
+        for module in split_pipe_value(submission.get("selected_modules", ""))
+    ]
     visible_questions_by_role = {}
     answers = []
     for row in answer_cells:
@@ -809,6 +881,7 @@ def get_pypcs_submission_detail(submission_id: str):
                 "field_type": value_to_str(
                     setup.get("field_type", question.get("field_type", ""))
                 ),
+                "options": question.get("options", []),
                 "created_at": value_to_str(row.get("updated_at", "")),
             }
         )
@@ -818,8 +891,8 @@ def get_pypcs_submission_detail(submission_id: str):
     for row in module_cells:
         question_id = value_to_str(row.get("question_id", ""))
         question = questions_by_id.get(question_id, {})
-        module_key = value_to_str(row.get("module_key", ""))
-        mapping = mapping_by_pair.get((question_id, module_key.upper()), {})
+        module_key = canonical_module_key(row.get("module_key", ""))
+        mapping = mapping_by_pair.get((question_id, module_key.casefold()), {})
 
         cells.append(
             {
@@ -842,6 +915,7 @@ def get_pypcs_submission_detail(submission_id: str):
                 "required": "Y" if mapping.get("required", False) else "N",
                 "editable": "Y",
                 "field_type": value_to_str(question.get("field_type", "")),
+                "options": question.get("options", []),
                 "applies_to": split_pipe_value(module_key),
                 "source_rule": value_to_str(mapping.get("source_rule", "")),
                 "updated_at": value_to_str(row.get("updated_at", "")),
@@ -960,12 +1034,15 @@ def create_pypcs_matrix_submission(
 
     # Preserve the caller's original module order (not sorted) for column ordering.
     selected_modules_ordered = []
+    selected_modules_seen = set()
     for module in req.selected_modules:
-        module_upper = value_to_str(module).upper()
-        if module_upper and module_upper not in selected_modules_ordered:
-            selected_modules_ordered.append(module_upper)
+        module_key = canonical_module_key(module)
+        module_folded = module_key.casefold()
+        if module_folded and module_folded not in selected_modules_seen:
+            selected_modules_seen.add(module_folded)
+            selected_modules_ordered.append(module_key)
 
-    selected_modules = set(selected_modules_ordered)
+    selected_modules = {module.casefold() for module in selected_modules_ordered}
 
     if not req.cells:
         raise HTTPException(
@@ -995,7 +1072,7 @@ def create_pypcs_matrix_submission(
             continue
 
         question_id = mapping["question_id"]
-        module_key = mapping["module_key"].upper()
+        module_key = mapping["module_key"]
         pair = (question_id, module_key)
 
         mapping_by_pair[pair] = mapping
@@ -1009,13 +1086,13 @@ def create_pypcs_matrix_submission(
 
     for cell in req.cells:
         question_id = value_to_str(cell.question_id)
-        module_key = value_to_str(cell.module_key).upper()
+        module_key = canonical_module_key(cell.module_key)
         answer = value_to_str(cell.answer)
 
         if not question_id or not module_key:
             continue
 
-        if module_key not in selected_modules:
+        if module_key.casefold() not in selected_modules:
             raise HTTPException(
                 status_code=400,
                 detail=f"Cell module {module_key} is not in selected_modules.",
@@ -1051,13 +1128,19 @@ def create_pypcs_matrix_submission(
                 ),
             )
 
-        if question_id == "operation":
+        if question.get("field_type", "").casefold() == "multiselect":
+            answer = canonical_multiselect_answer(
+                answer,
+                question.get("options", []),
+                field=question_id,
+            )
+        elif question_id == "operation":
             options_by_module = question.get("options_by_module", {})
             module_options = next(
                 (
                     options
                     for key, options in options_by_module.items()
-                    if key.upper() == module_key
+                    if key.casefold() == module_key.casefold()
                 ),
                 [],
             )
@@ -1134,7 +1217,7 @@ def create_pypcs_matrix_submission(
 
     if req.status == "final":
         for question_id, module_key in required_pairs:
-            if module_key not in selected_modules:
+            if module_key.casefold() not in selected_modules:
                 continue
 
             question = questions_by_id.get(question_id)

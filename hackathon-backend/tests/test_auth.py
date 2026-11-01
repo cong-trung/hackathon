@@ -204,6 +204,13 @@ def test_unauthenticated_write_is_rejected():
 
 def test_write_uses_authenticated_identity():
     shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
+    settings_path = TEST_DATA_DIR / "QualityMatrix" / "Settings"
+    settings_path.mkdir(parents=True, exist_ok=True)
+    (settings_path / "PYPCS_Modules.csv").write_text(
+        "module_id,module_key,module_label,enabled_default,allowed_roles,sort_order,notes\n"
+        "1,STHI,STHI,Y,TI,1,\n",
+        encoding="utf-8",
+    )
     with TestClient(app) as client:
         response = client.post(
             "/pypcs/action-items",
@@ -212,6 +219,7 @@ def test_write_uses_authenticated_identity():
                 "actionable_item": "Test action",
                 "reference": "REF-1",
                 "owner": "TRB",
+                "module": ["STHI"],
                 "update_by": "forged-user",
             },
         )

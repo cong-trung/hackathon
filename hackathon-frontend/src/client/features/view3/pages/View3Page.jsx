@@ -53,9 +53,15 @@ function displayValue(value) {
     return value?.replaceAll('|', ', ') || '—';
 }
 
+function applicableActions(row, actions) {
+    return actions.filter((action) => action.modules?.some((module) =>
+        module.toLowerCase() === row.module_group?.toLowerCase()));
+}
+
 function reviewStatus(row, actions) {
-    if (actions.some((action) => !row.cells?.[action.nbr]?.status)) return 'needs_review';
-    if (actions.some((action) => row.cells?.[action.nbr]?.decision_state === 'draft')) return 'draft';
+    const applicable = applicableActions(row, actions);
+    if (applicable.some((action) => !row.cells?.[action.nbr]?.status)) return 'needs_review';
+    if (applicable.some((action) => row.cells?.[action.nbr]?.decision_state === 'draft')) return 'draft';
     return 'reviewed';
 }
 
@@ -117,6 +123,9 @@ function AttributeCell({ getValue }) {
 
 function StatusCell({ row, column, table }) {
     const action = column.columnDef.meta.action;
+    if (!applicableActions(row.original, [action]).length) {
+        return <span aria-label={`Not applicable to ${row.original.module_group}`} className="block p-2 text-muted-foreground">—</span>;
+    }
     const cell = row.original.cells?.[action.nbr];
     const status = cell?.status;
     const draft = cell?.decision_state === 'draft';
@@ -170,7 +179,7 @@ function columnsFor(actions) {
     ];
 }
 
-export default function View3Page() {
+export default function QualityProductMatrixPage() {
     const { isAuthenticated, isGuest } = useAuth();
     const location = useLocation();
     const [moduleGroup, setModuleGroup] = useState('');
@@ -184,13 +193,15 @@ export default function View3Page() {
     const allQuery = useGetProductActionMatrixQuery({});
     const filteredQuery = useGetProductActionMatrixQuery({ moduleGroup }, { skip: !moduleGroup });
     const query = moduleGroup ? filteredQuery : allQuery;
-    const data = query.data ?? allQuery.data;
-    const actions = data?.actions ?? EMPTY;
+    const data = query.currentData;
+    const actions = moduleGroup
+        ? (data?.actions ?? EMPTY).filter((action) => action.modules?.some((module) => module.toLowerCase() === moduleGroup.toLowerCase()))
+        : data?.actions ?? EMPTY;
     const rows = data?.rows ?? EMPTY;
-    const groups = allQuery.data?.module_groups ?? data?.module_groups ?? EMPTY;
+    const groups = allQuery.currentData?.module_groups ?? data?.module_groups ?? EMPTY;
     const term = useDeferredValue(search).trim().toLowerCase();
     const visibleRows = useMemo(() => rows.filter((row) => {
-        const matches = !term || [row.product_name, row.prodgroup3, row.module_group, ...(row.module_keys ?? [])]
+        const matches = !term || [row.product_name, row.prodgroup3, displayValue(row.prodgroup3), row.module_group, ...(row.module_keys ?? [])]
             .some((value) => value?.toLowerCase().includes(term));
         return matches && (!needsReview || rowNeedsReview(row, actions));
     }), [rows, actions, term, needsReview]);
@@ -239,7 +250,7 @@ export default function View3Page() {
     return (
         <TooltipProvider>
             <div className="flex min-w-0 flex-col gap-3 md:h-full md:min-h-0 md:overflow-hidden">
-                <h1 className="sr-only">Action Plan</h1>
+                <h1 className="sr-only">Quality Product Matrix</h1>
                 {!isAuthenticated && <Link className="text-sm underline" to={loginPath(location.pathname + location.search)}>Log in to edit</Link>}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Decision legend">
                     <span><span className="mr-1 inline-block size-3 bg-green-600 align-middle" />Y</span>
@@ -279,7 +290,7 @@ export default function View3Page() {
                         Could not load the product action matrix.{' '}
                         <Button type="button" variant="outline" onClick={query.refetch}>Retry</Button>
                     </div>
-                ) : !data && query.isLoading ? (
+                ) : !data ? (
                     <div aria-label="Loading product action matrix" className="space-y-3 rounded-md border p-4">
                         <Skeleton className="h-20 w-full" />
                         {[1, 2, 3, 4].map((index) => <Skeleton key={index} className="h-14 w-full" />)}
@@ -287,6 +298,7 @@ export default function View3Page() {
                 ) : (
                     <div aria-busy={query.isFetching} className={`min-h-[320px] min-w-0 max-w-full overflow-auto rounded-md border border-table-border md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
                         {query.isFetching && <p className="sr-only" role="status">Updating matrix</p>}
+                        {moduleGroup && !actions.length && <p className="p-4 text-sm text-muted-foreground">No actionable items tagged for {moduleGroup}.</p>}
                         <Table style={{ width: table.getTotalSize() }} className="table-fixed border-separate border-spacing-0 text-xs">
                             <colgroup>
                                 {leafColumns.map((column) => <col key={column.id} style={{ width: column.getSize() }} />)}
@@ -375,7 +387,7 @@ export default function View3Page() {
                                     <TableRow><TableCell colSpan={leafColumns.length} className="h-32 text-center text-muted-foreground">
                                         {rows.length ? <>No matching products.{' '}
                                             <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setNeedsReview(false); setModuleGroup(''); setPage(1); }}>Clear filters</Button>
-                                        </> : 'No Quality Matrix submissions yet'}
+                                        </> : 'No Product Info submissions yet'}
                                     </TableCell></TableRow>
                                 )}
                             </TableBody>

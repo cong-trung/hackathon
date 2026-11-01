@@ -1,145 +1,526 @@
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-    BookOpenIcon,
-    CheckCircle2Icon,
-    KeyRoundIcon,
-    ShieldCheckIcon,
+    ArrowRight,
+    CornerDownLeft,
+    MessageCircleQuestionMark,
+    Rocket,
+    Search,
+    Sparkles,
+    X,
 } from 'lucide-react';
 
 import { routes } from '@/routes/routes';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/components/ui/badge';
+import { Button } from '@/shared/components/ui/button';
 import {
     Card,
     CardContent,
     CardDescription,
+    CardFooter,
     CardHeader,
     CardTitle,
 } from '@/shared/components/ui/card';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/shared/components/ui/collapsible';
+import { Input } from '@/shared/components/ui/input';
 
-const guideDescriptions = {
-    home: 'Your starting point. Learn how to use the app and where to find each area.',
-    'admin-users': 'Approve or disable accounts and assign roles. Admins only.',
-    pypcs_page: 'Fill in and manage quality matrix data — products, questions, answers and submission status.',
-    view2_page: 'Add and update action items, including the packages and technologies they apply to.',
-    view3_page: 'Review product × action decisions, mark them final, and export the action plan.',
-    chat_page: 'Ask the AI assistant questions about the project data.',
+const LAST_ROUTE_KEY = 'qm:home:last-route';
+const GUIDE_DISMISSED_KEY = 'qm:home:getting-started-dismissed';
+const legacyWorkspacePaths = {
+    '/pypcs': '/product-info',
+    '/view-2': '/actionable-items',
+    '/view-3': '/quality-product-matrix',
 };
+
+const workspaceMeta = {
+    'admin-users': {
+        description: 'Approve new accounts and assign roles.',
+        keywords: 'users accounts admin approve roles permissions',
+    },
+    product_info_page: {
+        description: 'Complete and submit product information by module.',
+        keywords: 'product info modules questions answers submit',
+    },
+    actionable_items_page: {
+        description: 'Capture actionable items and assign them to modules.',
+        keywords: 'actionable items tasks findings modules packages',
+    },
+    quality_product_matrix_page: {
+        description: 'Review module-specific product decisions and export the matrix.',
+        keywords: 'matrix decisions review final export grid',
+    },
+    chat_page: {
+        description: 'Ask the AI assistant about anything in the data.',
+        keywords: 'chat assistant ai questions ask help',
+    },
+};
+
+const accents = [
+    'bg-chart-2/10 text-chart-2',
+    'bg-chart-1/10 text-chart-1',
+    'bg-chart-3/10 text-chart-3',
+    'bg-chart-4/10 text-chart-4',
+    'bg-chart-5/10 text-chart-5',
+];
 
 const accessSteps = [
     {
-        title: 'Request an account',
-        description: 'On the login page choose "Need access? Request an account" and fill in your details.',
+        title: 'Request access',
+        description:
+            'On the login page choose "Need access? Request an account" and send your details.',
     },
     {
-        title: 'Wait for approval',
-        description: 'An administrator reviews and approves your account. You cannot edit until then.',
+        title: 'Get approved',
+        description:
+            'An admin reviews the request. You can sign in the moment it is approved.',
     },
     {
-        title: 'Log in and explore',
-        description: 'Sign in with your username and password — you will land on Home, your guide to the app.',
+        title: 'Start working',
+        description:
+            'Pick a workspace below and go — every change is saved as you type.',
     },
 ];
 
 const tips = [
-    'Use the sidebar (left) to switch between tabs; the top bar shows where you are.',
-    'Editing requires an approved, active account. Requests stay "pending" until an admin approves them.',
-    'Only admins can edit final submissions and manage user accounts.',
-    'Changes are saved to the project data files right away.',
-    'Log out from the user menu in the bottom of the sidebar when you are done.',
+    'Switch tabs from the sidebar; editing needs an approved account.',
+    'Only admins can finalize submissions or manage user accounts.',
+    'Changes land in the project data right away — there is no save button.',
 ];
+
+function Kbd({ children }) {
+    return (
+        <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {children}
+        </kbd>
+    );
+}
+
+function Highlight({ text, needle }) {
+    if (!needle) return text;
+    const start = text.toLowerCase().indexOf(needle);
+    if (start === -1) return text;
+    const end = start + needle.length;
+    return (
+        <>
+            {text.slice(0, start)}
+            <mark className="rounded-sm bg-primary/20 px-0.5 text-inherit">
+                {text.slice(start, end)}
+            </mark>
+            {text.slice(end)}
+        </>
+    );
+}
+
+function readStored(key) {
+    try {
+        return window.localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function store(key, value) {
+    try {
+        window.localStorage.setItem(key, value);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function timeOfDayGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+}
 
 export default function HomePage() {
     const { user, isAdmin } = useAuth();
-    const visibleRoutes = routes.filter(
-        (route) => !route.hideInSidebar && route.key !== 'home' && (isAdmin || !route.adminOnly),
+    const navigate = useNavigate();
+    const searchRef = useRef(null);
+    const [query, setQuery] = useState('');
+    const [lastRoute, setLastRoute] = useState(() =>
+        legacyWorkspacePaths[readStored(LAST_ROUTE_KEY)] ?? readStored(LAST_ROUTE_KEY),
+    );
+    const [guideDismissed, setGuideDismissed] = useState(
+        () => readStored(GUIDE_DISMISSED_KEY) === '1',
     );
 
+    const visibleRoutes = routes.filter(
+        (route) =>
+            !route.hideInSidebar &&
+            route.key !== 'home' &&
+            (isAdmin || !route.adminOnly),
+    );
+
+    const workspaces = visibleRoutes.map((route, index) => ({
+        key: route.key,
+        title: route.title,
+        icon: route.icon,
+        path: route.route_name,
+        adminOnly: route.adminOnly,
+        accent: accents[index % accents.length],
+        description: workspaceMeta[route.key]?.description ?? route.title,
+        keywords: workspaceMeta[route.key]?.keywords ?? '',
+    }));
+
+    const needle = query.trim().toLowerCase();
+    const filtered = needle
+        ? workspaces.filter((workspace) =>
+              `${workspace.title} ${workspace.description} ${workspace.keywords}`
+                  .toLowerCase()
+                  .includes(needle),
+          )
+        : workspaces;
+
+    const lastWorkspace = workspaces.find(
+        (workspace) => workspace.path === lastRoute,
+    );
+    const primaryWorkspace =
+        lastWorkspace ?? workspaces.find(({ key }) => key === 'product_info_page');
+    const chatWorkspace = workspaces.find(({ key }) => key === 'chat_page');
+    const showGuide = !guideDismissed && !isAdmin;
+    const firstName = user?.display_name?.split(' ')[0] ?? user?.username ?? '';
+
+    useEffect(() => {
+        const handler = (event) => {
+            const target = event.target;
+            const typing =
+                target?.tagName === 'INPUT' ||
+                target?.tagName === 'TEXTAREA' ||
+                target?.isContentEditable;
+            if (event.key === '/' && !typing) {
+                event.preventDefault();
+                searchRef.current?.focus();
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
+
+    const rememberWorkspace = (path) => {
+        store(LAST_ROUTE_KEY, path);
+        setLastRoute(path);
+    };
+
+    const openWorkspace = (path) => {
+        rememberWorkspace(path);
+        navigate(path);
+    };
+
+    const handleSearchKeyDown = (event) => {
+        if (event.key === 'Enter' && filtered.length > 0) {
+            event.preventDefault();
+            openWorkspace(filtered[0].path);
+        }
+        if (event.key === 'Escape') {
+            setQuery('');
+        }
+    };
+
     return (
-        <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-6">
-            <header className="flex flex-col gap-2">
-                <h1 className="text-2xl font-bold tracking-tight">Welcome to Quality Matrix</h1>
-                <p className="max-w-3xl text-sm text-muted-foreground">
-                    A tool for capturing and reviewing product quality data. {user?.display_name ? `Signed in as ${user.display_name} (${user.role}).` : ''} Use the tabs in the sidebar to move around the app.
-                </p>
+        <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col gap-8 pb-4">
+            <header className="relative overflow-hidden rounded-xl border bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-sm md:p-10">
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-primary/20 blur-3xl"
+                />
+                <div className="relative animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                        Quality Matrix
+                    </p>
+                    <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
+                        {timeOfDayGreeting()}
+                        {firstName ? `, ${firstName}` : ''}
+                    </h1>
+                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
+                        Capture product quality, track the action items behind
+                        every finding, and ship a clear action plan — all from
+                        one workspace.
+                    </p>
+                    <div className="mt-7 flex flex-wrap items-center gap-3">
+                        {primaryWorkspace && (
+                            <Button
+                                asChild
+                                className="h-11 px-6 text-base"
+                            >
+                                <Link
+                                    to={primaryWorkspace.path}
+                                    onClick={() =>
+                                        rememberWorkspace(primaryWorkspace.path)
+                                    }
+                                >
+                                    {lastWorkspace
+                                        ? `Continue: ${lastWorkspace.title}`
+                                        : `Open the ${primaryWorkspace.title}`}
+                                    <ArrowRight />
+                                </Link>
+                            </Button>
+                        )}
+                        {chatWorkspace && (
+                            <Button
+                                asChild
+                                variant="outline"
+                                className="h-11 px-6 text-base"
+                            >
+                                <Link to={chatWorkspace.path}>
+                                    <MessageCircleQuestionMark />
+                                    Ask the assistant
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
+                    <div className="mt-7 flex flex-wrap items-center gap-2">
+                        <Badge
+                            variant="secondary"
+                            className="gap-1.5 px-3 py-1 text-xs"
+                        >
+                            <Sparkles className="size-3" aria-hidden="true" />
+                            {workspaces.length} workspaces ready
+                        </Badge>
+                        {user?.role && (
+                            <Badge
+                                variant="outline"
+                                className="px-3 py-1 text-xs"
+                            >
+                                Role: {user.role}
+                            </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                            Everything autosaves as you work.
+                        </span>
+                    </div>
+                </div>
             </header>
 
-            <section className="grid gap-4 md:grid-cols-3">
-                {accessSteps.map((step, index) => (
-                    <Card key={step.title}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                                    {index + 1}
-                                </span>
-                                {step.title}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">{step.description}</p>
+            <section className="flex flex-col gap-5">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards">
+                        <h2 className="text-2xl font-semibold tracking-tight">
+                            Jump into a workspace
+                        </h2>
+                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-base text-muted-foreground">
+                            Type to filter, press <Kbd>/</Kbd> to focus,
+                            <Kbd>Enter</Kbd> opens the top match.
+                        </p>
+                    </div>
+                    {needle && (
+                        <Badge
+                            variant="secondary"
+                            className="px-3 py-1 text-xs"
+                        >
+                            {filtered.length} of {workspaces.length}{' '}
+                            {filtered.length === 1 ? 'match' : 'matches'}
+                        </Badge>
+                    )}
+                    {!isAdmin && guideDismissed && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground"
+                            onClick={() => {
+                                setGuideDismissed(false);
+                                store(GUIDE_DISMISSED_KEY, '0');
+                            }}
+                        >
+                            <Rocket />
+                            Show getting started
+                        </Button>
+                    )}
+                </div>
+
+                <div className="relative">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        ref={searchRef}
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        onKeyDown={handleSearchKeyDown}
+                        placeholder="Search workspaces — try matrix, action or chat"
+                        aria-label="Search workspaces"
+                        className="h-12 rounded-lg pl-11 pr-20 text-base shadow-sm"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1.5 text-muted-foreground md:flex">
+                        <Kbd>/</Kbd>
+                        <Kbd>
+                            <CornerDownLeft className="size-3" />
+                        </Kbd>
+                    </span>
+                </div>
+
+                {filtered.length === 0 ? (
+                    <Card className="border-dashed shadow-none">
+                        <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+                            <Search
+                                className="size-6 text-muted-foreground"
+                                aria-hidden="true"
+                            />
+                            <p className="text-base font-medium">
+                                Nothing matches that search
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Try matrix, action, plan or chat.
+                            </p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-3"
+                                onClick={() => {
+                                    setQuery('');
+                                    searchRef.current?.focus();
+                                }}
+                            >
+                                Clear search
+                            </Button>
                         </CardContent>
                     </Card>
-                ))}
-            </section>
-
-            <section>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-                        <div>
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                                <BookOpenIcon aria-hidden="true" className="size-5 text-primary" />
-                                Tabs at a glance
-                            </CardTitle>
-                            <CardDescription className="mt-1">
-                                What you will find in each tab.
-                            </CardDescription>
-                        </div>
-                        {user && !isAdmin && (
-                            <Badge variant="outline">Request edits from an admin if something is missing</Badge>
-                        )}
-                    </CardHeader>
-                    <CardContent className="grid gap-3 md:grid-cols-2">
-                        {visibleRoutes.map((route) => (
-                            <div key={route.key} className="rounded-md border bg-card p-3">
-                                <div className="flex items-center gap-2">
-                                    <route.icon />
-                                    <span className="font-semibold">{route.title}</span>
-                                    {route.adminOnly && (
-                                        <Badge variant="secondary">Admin only</Badge>
+                ) : (
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {filtered.map((workspace, index) => (
+                            <Link
+                                key={workspace.key}
+                                to={workspace.path}
+                                onClick={() =>
+                                    rememberWorkspace(workspace.path)
+                                }
+                                style={{
+                                    animationDelay: `${120 + index * 50}ms`,
+                                }}
+                                className="group flex animate-in flex-col rounded-xl border bg-card p-5 shadow-sm outline-none transition-all duration-200 fade-in fill-mode-backwards slide-in-from-bottom-2 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <span
+                                        className={cn(
+                                            'flex size-11 shrink-0 items-center justify-center rounded-lg',
+                                            workspace.accent,
+                                        )}
+                                    >
+                                        <workspace.icon
+                                            className="size-5"
+                                            aria-hidden="true"
+                                        />
+                                    </span>
+                                    {workspace.adminOnly && (
+                                        <Badge variant="secondary">
+                                            Admin
+                                        </Badge>
                                     )}
                                 </div>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {guideDescriptions[route.key] ?? route.title}
+                                <h3 className="mt-4 text-lg font-semibold">
+                                    <Highlight
+                                        text={workspace.title}
+                                        needle={needle}
+                                    />
+                                </h3>
+                                <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
+                                    <Highlight
+                                        text={workspace.description}
+                                        needle={needle}
+                                    />
                                 </p>
-                            </div>
+                                <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+                                    Open
+                                    <ArrowRight
+                                        className="size-4 transition-transform group-hover:translate-x-0.5"
+                                        aria-hidden="true"
+                                    />
+                                </span>
+                            </Link>
                         ))}
-                    </CardContent>
-                </Card>
+                    </div>
+                )}
             </section>
 
-            <section>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <ShieldCheckIcon aria-hidden="true" className="size-5 text-primary" />
-                            Quick tips
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="grid gap-2 md:grid-cols-2">
-                            {tips.map((tip) => (
-                                <li key={tip} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                    <KeyRoundIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
-                                    <span>{tip}</span>
-                                </li>
+            {showGuide && (
+                <section>
+                    <Card
+                        style={{ animationDelay: '160ms' }}
+                        className="animate-in fade-in fill-mode-backwards slide-in-from-bottom-2 duration-500"
+                    >
+                        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+                            <div>
+                                <CardTitle className="flex items-center gap-2 text-xl">
+                                    <Rocket
+                                        aria-hidden="true"
+                                        className="size-5 text-primary"
+                                    />
+                                    Getting started
+                                </CardTitle>
+                                <CardDescription className="mt-1.5 text-base">
+                                    Three steps from requesting access to your
+                                    first submission.
+                                </CardDescription>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Hide getting started"
+                                onClick={() => {
+                                    setGuideDismissed(true);
+                                    store(GUIDE_DISMISSED_KEY, '1');
+                                }}
+                            >
+                                <X />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="grid gap-6 md:grid-cols-3">
+                            {accessSteps.map((step, index) => (
+                                <div
+                                    key={step.title}
+                                    className="flex flex-col gap-2"
+                                >
+                                    <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                                        {index + 1}
+                                    </span>
+                                    <h3 className="text-base font-semibold">
+                                        {step.title}
+                                    </h3>
+                                    <p className="text-sm leading-relaxed text-muted-foreground">
+                                        {step.description}
+                                    </p>
+                                </div>
                             ))}
-                        </ul>
-                        <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                            <CheckCircle2Icon aria-hidden="true" className="size-4 shrink-0 text-primary" />
-                            All set? Open the <span className="font-medium text-foreground">Quality Matrix</span> tab to start working.
-                        </p>
-                    </CardContent>
-                </Card>
-            </section>
+                        </CardContent>
+                        <CardFooter className="border-t px-6 py-4">
+                            <Collapsible className="w-full">
+                                <CollapsibleTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-muted-foreground"
+                                    >
+                                        <Sparkles />
+                                        Pro tips
+                                    </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="pt-3">
+                                    <ul className="grid gap-2.5 md:grid-cols-3">
+                                        {tips.map((tip) => (
+                                            <li
+                                                key={tip}
+                                                className="flex gap-2 text-sm leading-relaxed text-muted-foreground"
+                                            >
+                                                <span
+                                                    aria-hidden="true"
+                                                    className="mt-2 size-1.5 shrink-0 rounded-full bg-primary"
+                                                />
+                                                {tip}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CollapsibleContent>
+                            </Collapsible>
+                        </CardFooter>
+                    </Card>
+                </section>
+            )}
         </div>
     );
 }

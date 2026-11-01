@@ -1,6 +1,9 @@
 """PYPCS CSV filenames plus row normalization / visible-question resolution logic."""
 
+from functools import lru_cache
 from typing import Any
+
+from fastapi import HTTPException
 
 from app.io.csv_excel import value_to_str
 from app.io.generic_csv import read_generic_csv, safe_int, split_options, yn_to_bool
@@ -24,6 +27,7 @@ ACTION_ITEM_APPLICABILITY_FIELDS = {
 ACTION_ITEM_HEADERS = [
     "nbr",
     "event_id",
+    "module",
     "ar_follow_up",
     "actionable_item",
     "reference",
@@ -44,6 +48,106 @@ ACTION_ITEM_HEADERS = [
 
 # Derived from the ATRMS Operation_Process_Step tracker.
 OPERATION_PROCESS_STEP_FILE = "QualityMatrix/Settings/Operation_Process_Step.csv"
+
+
+def canonical_multiselect_answer(
+    answer: Any,
+    options: list[str],
+    *,
+    strict: bool = True,
+    allow_bare_other: bool = False,
+    field: str = "answer",
+) -> str:
+    values = [part.strip() for part in value_to_str(answer).split("|") if part.strip()]
+    option_by_fold = {option.casefold(): option for option in options}
+    has_other = "other" in option_by_fold
+    selected_options: dict[str, str] = {}
+    custom_values: list[str] = []
+    invalid_values: list[str] = []
+    seen: set[str] = set()
+    bare_other = False
+
+    for value in values:
+        folded = value.casefold()
+        if folded in seen:
+            continue
+        seen.add(folded)
+        option = option_by_fold.get(folded)
+        if option is not None:
+            if folded == "other" and not allow_bare_other:
+                bare_other = True
+            else:
+                selected_options[folded] = option
+            continue
+        if (
+            not strict
+            or (
+                has_other
+                and len(value) <= 100
+                and folded not in {"all", "na", "multiple", "other"}
+            )
+        ):
+            custom_values.append(value)
+        else:
+            invalid_values.append(value)
+
+    if bare_other:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "other_value_required",
+                "field": field,
+                "message": "Specify custom text instead of selecting Other.",
+            },
+        )
+    if invalid_values:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_multiselect_value",
+                "field": field,
+                "message": f"Values must be selected from the available options: {', '.join(options)}.",
+                "invalid_values": invalid_values,
+            },
+        )
+
+    ordered_options = [
+        option for option in options if option.casefold() in selected_options
+    ]
+    return "|".join([*ordered_options, *custom_values])
+
+
+@lru_cache(maxsize=1)
+def _canonical_module_keys() -> dict[str, str]:
+    return {
+        key.casefold(): key
+        for row in read_generic_csv(PYPCS_MODULES_FILE)
+        if (key := value_to_str(row.get("module_key", "")).strip())
+    }
+
+
+def canonical_module_key(value: Any) -> str:
+    """Return the catalog spelling for a known module key, preserving unknown input."""
+    module_key = value_to_str(value).strip()
+    return _canonical_module_keys().get(module_key.casefold(), module_key)
+
+
+def canonical_module_group(value: Any) -> str:
+    group = value_to_str(value).strip()
+    return "HDMx" if group.casefold() == "hdmx" else canonical_module_key(group)
+
+
+def module_group_options() -> list[str]:
+    modules = sorted(
+        (normalize_pypcs_module(row) for row in read_generic_csv(PYPCS_MODULES_FILE)),
+        key=lambda item: item["sort_order"],
+    )
+    groups = [
+        "HDMx" if module["module_key"].casefold().startswith("hdmx_") else module["module_key"]
+        for module in modules
+        if module["module_key"]
+    ]
+    return list(dict.fromkeys(groups))
 
 
 def build_action_item_options() -> dict[str, Any]:
@@ -67,6 +171,8 @@ def build_action_item_options() -> dict[str, Any]:
         ]
         fields[field] = list(dict.fromkeys(candidates))
 
+    fields["module"] = module_group_options()
+
     return {
         "fields": fields,
         "owner": ["TRB", "Module Engineer", "Other"],
@@ -75,8 +181,8 @@ def build_action_item_options() -> dict[str, Any]:
 
 def load_operation_options(selected_modules: set[str] | None = None) -> list[str]:
     rows = read_generic_csv(OPERATION_PROCESS_STEP_FILE)
-    modules_upper = (
-        {value_to_str(m).upper() for m in selected_modules}
+    modules_folded = (
+        {canonical_module_key(m).casefold() for m in selected_modules}
         if selected_modules
         else None
     )
@@ -84,9 +190,9 @@ def load_operation_options(selected_modules: set[str] | None = None) -> list[str
     options: list[str] = []
 
     for row in rows:
-        module_key = value_to_str(row.get("MODULE_KEY", "")).upper()
+        module_key = canonical_module_key(row.get("MODULE_KEY", ""))
 
-        if modules_upper is not None and module_key not in modules_upper:
+        if modules_folded is not None and module_key.casefold() not in modules_folded:
             continue
 
         operation = value_to_str(row.get("OPERATION", ""))
@@ -104,8 +210,8 @@ def load_operation_options_by_module(
 ) -> dict[str, list[str]]:
     """Per-module operation options, so each module's own cell only shows its operations."""
     rows = read_generic_csv(OPERATION_PROCESS_STEP_FILE)
-    modules_upper = (
-        {value_to_str(m).upper() for m in selected_modules}
+    modules_folded = (
+        {canonical_module_key(m).casefold() for m in selected_modules}
         if selected_modules
         else None
     )
@@ -116,13 +222,11 @@ def load_operation_options_by_module(
         # Keep the CSV's original module_key casing (matches PYPCS_Modules.csv,
         # which is not all-uppercase, e.g. "HDMx_AHMT") so frontend lookups by
         # exact module_key succeed instead of silently falling back.
-        module_key_original = value_to_str(row.get("MODULE_KEY", ""))
-        module_key_upper = module_key_original.upper()
-
+        module_key_original = canonical_module_key(row.get("MODULE_KEY", ""))
         if not module_key_original:
             continue
 
-        if modules_upper is not None and module_key_upper not in modules_upper:
+        if modules_folded is not None and module_key_original.casefold() not in modules_folded:
             continue
 
         operation = value_to_str(row.get("OPERATION", ""))
@@ -145,7 +249,7 @@ def load_operation_options_by_module(
 def normalize_pypcs_module(row: dict[str, str]) -> dict[str, Any]:
     return {
         "module_id": value_to_str(row.get("module_id", "")),
-        "module_key": value_to_str(row.get("module_key", "")),
+        "module_key": canonical_module_key(row.get("module_key", "")),
         "module_label": value_to_str(row.get("module_label", "")),
         "enabled_default": yn_to_bool(row.get("enabled_default", "")),
         "allowed_roles": split_options(row.get("allowed_roles", "")),
@@ -189,7 +293,7 @@ def normalize_pypcs_map(row: dict[str, str]) -> dict[str, Any]:
     return {
         "question_id": value_to_str(row.get("question_id", "")),
         "module_id": value_to_str(row.get("module_id", "")),
-        "module_key": value_to_str(row.get("module_key", "")),
+        "module_key": canonical_module_key(row.get("module_key", "")),
         "required": yn_to_bool(row.get("required", "")),
         "visible_default": yn_to_bool(row.get("visible_default", "")),
         "source_rule": value_to_str(row.get("source_rule", "")),
@@ -202,10 +306,11 @@ def build_pypcs_visible_questions(
     role: str | None = None,
 ) -> dict[str, Any]:
     selected_modules = {
-        value_to_str(module).upper()
+        canonical_module_key(module)
         for module in selected_modules_input
         if value_to_str(module)
     }
+    selected_modules_by_fold = {module.casefold() for module in selected_modules}
 
     if not selected_modules:
         return {
@@ -234,7 +339,7 @@ def build_pypcs_visible_questions(
         mapping = normalize_pypcs_map(row)
 
         if (
-            mapping["module_key"].upper() in selected_modules
+            mapping["module_key"].casefold() in selected_modules_by_fold
             and mapping["visible_default"]
         ):
             matched_maps.append(mapping)
@@ -285,7 +390,7 @@ def build_pypcs_visible_questions(
     )
 
     return {
-        "selected_modules": sorted(selected_modules),
+        "selected_modules": sorted(selected_modules, key=str.casefold),
         "role": role,
         "count": len(visible_questions),
         "items": visible_questions,

@@ -19,7 +19,7 @@ function PageWithDataTableLayout({
 
   return (
     <div
-      className={`flex-1 flex-col justify-center items-center select-none h-full min-w-fit ${containerClassName}`}
+      className={`flex-1 flex-col justify-center items-center h-full min-w-fit ${containerClassName}`}
     >
       <Card className="w-full h-full flex flex-col">
         <CardContent className="space-y-4 h-full flex flex-col pt-6">

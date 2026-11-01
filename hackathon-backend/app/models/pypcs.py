@@ -40,6 +40,7 @@ class PYPCSActionItemRequest(BaseModel):
 
     expected_version: str | None = None
     event_id: str = Field(default="")
+    module: list[str] = Field(default_factory=list, max_length=100)
     ar_follow_up: str = Field(default="", max_length=5000)
     actionable_item: str = Field(default="", max_length=5000)
     reference: str = Field(default="", max_length=5000)
@@ -73,6 +74,7 @@ class PYPCSActionItemRequest(BaseModel):
         return value.strip() if isinstance(value, str) else value
 
     @field_validator(
+        "module",
         "package",
         "bare_die_lid",
         "foveros",

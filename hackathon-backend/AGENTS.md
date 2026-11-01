@@ -77,10 +77,20 @@ No test suite or lint config exists yet.
 
 ## PYPCS Views
 
+- Module keys are canonicalized to the exact spelling in
+  `QualityMatrix/Settings/PYPCS_Modules.csv`; do not uppercase them for storage or API output.
+  Preview and then apply local data normalization from `hackathon-backend`:
+
+  ```powershell
+  .\.venv\Scripts\python.exe scripts\normalize_module_keys.py --data-dir "<data-dir>"
+  .\.venv\Scripts\python.exe scripts\normalize_module_keys.py --data-dir "<data-dir>" --apply
+  ```
+
 - View 2 `data/View2/PYPCS_ActionItems.csv` has an optional `event_id` column immediately after `nbr`.
   It is trimmed, limited to 50 characters, and cannot contain `|`; old files read it as blank.
 - View 1 matrix `operation` cell answers are validated per module and stored as trimmed,
   de-duplicated `|`-joined values. `Other` uses the existing custom-text convention.
+- `multiselect` questions store canonical option-order values joined by `|`; `Other` custom text follows options in submitted order.
 - View 3 builds one API row per product/module-group. Its decisions-only file is
   `data/View3/PYPCS_ProductActionDecisions.csv` and retains labels for orphaned decisions.
   Product keys are `lower(trim(prodgroup3))||lower(trim(product_name))`; HDMx modules group

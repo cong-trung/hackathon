@@ -14,12 +14,16 @@ from fastapi import HTTPException
 from app.config import DATA_DIR
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
-from app.io.generic_csv import read_generic_csv, write_rows_to_csv, safe_int
+from app.io.generic_csv import read_generic_csv, write_rows_to_csv, safe_int, split_options
 from app.services.pypcs_service import (
     PYPCS_ACTION_ITEMS_FILE,
     PYPCS_MODULES_FILE,
+    PYPCS_QUESTIONS_FILE,
     PYPCS_SUBMISSION_CELLS_FILE,
     PYPCS_SUBMISSIONS_FILE,
+    canonical_multiselect_answer,
+    canonical_module_group,
+    canonical_module_key,
     normalize_pypcs_module,
 )
 
@@ -131,6 +135,12 @@ def _product_key(prodgroup3: str, product_name: str) -> str:
     return f"{prodgroup3.strip().lower()}||{product_name.strip().lower()}"
 
 
+def _action_modules(action: dict[str, str]) -> list[str]:
+    return _dedupe(
+        [canonical_module_group(module) for module in _pipe_values(action.get("module", ""))]
+    )
+
+
 def _decision_values(row: dict[str, str]) -> dict[str, str]:
     decision = {field: value_to_str(row.get(field, "")) for field in DECISION_FIELDS}
     if not decision["decision_state"] and any(
@@ -146,7 +156,7 @@ def _module_catalog() -> tuple[dict[str, dict[str, Any]], dict[str, int]]:
     by_key = {item["module_key"].casefold(): item for item in modules if item["module_key"]}
     group_order: dict[str, int] = {}
     for module in modules:
-        key = module["module_key"]
+        key = canonical_module_key(module["module_key"])
         if not key:
             continue
         group = "HDMx" if key.casefold().startswith("hdmx_") else key
@@ -155,6 +165,7 @@ def _module_catalog() -> tuple[dict[str, dict[str, Any]], dict[str, int]]:
 
 
 def _group_for_module(module_key: str, modules_by_key: dict[str, dict[str, Any]]) -> str:
+    module_key = canonical_module_key(module_key)
     if module_key.casefold().startswith("hdmx_"):
         return "HDMx"
     module = modules_by_key.get(module_key.casefold())
@@ -166,7 +177,7 @@ def _decision_index(rows: list[dict[str, str]]) -> dict[tuple[str, str, str], di
     for row in rows:
         key = (
             value_to_str(row.get("product_key", "")),
-            value_to_str(row.get("module_group", "")),
+            canonical_module_group(row.get("module_group", "")),
             value_to_str(row.get("action_nbr", "")),
         )
         if all(key):
@@ -186,6 +197,24 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
     set[tuple[str, str, str]],
 ]:
     modules_by_key, group_order = _module_catalog()
+    prodgroup3_question = next(
+        (
+            row
+            for row in read_generic_csv(PYPCS_QUESTIONS_FILE)
+            if value_to_str(row.get("question_id", "")) == "prodgroup3"
+        ),
+        {},
+    )
+    prodgroup3_options = split_options(prodgroup3_question.get("options", ""))
+
+    def canonical_prodgroup3(value: Any) -> str:
+        return canonical_multiselect_answer(
+            value,
+            prodgroup3_options,
+            strict=False,
+            allow_bare_other=True,
+        )
+
     submissions = read_generic_csv(PYPCS_SUBMISSIONS_FILE)
     cells = read_generic_csv(PYPCS_SUBMISSION_CELLS_FILE)
     cells_by_submission: dict[str, dict[tuple[str, str], list[str]]] = defaultdict(
@@ -195,7 +224,7 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
     for cell in cells:
         submission_id = value_to_str(cell.get("submission_id", ""))
         question_id = value_to_str(cell.get("question_id", ""))
-        module_key = value_to_str(cell.get("module_key", "")).casefold()
+        module_key = canonical_module_key(cell.get("module_key", "")).casefold()
         answer = value_to_str(cell.get("answer", ""))
         if answer:
             if module_key:
@@ -206,7 +235,7 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
     latest_by_product: dict[str, dict[str, str]] = {}
     for submission in submissions:
         product_name = value_to_str(submission.get("product_name", ""))
-        prodgroup3 = value_to_str(submission.get("prodgroup3", ""))
+        prodgroup3 = canonical_prodgroup3(submission.get("prodgroup3", ""))
         if not product_name and not prodgroup3:
             continue
         key = _product_key(prodgroup3, product_name)
@@ -225,7 +254,12 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
 
     products_by_group: dict[str, list[tuple[str, dict[str, str], list[str]]]] = defaultdict(list)
     for product_key, submission in latest_by_product.items():
-        selected_keys = _dedupe(_split_values(submission.get("selected_modules", "")))
+        selected_keys = _dedupe(
+            [
+                canonical_module_key(module)
+                for module in _split_values(submission.get("selected_modules", ""))
+            ]
+        )
         module_keys_by_group: dict[str, list[str]] = defaultdict(list)
         for module_key in selected_keys:
             module_group = _group_for_module(module_key, modules_by_key)
@@ -246,7 +280,7 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
     group_counts: dict[str, int] = {}
     for module_group in ordered_groups:
         group_products = products_by_group.get(module_group, [])
-        group_counts[module_group] = len({item[0] for item in group_products})
+        tagged_product_keys: set[str] = set()
         group_products.sort(
             key=lambda item: (
                 value_to_str(item[1].get("product_name", "")).casefold(),
@@ -286,8 +320,10 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
 
             attributes = {field: attribute_value(field) for field in PRODUCT_ATTRIBUTES}
             product_name = attribute_value("product_name")
-            prodgroup3 = attribute_value("prodgroup3")
+            prodgroup3 = canonical_prodgroup3(attribute_value("prodgroup3"))
             for action in actions:
+                if module_group not in _action_modules(action):
+                    continue
                 action_packages = _pipe_values(action.get("package", ""))
                 action_package_text = "|".join(action_packages)
                 suggestion_status = ""
@@ -340,6 +376,8 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
                     **{field: "" for field in DECISION_FIELDS},
                 }
                 flat_rows.append(flat_row)
+                tagged_product_keys.add(product_key)
+        group_counts[module_group] = len(tagged_product_keys)
 
     previous_rows = read_generic_csv(PRODUCT_ACTION_DECISIONS_FILE)
     previous_decisions = _decision_index(previous_rows)
@@ -353,7 +391,7 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
     for row in previous_rows:
         key = (
             value_to_str(row.get("product_key", "")),
-            value_to_str(row.get("module_group", "")),
+            canonical_module_group(row.get("module_group", "")),
             value_to_str(row.get("action_nbr", "")),
         )
         has_decision = any(value_to_str(row.get(field, "")) for field in DECISION_FIELDS)
@@ -368,13 +406,16 @@ def _module_group_build(actions: list[dict[str, str]]) -> tuple[
                     )
                 }
             )
+            preserved["module_group"] = canonical_module_group(
+                preserved["module_group"]
+            )
             preserved.update(_decision_values(row))
             flat_rows.append(preserved)
 
     groups = [
         {"key": group, "label": group, "product_count": group_counts.get(group, 0)}
         for group in ordered_groups
-        if group_counts.get(group, 0) > 0
+        if products_by_group.get(group)
     ]
     return groups, flat_rows, active_keys
 
@@ -397,6 +438,7 @@ def _build_product_action_matrix() -> dict[str, Any]:
                 "actionable_item": value_to_str(action.get("actionable_item", "")),
                 "reference": value_to_str(action.get("reference", "")),
                 "package": _pipe_values(action.get("package", "")),
+                "modules": _action_modules(action),
             }
         )
     return {
@@ -440,8 +482,11 @@ def _api_row(rows: list[dict[str, str]]) -> dict[str, Any]:
         "product_key": value_to_str(first.get("product_key", "")),
         "product_name": value_to_str(first.get("product_name", "")),
         "prodgroup3": value_to_str(first.get("prodgroup3", "")),
-        "module_group": value_to_str(first.get("module_group", "")),
-        "module_keys": _pipe_values(first.get("module_keys", "")),
+        "module_group": canonical_module_group(first.get("module_group", "")),
+        "module_keys": [
+            canonical_module_key(module)
+            for module in _pipe_values(first.get("module_keys", ""))
+        ],
         "submission_id": value_to_str(first.get("submission_id", "")),
         "submission_status": value_to_str(first.get("submission_status", "")),
         "submission_updated_at": value_to_str(first.get("submission_updated_at", "")),
@@ -454,10 +499,12 @@ def _api_row(rows: list[dict[str, str]]) -> dict[str, Any]:
 def get_product_action_matrix(
     module_group: str | None = None,
     built: dict[str, Any] | None = None,
+    prodgroup3: str | None = None,
 ) -> dict[str, Any]:
     built = built if built is not None else build_product_action_matrix()
+    canonical_group = canonical_module_group(module_group) if module_group is not None else None
     available_groups = {item["key"] for item in built["module_groups"]}
-    if module_group is not None and module_group not in available_groups:
+    if canonical_group is not None and canonical_group not in available_groups:
         raise HTTPException(
             status_code=422,
             detail={
@@ -467,11 +514,21 @@ def get_product_action_matrix(
         )
     selected = [
         row for row in built["rows"]
-        if module_group is None or row["module_group"] == module_group
+        if canonical_group is None or row["module_group"] == canonical_group
     ]
+    if prodgroup3:
+        targets = {value.casefold() for value in _pipe_values(prodgroup3)}
+        selected = [
+            row
+            for row in selected
+            if targets.intersection(
+                value.casefold()
+                for value in _pipe_values(row.get("prodgroup3", ""))
+            )
+        ]
     groups = [
         group for group in built["module_groups"]
-        if module_group is None or group["key"] == module_group
+        if canonical_group is None or group["key"] == canonical_group
     ]
     grouped: dict[tuple[str, str], list[dict[str, str]]] = defaultdict(list)
     for row in selected:
@@ -485,7 +542,11 @@ def get_product_action_matrix(
         row["product_name"].casefold(),
         row["product_key"],
     ))
-    return {"module_groups": groups, "actions": built["actions"], "rows": rows}
+    actions = [
+        action for action in built["actions"]
+        if canonical_group is None or canonical_group in action["modules"]
+    ]
+    return {"module_groups": groups, "actions": actions, "rows": rows}
 
 
 def rebuild_product_action_matrix(
@@ -539,8 +600,9 @@ def matrix_timestamp() -> str:
 
 def export_product_action_matrix(module_group: str | None = None) -> tuple[str, str]:
     built = build_product_action_matrix()
+    canonical_group = canonical_module_group(module_group) if module_group is not None else None
     groups = {item["key"] for item in built["module_groups"]}
-    if module_group is not None and module_group not in groups:
+    if canonical_group is not None and canonical_group not in groups:
         raise HTTPException(
             status_code=422,
             detail={
@@ -550,7 +612,7 @@ def export_product_action_matrix(module_group: str | None = None) -> tuple[str, 
         )
     rows = [
         row for row in built["flat_rows"]
-        if module_group is None or row["module_group"] == module_group
+        if canonical_group is None or row["module_group"] == canonical_group
     ]
     output = io.StringIO(newline="")
     writer = csv.DictWriter(output, fieldnames=PRODUCT_ACTION_MATRIX_HEADERS, extrasaction="ignore")
@@ -561,5 +623,5 @@ def export_product_action_matrix(module_group: str | None = None) -> tuple[str, 
             value = value_to_str(row.get(header, ""))
             guarded[header] = "'" + value if value.startswith(("=", "+", "-", "@", "\t", "\r")) else value
         writer.writerow(guarded)
-    suffix = f"_{module_group}" if module_group else ""
+    suffix = f"_{canonical_group}" if canonical_group else ""
     return output.getvalue(), f"PYPCS_ProductActionMatrix{suffix}.csv"

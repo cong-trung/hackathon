@@ -23,13 +23,13 @@ function AppLayout() {
     const breadcrumbs = useBreadcrumbs();
     const { pathname } = useLocation();
     const viewportPage = [
-        routesConfig.pypcs_page,
-        routesConfig.view2_page,
-        routesConfig.view3_page,
+        routesConfig.product_info_page,
+        routesConfig.actionable_items_page,
+        routesConfig.quality_product_matrix_page,
     ].includes(pathname);
 
     return (
-        <SidebarProvider className="select-none" defaultOpen={true}>
+        <SidebarProvider defaultOpen={true}>
             <AppSidebar />
             <SidebarInset className="min-h-0 min-w-0 md:h-dvh md:max-h-dvh">
                 <header className="sticky top-0 z-20 border-b bg-background h-12 flex shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">

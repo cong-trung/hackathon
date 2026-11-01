@@ -141,18 +141,35 @@ function expandMatrixCells(questions, selectedModules, cells) {
     return expanded;
 }
 
-function OperationInput({ options, value, onChange, label, errorId, invalid, disabled }) {
+function canonicalMultiselect(value, options) {
+    const parts = String(value || '').split('|').map((part) => part.trim()).filter(Boolean);
+    const unique = [...new Map(parts.map((part) => [part.toLowerCase(), part])).values()];
+    const known = options.filter((option) => option !== 'Other'
+        && unique.some((part) => part.toLowerCase() === option.toLowerCase()));
+    const custom = unique.filter((part) => part !== 'Other'
+        && !options.some((option) => option.toLowerCase() === part.toLowerCase()));
+    return [...known, ...custom].join('|');
+}
+
+function OperationInput({ options, value, onChange, label, errorId, invalid, disabled, multiselect = false, inputId }) {
     const values = value ? value.split('|') : [];
     const known = values.filter((item) => item !== 'Other' && options.includes(item));
     const unknown = values.filter((item) => item !== 'Other' && !options.includes(item));
     const hasOther = values.includes('Other') || unknown.length > 0;
-    const [otherText, setOtherText] = useState(unknown[0] || '');
+    const [otherText, setOtherText] = useState(multiselect ? '' : unknown[0] || '');
+    const [customError, setCustomError] = useState('');
     const [search, setSearch] = useState('');
-    const matches = options.filter((option) =>
+    const matches = options.filter((option) => (!multiselect || option !== 'Other') &&
         option.toLowerCase().includes(search.trim().toLowerCase()),
     );
 
     function toggle(option) {
+        if (multiselect) {
+            onChange(canonicalMultiselect(values.includes(option)
+                ? values.filter((item) => item !== option).join('|')
+                : [...values, option].join('|'), options));
+            return;
+        }
         if (option === 'Other') {
             if (hasOther) {
                 setOtherText('');
@@ -180,18 +197,19 @@ function OperationInput({ options, value, onChange, label, errorId, invalid, dis
                 <PopoverTrigger asChild>
                     <Button
                         type="button"
+                        id={inputId}
                         variant="outline"
                         role="combobox"
                         aria-label={label}
-                        aria-invalid={invalid || undefined}
-                        aria-describedby={errorId}
+                        aria-invalid={invalid || Boolean(customError) || undefined}
+                        aria-describedby={[errorId, customError ? `${inputId}-custom-error` : null].filter(Boolean).join(' ') || undefined}
                         disabled={disabled}
                         className="w-full justify-between font-normal"
                     >
                         <span className="truncate">
                             {known.length + unknown.length
                                 ? `${known.length + unknown.length} selected`
-                                : 'Select operations'}
+                                : multiselect ? `Select ${label}` : 'Select operations'}
                         </span>
                         <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
                     </Button>
@@ -201,17 +219,19 @@ function OperationInput({ options, value, onChange, label, errorId, invalid, dis
                         option.toLowerCase().includes(query.toLowerCase()) ? 1 : 0
                     }>
                         <CommandInput
-                            placeholder="Search operations"
+                            placeholder={multiselect ? `Search ${label}` : 'Search operations'}
                             value={search}
                             onValueChange={setSearch}
                         />
                         <CommandList>
-                            <CommandEmpty>No operations found.</CommandEmpty>
+                            <CommandEmpty>{multiselect ? 'No options found.' : 'No operations found.'}</CommandEmpty>
                             <CommandGroup>
                                 {matches.slice(0, 200).map((option) => (
                                     <CommandItem key={option} value={option} onSelect={() => toggle(option)}>
                                         <Checkbox
-                                            checked={option === 'Other' ? hasOther : values.includes(option)}
+                                            checked={option === 'Other' ? hasOther : multiselect
+                                                ? values.some((item) => item.toLowerCase() === option.toLowerCase())
+                                                : values.includes(option)}
                                             tabIndex={-1}
                                             className="pointer-events-none mr-2"
                                         />
@@ -221,14 +241,42 @@ function OperationInput({ options, value, onChange, label, errorId, invalid, dis
                             </CommandGroup>
                             {matches.length > 200 ? (
                                 <div className="p-2 text-xs text-muted-foreground">
-                                    Refine your search to see more operations.
+                                    Refine your search to see more {multiselect ? 'options' : 'operations'}.
                                 </div>
                             ) : null}
                         </CommandList>
                     </Command>
                 </PopoverContent>
             </Popover>
-            {hasOther ? (
+            {multiselect && options.includes('Other') ? (
+                <div className="flex flex-wrap gap-1">
+                    <input
+                        className="min-w-0 flex-1 rounded border px-2 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                        type="text"
+                        disabled={disabled}
+                        aria-label={`Other value for ${label}`}
+                        aria-invalid={Boolean(customError) || undefined}
+                        aria-describedby={customError ? `${inputId}-custom-error` : undefined}
+                        placeholder="Other (specify value)"
+                        value={otherText}
+                        maxLength={101}
+                        onChange={(event) => {
+                            setOtherText(event.target.value);
+                            setCustomError(event.target.value.includes('|') ? 'Other value cannot contain |.'
+                                : event.target.value.length > 100 ? 'Other value must be 100 characters or fewer.' : '');
+                        }}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.nextElementSibling?.click(); }
+                        }}
+                    />
+                    <Button type="button" variant="outline" disabled={disabled || !otherText.trim() || Boolean(customError)}
+                        onClick={() => {
+                            onChange(canonicalMultiselect([...values, otherText].join('|'), options));
+                            setOtherText('');
+                        }}>Add</Button>
+                    {customError ? <p id={`${inputId}-custom-error`} role="alert" className="w-full text-xs text-destructive">{customError}</p> : null}
+                </div>
+            ) : hasOther ? (
                 <input
                     className="w-full rounded border px-2 py-1 text-sm"
                     type="text"
@@ -254,8 +302,9 @@ function OperationInput({ options, value, onChange, label, errorId, invalid, dis
                                 title={`Remove ${item}`}
                                 className="focus-visible:ring-2 focus-visible:ring-ring"
                                 onClick={() => {
-                                    if (item === unknown[0] && hasOther) setOtherText(unknown[1] || '');
-                                    onChange(values.filter((_, itemIndex) => itemIndex !== index).join('|'));
+                                    if (!multiselect && item === unknown[0] && hasOther) setOtherText(unknown[1] || '');
+                                    const remaining = values.filter((_, itemIndex) => itemIndex !== index).join('|');
+                                    onChange(multiselect ? canonicalMultiselect(remaining, options) : remaining);
                                 }}
                             >
                                 <X className="size-3" />
@@ -368,6 +417,17 @@ export default function PYPCSMatrixSubmission({
             target?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             target?.querySelector('input, select, textarea, button')?.focus();
             setPulseKey(key);
+        }));
+    }
+
+    function focusCellError(cellKey) {
+        if (!cellKey) return;
+        const moduleKey = cellKey.slice(cellKey.lastIndexOf('__') + 2);
+        setVisibleModules((previous) => [...new Set([...previous, moduleKey])]);
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            const target = fieldRefs.current.get(cellKey);
+            target?.scrollIntoView({ block: 'center', inline: 'nearest' });
+            target?.querySelector('input, select, textarea, button')?.focus();
         }));
     }
 
@@ -744,6 +804,28 @@ export default function PYPCSMatrixSubmission({
         return nextErrors;
     }
 
+    function validateMultiselects(requireAll) {
+        const nextErrors = {};
+        questions.filter((question) => question.field_type === 'multiselect').forEach((question) => {
+            selectedModules.forEach((moduleKey) => {
+                if (!isQuestionApplicableToModule(question, moduleKey)) return;
+                const cellKey = getCellKey(question.question_id, moduleKey);
+                const value = String(cells[cellKey] || '');
+                const parts = value.split('|');
+                if (!value.trim()) {
+                    if (requireAll && isRequired(question, moduleKey)) {
+                        nextErrors[cellKey] = `${question.display_label || question.question_id} is required`;
+                    }
+                } else if (parts.some((part) => !part.trim() || part.trim() === 'Other'
+                    || (part.trim().length > 100 && !question.options?.includes(part.trim()))
+                    || (!question.options?.includes('Other') && !question.options?.includes(part.trim())))) {
+                    nextErrors[cellKey] = 'Select valid options or specify Other (max 100 characters, no |).';
+                }
+            });
+        });
+        return nextErrors;
+    }
+
     function validateEmails() {
         const nextErrors = {};
         selectedModules.forEach((moduleKey) => {
@@ -797,6 +879,20 @@ export default function PYPCSMatrixSubmission({
             } catch {
                 detail = error.message;
             }
+        }
+
+        if (error.status === 422 && ['invalid_multiselect_value', 'other_value_required'].includes(detail?.code)
+            && detail.field === 'prodgroup3') {
+            const message = `${detail.message || 'Select valid ProdGroup3 values.'}${detail.invalid_values?.length
+                ? ` Invalid values: ${detail.invalid_values.join(', ')}` : ''}`;
+            const question = questions.find((item) => item.question_id === 'prodgroup3');
+            const applicable = selectedModules.filter((moduleKey) => question
+                && isQuestionApplicableToModule(question, moduleKey));
+            setErrors(Object.fromEntries(applicable.map((moduleKey) =>
+                [getCellKey('prodgroup3', moduleKey), message])));
+            setStatusMessage(message);
+            focusCellError(getCellKey('prodgroup3', applicable[0]));
+            return;
         }
 
         const missing = Array.isArray(detail?.missing_required)
@@ -865,7 +961,8 @@ export default function PYPCSMatrixSubmission({
         const requiredErrors =
             nextStatus === 'final' ? validateMatrix() : {};
         const emailErrors = validateEmails();
-        const nextErrors = { ...requiredErrors, ...validateOperations(nextStatus === 'final'), ...tpNameErrors, ...emailErrors };
+        const nextErrors = { ...requiredErrors, ...validateOperations(nextStatus === 'final'),
+            ...validateMultiselects(nextStatus === 'final'), ...tpNameErrors, ...emailErrors };
 
         if (Object.keys(nextErrors).length > 0) {
             setErrors(nextErrors);
@@ -875,6 +972,7 @@ export default function PYPCSMatrixSubmission({
                     ? 'Please fix invalid matrix cells.'
                     : 'Please complete required matrix cells.',
             );
+            focusCellError(Object.keys(nextErrors)[0]);
             return;
         }
 
@@ -1001,9 +1099,10 @@ export default function PYPCSMatrixSubmission({
             && value !== ''
             && (value === 'Other' || !options.includes(value));
 
-        if (question.question_id === 'operation') {
+        if (question.question_id === 'operation' || question.field_type === 'multiselect') {
             return <OperationInput key={inputKey} options={options} value={value} onChange={onChange}
-                label={label} errorId={errorId} invalid={invalid} disabled={disabled} />;
+            label={label} errorId={errorId} invalid={invalid} disabled={disabled}
+            multiselect={question.question_id !== 'operation'} inputId={inputId || inputKey} />;
         }
 
         if (question.field_type === 'select') {
@@ -1237,7 +1336,7 @@ export default function PYPCSMatrixSubmission({
     return (
         <div className="flex min-w-0 flex-col gap-3 md:min-h-0 md:flex-1 md:overflow-hidden">
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <h1 className="sr-only">Quality Matrix</h1>
+                <h1 className="sr-only">Product Info</h1>
                 {modeSwitch}
                 <label className="ml-1 text-sm font-medium" htmlFor="matrix-role">Role</label>
                 <select

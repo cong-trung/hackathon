@@ -4,12 +4,13 @@ import { loginPath, useAuth } from '@/shared/hooks/useAuth';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import { ArrowDown, ArrowDownUp, ArrowUp, PencilIcon, PlusIcon, SearchIcon } from 'lucide-react';
 
-import { useGetActionItemsQuery } from '@/app/api/pypcsActionItemsApi';
+import { useGetActionItemOptionsQuery, useGetActionItemsQuery } from '@/app/api/pypcsActionItemsApi';
 import ClientPagination from '@/shared/components/data-table/ClientPagination';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Skeleton } from '@/shared/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import {
     Table,
     TableBody,
@@ -150,6 +151,7 @@ function columnsFor() {
         },
         { accessorKey: 'nbr', header: 'NBr#', size: 64 },
         text('event_id', 'Event ID', 144),
+        { accessorKey: 'module', header: 'Module', size: 175, cell: ApplicabilityValueCell },
         text('actionable_item', 'Actionable item', 208),
         text('reference', 'Reference', 240),
         text('description', 'Description', 240),
@@ -174,16 +176,27 @@ function columnsFor() {
 const columns = columnsFor();
 const sortableColumns = new Set(['nbr', 'event_id', 'actionable_item', 'owner', 'updated_at']);
 
-export default function View2Page() {
+export default function ActionableItemsPage() {
     const { isAuthenticated, isGuest } = useAuth();
     const location = useLocation();
     const { data, isLoading, isError, refetch } = useGetActionItemsQuery();
+    const { data: options } = useGetActionItemOptionsQuery();
     const [search, setSearch] = useState('');
+    const [moduleGroup, setModuleGroup] = useState('');
     const [sort, setSort] = useState({ key: 'nbr', direction: 'ascending' });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
     const [activeItem, setActiveItem] = useState(undefined);
     const items = data?.items ?? EMPTY;
+    const modules = useMemo(() => options?.fields?.module?.length
+        ? options.fields.module
+        : [...new Set(items.flatMap((item) => item.module ?? []))], [options, items]);
+    const moduleCounts = useMemo(() => new Map(modules.map((module) => [
+        module, items.filter((item) => item.module?.includes(module)).length,
+    ])), [modules, items]);
+    const selectedModule = modules.includes(moduleGroup)
+        ? moduleGroup
+        : modules.find((module) => moduleCounts.get(module) > 0) ?? modules[0] ?? '';
     const deferredSearch = useDeferredValue(search);
     const term = deferredSearch.trim().toLowerCase();
     const searchIndex = useMemo(
@@ -196,10 +209,9 @@ export default function View2Page() {
         [items],
     );
     const filtered = useMemo(
-        () => term
-            ? items.filter((item) => searchIndex.get(item).some((value) => value.includes(term)))
-            : items,
-        [items, searchIndex, term],
+        () => items.filter((item) => item.module?.includes(selectedModule)
+            && (!term || searchIndex.get(item).some((value) => value.includes(term)))),
+        [items, searchIndex, term, selectedModule],
     );
     const sorted = useMemo(() => [...filtered].sort((first, second) => {
         const left = sort.key === 'updated_at' ? Date.parse(first.updated_at) || 0 : first[sort.key];
@@ -242,7 +254,18 @@ export default function View2Page() {
 
     return (
         <div className="flex min-w-0 flex-col gap-3 md:h-full md:min-h-0 md:overflow-hidden">
-            <h1 className="sr-only">Action Items</h1>
+            <h1 className="sr-only">Actionable Items</h1>
+            {modules.length > 0 && (
+                <Tabs value={selectedModule} onValueChange={(value) => { setModuleGroup(value); setPage(1); }} className="min-w-0">
+                    <div className={`overflow-x-auto ${scrollbarClassName}`}>
+                        <TabsList className="h-auto w-max justify-start gap-1">
+                            {modules.map((module) => (
+                                <TabsTrigger key={module} value={module}>{module} ({moduleCounts.get(module)})</TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </div>
+                </Tabs>
+            )}
             <div className="flex flex-wrap items-center gap-3">
                 <div className="relative w-full max-w-sm">
                 <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -298,7 +321,7 @@ export default function View2Page() {
                                     </TableHead>
                                 ))}
                                 <TableHead colSpan={applicability.length} className="border-b border-r border-table-border bg-table-subheader text-center font-semibold text-table-subheader-foreground">
-                                    Applicability (Quality Matrix questions)
+                                    Applicability (Product Info questions)
                                 </TableHead>
                                 {leafColumns.slice(applicabilityEnd).map((column) => (
                                     <TableHead key={column.id} rowSpan={2} aria-sort={sortableColumns.has(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined} style={columnStyle(column)} className="border-b border-r border-white/20 align-middle font-semibold text-table-header-foreground">
@@ -332,9 +355,9 @@ export default function View2Page() {
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={leafColumns.length} className="h-32 text-center text-muted-foreground">
-                                        {term ? <>No matching action items.{' '}
+                                        {term ? <>No matching actionable items in {selectedModule}.{' '}
                                             <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setPage(1); }}>Clear filters</Button>
-                                        </> : 'No action items yet.'}
+                                        </> : selectedModule ? `No actionable items tagged for ${selectedModule}.` : 'No actionable items yet.'}
                                     </TableCell>
                                 </TableRow>
                             )}

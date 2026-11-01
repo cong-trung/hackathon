@@ -15,6 +15,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.io.concurrency import atomic_write_bytes, locked_files
+from app.services.pypcs_service import canonical_multiselect_answer
 
 IMPORTER = "quality_matrix_xlsx_import"
 SEED_MARKERS = {"product_catalog_seed", "seed_script"}
@@ -152,7 +153,7 @@ def module_for_label(label):
     if "v8" in text:
         return "V8"
     if "ahmt" in text:
-        return "HDMX_AHMT"
+        return "HDMx_AHMT"
     if text == "hdmx" or text.startswith("hdmxonly"):
         return "HDMX"
     if any(label in text for label in ("phmhot", "phmcold", "phmcolr", "phmhotr")):
@@ -353,7 +354,16 @@ def normalize_value(question_id, raw_value, question, changes, other_values, na_
             value = "BGA"
         elif has_lga:
             value = "LGA"
-    if value and question.get("field_type", "").casefold() == "select":
+    if value and question.get("field_type", "").casefold() == "multiselect":
+        options = [item.strip() for item in question.get("options", "").split("|") if item.strip()]
+        value = canonical_multiselect_answer(
+            value,
+            options,
+            strict=False,
+            allow_bare_other=True,
+            field=question_id,
+        )
+    elif value and question.get("field_type", "").casefold() == "select":
         options = [item.strip() for item in question.get("options", "").split("|") if item.strip()]
         option = next((item for item in options if item.casefold() == value.casefold()), None)
         if option:

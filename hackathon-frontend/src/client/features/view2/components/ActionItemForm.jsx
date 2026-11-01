@@ -82,6 +82,7 @@ const schema = (options) => z
         reference: requiredText('Reference'),
         description: z.string(),
         ar_follow_up: z.string(),
+        module: z.array(z.string()).min(1, 'Select at least one module.'),
         package: z.array(z.string()),
         bare_die_lid: z.array(z.string()),
         foveros: z.array(z.string()),
@@ -137,6 +138,7 @@ function defaults(item, options) {
         reference: item?.reference ?? '',
         description: item?.description ?? '',
         ar_follow_up: item?.ar_follow_up ?? '',
+        module: item?.module ?? [],
         ...Object.fromEntries(
             applicabilityFields.flatMap(({ name }) => {
                 const values = item?.[name] ?? [];
@@ -410,8 +412,15 @@ export default function ActionItemForm({ item, onClose, onReload }) {
                                         )}
                                     />
                                 ))}
+                                <ApplicabilityField
+                                    control={form.control}
+                                    setValue={form.setValue}
+                                    name="module"
+                                    label="Module *"
+                                    options={options?.fields?.module ?? []}
+                                />
                                 <div className="sm:col-span-2 border-t pt-4 text-sm font-medium">
-                                    Applicability (Quality Matrix questions)
+                                    Applicability (Product Info questions)
                                 </div>
                                 {applicabilityFields.map(({ name, label }) => (
                                     <ApplicabilityField

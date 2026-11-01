@@ -61,7 +61,8 @@ function buildMatrixRows(detail) {
 }
 
 function displayAnswer(questionId, answer) {
-    return questionId === 'operation' ? (answer || '').split('|').join(', ') : answer;
+    return questionId === 'operation' || questionId === 'prodgroup3'
+        ? (answer || '').split('|').join(', ') : answer;
 }
 
 export default function PYPCSSubmissionsReview({
@@ -91,7 +92,8 @@ export default function PYPCSSubmissionsReview({
         const term = search.trim().toLowerCase();
         return submissions.filter((item) =>
             (statusFilter === 'all' || item.status === statusFilter) &&
-            (!term || [item.created_at, item.status, item.product_name, item.prodgroup3,
+            (!term || [item.created_at, item.status, item.product_name,
+                displayAnswer('prodgroup3', item.prodgroup3), item.prodgroup3,
                 displayAnswer('operation', item.operation), (item.selected_modules || []).join(', '),
                 item.role, item.submitted_by].some((value) => String(value ?? '').toLowerCase().includes(term))));
     }, [submissions, search, statusFilter]);
@@ -419,7 +421,7 @@ export default function PYPCSSubmissionsReview({
 
                     <div>
                         <span className="font-medium">ProdGroup3:</span>{' '}
-                        {selectedDetail.submission?.prodgroup3}
+                        {displayAnswer('prodgroup3', selectedDetail.submission?.prodgroup3)}
                     </div>
 
                     <div>
@@ -464,7 +466,7 @@ export default function PYPCSSubmissionsReview({
     return (
         <div className="flex min-w-0 flex-col gap-3 md:min-h-0 md:flex-1 md:overflow-hidden">
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <h1 className="sr-only">Quality Matrix</h1>
+                <h1 className="sr-only">Product Info</h1>
                 {modeSwitch}
                 <div className="ml-auto flex flex-wrap items-center gap-2">
                     <label htmlFor="review-search" className="text-sm font-medium">
@@ -568,7 +570,7 @@ export default function PYPCSSubmissionsReview({
                                         </span>
                                     </td>
                                     <td className="border-b border-r border-table-border p-3">{item.product_name}</td>
-                                    <td className="border-b border-r border-table-border p-3">{item.prodgroup3}</td>
+                                    <td className="border-b border-r border-table-border p-3">{displayAnswer('prodgroup3', item.prodgroup3)}</td>
                                     <td className="border-b border-r border-table-border p-3">{displayAnswer('operation', item.operation)}</td>
                                     <td className="border-b border-r border-table-border p-3">
                                         {(item.selected_modules || []).join(

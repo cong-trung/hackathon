@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from 'react-router-dom';
 
 import AppLayout from '@/shared/layout/AppLayout';
 import RequireAuth from '@/shared/components/auth/RequireAuth';
@@ -8,6 +8,11 @@ import { routes } from '@/routes/routes';
 
 const AuthPage = lazy(() => import('@/features/auth/pages/LoginPage'));
 const NotFound = lazy(() => import('@/features/home/pages/NotFound'));
+
+function LegacyRedirect({ from, to }) {
+    const { pathname, search, hash } = useLocation();
+    return <Navigate to={`${to}${pathname.slice(from.length)}${search}${hash}`} replace />;
+}
 
 import { Agentation } from 'agentation';
 
@@ -60,6 +65,9 @@ const router = createBrowserRouter([
             {
                 element: <AppLayout />,
                 children: [
+                    { path: 'pypcs/*', element: <LegacyRedirect from="/pypcs" to={routesConfig.product_info_page} /> },
+                    { path: 'view-2/*', element: <LegacyRedirect from="/view-2" to={routesConfig.actionable_items_page} /> },
+                    { path: 'view-3/*', element: <LegacyRedirect from="/view-3" to={routesConfig.quality_product_matrix_page} /> },
                     ...buildRouteObjects(routes),
                     {
                         path: '*',
