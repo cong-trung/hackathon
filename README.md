@@ -93,11 +93,23 @@ with `curl.exe --noproxy "*" http://127.0.0.1:8004/health`.
 
 ### Docker Compose
 
-Compose declares frontend port 8005 and backend port 8004. It is not buildable
-from this checkout as-is: the frontend Dockerfile referenced by Compose is
-absent, and the backend Dockerfile copies an `intel-ca.crt` that is absent.
-The backend data mount is also configured as `/mnt/x/Quality:/app/data`, which
-is environment-specific and needs a suitable host path on Windows.
+Compose runs the frontend on port 8005 and the backend on port 8004. Both
+Dockerfiles are present. Data is baked into the backend image from
+`hackathon-backend/data`, so a fresh deploy needs no external share. To use the
+network share instead, uncomment the `volumes` entry for the backend in
+`docker-compose.yaml` (`/mnt/x/Quality:/app/data`).
+
+Compose only reads `${...}` values from the shell or `--env-file`, not from
+`.env.production` automatically. Create the root `.env.production` from
+`.env.example` (it is gitignored), then run:
+
+```bash
+docker compose --env-file .env.production up -d --build
+```
+
+Both services also receive `.env.production` values through `env_file`, which is
+optional. The backend skips the Intel CA install when `intel-ca.crt` is not in
+its build context.
 
 ## Configuration
 
