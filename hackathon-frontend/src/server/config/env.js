@@ -20,11 +20,21 @@ if (result.error) {
     console.warn(`Failed to load ${envFile}: ${result.error}`);
 }
 
+const cookieSecureEnv = process.env.COOKIE_SECURE?.trim().toLowerCase();
+const cookieSecureDefault = process.env.NODE_ENV === 'production';
+if (cookieSecureEnv && cookieSecureEnv !== 'true' && cookieSecureEnv !== 'false') {
+    console.warn(`Invalid COOKIE_SECURE "${cookieSecureEnv}"; using default.`);
+}
+
 export const config = {
     port: process.env.PORT,
     nodeEnv: process.env.NODE_ENV,
     djangoBaseUrl: process.env.DJANGO_BASE_URL,
     encryptionKey: process.env.VITE_ENCRYPTION_KEY,
+    cookieSecure:
+        cookieSecureEnv === 'true' || cookieSecureEnv === 'false'
+            ? cookieSecureEnv === 'true'
+            : cookieSecureDefault,
     allowedOrigins: (process.env.ALLOWED_ORIGINS ||
         'http://localhost:5173,http://localhost:3000')
         .split(',')

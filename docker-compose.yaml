@@ -36,6 +36,8 @@ services:
       PORT: 8005
       DJANGO_BASE_URL: http://hackathon-backend:8004
       VITE_ENCRYPTION_KEY: ${VITE_ENCRYPTION_KEY:-}
+      # Set true once the site is served over HTTPS.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ALLOWED_ORIGINS: ${FRONTEND_ALLOWED_ORIGINS:-http://quality-matrix-vnat.intel.com,http://localhost:8005}
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}

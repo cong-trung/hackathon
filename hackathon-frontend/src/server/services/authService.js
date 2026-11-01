@@ -5,7 +5,7 @@ function cookieOptions() {
     return {
         httpOnly: true,
         sameSite: 'strict',
-        secure: config.nodeEnv === 'production',
+        secure: config.cookieSecure,
         path: '/',
     };
 }

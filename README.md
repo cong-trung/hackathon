@@ -111,6 +111,8 @@ Both services also receive `.env.production` values through `env_file`, which is
 optional. The backend skips the Intel CA install when `intel-ca.crt` is not in
 its build context.
 
+Inside Docker, the admin account is created from `QUALITY_MATRIX_ADMIN_USERNAME` and `QUALITY_MATRIX_ADMIN_PASSWORD` in the host's `.env.production` only when `data/Auth/Users.csv` has no active admin; `data/Auth` is git-ignored but is copied into the backend image, and `QUALITY_MATRIX_AUTH_SECRET` keeps tokens valid across restarts.
+
 ## Configuration
 
 | Variable                                                     | File or source                             | Purpose                                                                                                                                                                                                 |
@@ -118,6 +120,7 @@ its build context.
 | `PORT`                                                     | Frontend `.env.development`              | Express listen port; local setting is 5173.                                                                                                                                                             |
 | `DJANGO_BASE_URL`                                          | Frontend `.env.development`              | FastAPI base URL; local setting is `http://127.0.0.1:8004`. The name is legacy.                                                                                                                       |
 | `NODE_ENV`                                                 | Frontend `.env.development` / npm script | Selects development or production mode and env file.                                                                                                                                                    |
+| `COOKIE_SECURE`                                            | Frontend environment / root `.env.production` | Sets the `Secure` flag on the `qm_token` cookie: `true` or `false`. Unset defaults to `true` when `NODE_ENV=production`. Compose defaults to `false`; set `true` once served over HTTPS. |
 | `VITE_ENCRYPTION_KEY`                                      | Frontend `.env.development`              | Loaded into server config; keep any value private.                                                                                                                                                      |
 | `VITE_API_BASE_URL`                                        | Frontend `.env.development`              | Present in the env file; no consumer was found in current source.                                                                                                                                       |
 | `QUALITY_MATRIX_DATA_DIR`                                  | Backend `.env.production` or shell       | `.env.production` sets the team network share location. Defaults to `data`; for local data, set `$env:QUALITY_MATRIX_DATA_DIR = "data"` in the backend PowerShell window before starting Uvicorn. |
