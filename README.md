@@ -114,7 +114,16 @@ its build context.
 NYRA chat is enabled when `NYRA_API_KEY` is set in the root `.env.production`.
 The backend image installs `nyra-services` from `NYRA_PACKAGE_URL` (the Intel
 git repository) at build time; set it empty on hosts without Intel network
-access, which disables the chat endpoint.
+access, which disables the chat endpoint. The Intel git repository is private,
+so the build needs a GitHub PAT with read access to the nyra-services repo.
+Without one, `docker compose ... up -d --build` still succeeds with chat
+disabled and a build warning. To install it, build the backend image manually:
+
+```bash
+docker build --secret id=nyra_git_token,env=NYRA_GIT_TOKEN -t hackathon-backend:latest ./hackathon-backend
+```
+
+The token is used only for that install step and is not stored in the image.
 
 Inside Docker, the admin account is created from `QUALITY_MATRIX_ADMIN_USERNAME` and `QUALITY_MATRIX_ADMIN_PASSWORD` in the host's `.env.production` only when `data/Auth/Users.csv` has no active admin; `data/Auth` is git-ignored but is copied into the backend image, and `QUALITY_MATRIX_AUTH_SECRET` keeps tokens valid across restarts.
 
@@ -133,7 +142,7 @@ Inside Docker, the admin account is created from `QUALITY_MATRIX_ADMIN_USERNAME`
 | `QUALITY_MATRIX_LOG_LEVEL`                                 | Backend environment                        | Log level for the `app` logger (stderr); default `INFO`, invalid values fall back to `INFO`. Logged PdO emails appear at `INFO`.                                                                       |
 | `NYRA_API_KEY`                                             | Backend `.env.production`                | Required by the chat endpoint; secret.                                                                                                                                                                  |
 | `NYRA_CHAT_MODEL`                                          | Backend `.env.production`                | Optional chat model override; code default is `deepseek-v4.1-flash`.                                                                                                                                  |
-| `NYRA_PACKAGE_URL`                                         | Backend Docker build                     | Git URL the backend image installs `nyra-services` from; set empty to skip the install (chat then returns a clean error).                                                                             |
+| `NYRA_PACKAGE_URL`                                         | Backend Docker build                     | Git URL the backend image installs `nyra-services` from; set empty to skip the install (chat then returns a clean error). Private repo: pass a PAT with `--secret id=nyra_git_token,env=NYRA_GIT_TOKEN`. |
 | `QUALITY_MATRIX_PUBLIC_URL`                                | Backend `.env.production`                | Base URL for review links in PdO emails; default `http://localhost:5173`. Production: `http://quality-matrix-vnat.intel.com`.                                                                           |
 | `QUALITY_MATRIX_MAIL_TRANSPORT`                            | Backend `.env.production`                | PdO email transport: `outlook` (desktop Outlook COM, needs pywin32), `smtp`, or `log`. Unset defaults to `smtp` when `QUALITY_MATRIX_SMTP_HOST` is set, else `outlook` on Windows, else `log`. Log-mode output is logged at `WARNING`. |
 | `QUALITY_MATRIX_MAIL_ENABLED`, `QUALITY_MATRIX_MAIL_FROM`  | Backend `.env.production`                | Final-submit PdO emails; default enabled, fallback sender `ba-chu-YP@intel.com` (submitter's email is used as From with Reply-To when present; if the relay refuses it, one retry uses the fallback sender and logs a WARNING). `QUALITY_MATRIX_MAIL_ENABLED=false` forces `log` transport. |

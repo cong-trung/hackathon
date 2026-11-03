@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 ARG HTTP_PROXY
@@ -53,12 +54,21 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Optional internal-only package, installed from the NYRA git repository (the
 # devpi index is gone). Leave NYRA_PACKAGE_URL empty on external hosts to skip
 # the install; the chat endpoint then returns a clean error until the package
-# and NYRA_API_KEY are configured.
+# and NYRA_API_KEY are configured. Private repo: build with --secret id=nyra_git_token.
 ARG NYRA_PACKAGE_URL=git+https://mfg-github.mfg.intel.com/intel-manufacturing/applications.manufacturing.intel.common.imi.api.nyra.nyra-services.git@main
-RUN if [ -n "${NYRA_PACKAGE_URL}" ]; then \
-      uv pip install --system --native-tls "${NYRA_PACKAGE_URL}"; \
-    else \
+RUN --mount=type=secret,id=nyra_git_token,required=false \
+    if [ -z "${NYRA_PACKAGE_URL}" ]; then \
       echo "NYRA_PACKAGE_URL is empty; skipping nyra-services install"; \
+    elif [ -s /run/secrets/nyra_git_token ]; then \
+      NYRA_GIT_TOKEN="$(cat /run/secrets/nyra_git_token)" GIT_TERMINAL_PROMPT=0 \
+        GIT_CONFIG_COUNT=1 \
+        GIT_CONFIG_KEY_0="credential.https://mfg-github.mfg.intel.com.helper" \
+        GIT_CONFIG_VALUE_0='!f() { echo username=x-access-token; echo "password=$NYRA_GIT_TOKEN"; }; f' \
+        uv pip install --system --native-tls "${NYRA_PACKAGE_URL}" \
+        || echo "WARNING: nyra-services install failed (private repo needs credentials); chat will be disabled. Provide a token via --secret id=nyra_git_token or set NYRA_PACKAGE_URL= to skip."; \
+    else \
+      GIT_TERMINAL_PROMPT=0 uv pip install --system --native-tls "${NYRA_PACKAGE_URL}" \
+        || echo "WARNING: nyra-services install failed (private repo needs credentials); chat will be disabled. Provide a token via --secret id=nyra_git_token or set NYRA_PACKAGE_URL= to skip."; \
     fi
 
 COPY . /app
