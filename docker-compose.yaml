@@ -90,7 +90,7 @@ services:
       no_proxy: ${no_proxy:-}
     # NetApp share (CIFS volume defined below), mounted at /app/data.
     volumes:
-      - quality_data:/app/data
+      - /mnt/X/Quality:/app/data
     restart: always
 
   # celery-beat:
@@ -101,11 +101,3 @@ services:
   #   depends_on:
   #     - redis
   #     - hackathon-backend
-
-volumes:
-  quality_data:
-    driver: local
-    driver_opts:
-      type: cifs
-      device: "//VNATSHFS.intel.com/VNATAnalysis$$/MAOATM/VN/Applications/TE/Quality"
-      o: "addr=VNATSHFS.intel.com,username=${QUALITY_SHARE_USERNAME:?set QUALITY_SHARE_USERNAME in .env.production},password=${QUALITY_SHARE_PASSWORD:?set QUALITY_SHARE_PASSWORD in .env.production},domain=${QUALITY_SHARE_DOMAIN:-},vers=${QUALITY_SHARE_SMB_VERSION:-3.0},uid=0,gid=0,file_mode=0664,dir_mode=0775"
