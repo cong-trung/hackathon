@@ -2,11 +2,18 @@
 
 import logging
 import os
+import sys
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import ALLOWED_ORIGINS, DATA_DIR
+from app.config import (
+    ALLOWED_ORIGINS,
+    DATA_DIR,
+    QUALITY_MATRIX_MAIL_TRANSPORT,
+    QUALITY_MATRIX_SMTP_HOST,
+    QUALITY_MATRIX_SMTP_PORT,
+)
 from app.auth import bootstrap_admin, record_audit
 
 # Uvicorn configures only its own loggers, so give the app package a handler.
@@ -17,6 +24,26 @@ if not _app_logger.handlers:
     _handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s - %(message)s"))
     _app_logger.addHandler(_handler)
     _app_logger.setLevel(_log_level if isinstance(_log_level, int) else logging.INFO)
+
+_mail_logger = logging.getLogger(__name__)
+_log_only_transport = (
+    QUALITY_MATRIX_MAIL_TRANSPORT == "log"
+    or (QUALITY_MATRIX_MAIL_TRANSPORT == "smtp" and not QUALITY_MATRIX_SMTP_HOST)
+    or (QUALITY_MATRIX_MAIL_TRANSPORT == "outlook" and sys.platform != "win32")
+)
+if _log_only_transport:
+    _mail_logger.warning(
+        "Mail transport is '%s': final-submit emails will NOT be sent. Set QUALITY_MATRIX_SMTP_HOST "
+        "(and QUALITY_MATRIX_SMTP_PORT/STARTTLS/USERNAME/PASSWORD if needed) in .env.production.",
+        QUALITY_MATRIX_MAIL_TRANSPORT,
+    )
+else:
+    _mail_logger.info(
+        "Mail transport is '%s' (SMTP host:port %s:%s).",
+        QUALITY_MATRIX_MAIL_TRANSPORT,
+        QUALITY_MATRIX_SMTP_HOST or "-",
+        QUALITY_MATRIX_SMTP_PORT,
+    )
 
 LEGACY_ROOT_DATA_FILES = (
     "PYPCS_Submissions.csv",
@@ -84,7 +111,7 @@ async def audit_authenticated_mutations(request, call_next):
     if (
         user
         and request.method in {"POST", "PUT", "PATCH", "DELETE"}
-        and request.url.path not in {"/auth/login", "/auth/request-account"}
+        and request.url.path not in {"/auth/login", "/auth/request-account", "/auth/change-password"}
     ):
         record_audit(user["username"], request.method, request.url.path, response.status_code)
     return response

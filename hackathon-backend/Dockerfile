@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     bash \
+    git \
     build-essential \
     unixodbc \
     unixodbc-dev \
@@ -49,14 +50,15 @@ COPY requirements.txt /app/requirements.txt
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system -r requirements.txt
 
-# Optional internal-only package. Leave NYRA_INDEX_URL empty on external hosts
-# to skip the install; the chat endpoint then returns a clean error until the
-# package and NYRA_API_KEY are configured.
-ARG NYRA_INDEX_URL=https://devpi.intel.com/general/nyra/+simple/
-RUN if [ -n "${NYRA_INDEX_URL}" ]; then \
-      uv pip install --system --native-tls nyra-services --index-url "${NYRA_INDEX_URL}"; \
+# Optional internal-only package, installed from the NYRA git repository (the
+# devpi index is gone). Leave NYRA_PACKAGE_URL empty on external hosts to skip
+# the install; the chat endpoint then returns a clean error until the package
+# and NYRA_API_KEY are configured.
+ARG NYRA_PACKAGE_URL=git+https://mfg-github.mfg.intel.com/intel-manufacturing/applications.manufacturing.intel.common.imi.api.nyra.nyra-services.git@main
+RUN if [ -n "${NYRA_PACKAGE_URL}" ]; then \
+      uv pip install --system --native-tls "${NYRA_PACKAGE_URL}"; \
     else \
-      echo "NYRA_INDEX_URL is empty; skipping nyra-services install"; \
+      echo "NYRA_PACKAGE_URL is empty; skipping nyra-services install"; \
     fi
 
 COPY . /app

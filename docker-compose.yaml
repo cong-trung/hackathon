@@ -7,8 +7,8 @@
 #   cp .env.example .env.production   # then edit values
 #
 # If you are outside the Intel network, skip the internal-only nyra-services
-# package at build time by setting NYRA_INDEX_URL to an empty value:
-#   NYRA_INDEX_URL= docker compose up -d --build
+# package at build time by setting NYRA_PACKAGE_URL to an empty value:
+#   NYRA_PACKAGE_URL= docker compose up -d --build
 
 services:
   hackathon-frontend:
@@ -56,7 +56,7 @@ services:
       context: ./hackathon-backend
       dockerfile: Dockerfile
       args:
-        NYRA_INDEX_URL: ${NYRA_INDEX_URL-https://devpi.intel.com/general/nyra/+simple/}
+        NYRA_PACKAGE_URL: ${NYRA_PACKAGE_URL-git+https://mfg-github.mfg.intel.com/intel-manufacturing/applications.manufacturing.intel.common.imi.api.nyra.nyra-services.git@main}
         HTTP_PROXY: ${HTTP_PROXY:-}
         HTTPS_PROXY: ${HTTPS_PROXY:-}
         FTP_PROXY: ${FTP_PROXY:-}

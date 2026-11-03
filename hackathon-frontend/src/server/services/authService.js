@@ -73,6 +73,10 @@ export function requestAccount(req, res) {
     return forwardJson(req, res, '/auth/request-account', 201);
 }
 
+export function changePassword(req, res) {
+    return forwardJson(req, res, '/auth/change-password');
+}
+
 export async function getMe(req, res) {
     try {
         const result = await forwardRequest('/auth/me', req);

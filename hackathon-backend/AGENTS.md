@@ -43,8 +43,12 @@ No test suite or lint config exists yet.
 - `data/View2/PYPCS_ActionItems.csv` (View 2) uses `nbr` as its key; applicability fields mirror
   PYPCS_Questions `question_id`s and are `|`-joined, with `All`/`NA`/`Multiple` semantics.
   Action items support add/edit only through the `/pypcs/action-items` endpoints.
-- [app/services/chat_service.py](app/services/chat_service.py) — `get_nyra_client()` for the AI
-  chat endpoints.
+- [app/services/chat_service.py](app/services/chat_service.py) — `get_nyra_client()` and the
+  `CHAT_SYSTEM_PROMPT` (project context + brevity/grounding rules) for the AI chat endpoints.
+- [app/services/chat_context.py](app/services/chat_context.py) — compact cached data snapshot
+  (modules, solutions, PdO, View 2, submissions, XRB) injected into the chat system prompt;
+  XRB is summarized on a background thread from `QUALITY_MATRIX_XRB_PATH` (default
+  `<DATA_DIR>/XRB.csv`) because the export is large. Frontend chat UI uses `@ant-design/x`.
 - [app/routers/](app/routers) — one FastAPI `APIRouter` per feature area (`health`,
   `auth`, `product_basis`, `solutions`, `pdsolutions`, `pypcs`, `chat`), wired up in
   [app/main.py](app/main.py).

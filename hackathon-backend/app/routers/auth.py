@@ -7,7 +7,7 @@ import threading
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.config import QUALITY_MATRIX_TRUSTED_PROXIES
 from app.auth import (
@@ -23,6 +23,7 @@ from app.auth import (
     issue_token,
     normalize_username,
     public_user,
+    record_audit,
     require_admin,
     timestamp_now,
     validate_display_name,
@@ -55,6 +56,13 @@ class LoginRequest(BaseModel):
 
 class ApproveRequest(BaseModel):
     role: str
+
+
+class ChangePasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 def _client_ip(request: Request) -> str:
@@ -181,6 +189,39 @@ def login(payload: LoginRequest, request: Request):
         raise HTTPException(status_code=403, detail={"code": "account_disabled"})
     token, expires_at = issue_token(username)
     return {"token": token, "expires_at": expires_at, "user": public_user(row)}
+
+
+@router.post("/auth/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    user: dict[str, str] = Depends(get_current_user),
+):
+    if user.get("role") == "guest":
+        raise HTTPException(status_code=403, detail={"code": "guest_not_allowed"})
+    username = normalize_username(user["username"])
+    client_ip = _client_ip(request)
+    _check_login_throttle(username, client_ip)
+    with locked_files(USER_FILE):
+        rows = _read_csv(USER_FILE, USER_HEADERS)
+        row = _find_user(rows, username)
+        if not row or row.get("status") != "active" or row.get("role") == "guest":
+            raise HTTPException(status_code=401, detail={"code": "unauthenticated"})
+        if not verify_password(payload.current_password, row.get("password_hash", "")):
+            _record_login_failure(username, client_ip)
+            raise HTTPException(
+                status_code=400,
+                detail={"code": "invalid_current_password", "message": "Current password is incorrect."},
+            )
+        if payload.new_password == payload.current_password:
+            raise HTTPException(
+                status_code=422,
+                detail={"field": "new_password", "code": "password_unchanged"},
+            )
+        row["password_hash"] = hash_password(payload.new_password)
+        _write_users(rows)
+    record_audit(username, "POST", "/auth/change-password", 200)
+    return {"ok": True}
 
 
 @router.post("/auth/guest")

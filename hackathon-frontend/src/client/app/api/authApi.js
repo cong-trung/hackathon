@@ -18,6 +18,9 @@ export const authApi = apiSlice.injectEndpoints({
             query: () => ({ url: '/auth/logout', method: 'POST', body: {} }),
             invalidatesTags: ['Auth', 'Users'],
         }),
+        changePassword: builder.mutation({
+            query: (body) => ({ url: '/auth/change-password', method: 'POST', body }),
+        }),
         requestAccount: builder.mutation({
             query: (body) => ({ url: '/auth/request-account', method: 'POST', body }),
         }),
@@ -57,6 +60,7 @@ export const {
     useGuestLoginMutation,
     useLoginMutation,
     useLogoutMutation,
+    useChangePasswordMutation,
     useRequestAccountMutation,
     useListUsersQuery,
     useApproveUserMutation,

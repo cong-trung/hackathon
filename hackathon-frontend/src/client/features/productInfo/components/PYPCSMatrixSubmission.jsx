@@ -35,6 +35,7 @@ const labelColumn = { width: 256, minWidth: 256, maxWidth: 256, left: 48 };
 // Shared answers expand to every applicable selected module on save.
 const SHARED_ACROSS_MODULES_QUESTION_IDS = new Set([
     'product_name',
+    'product_group_email',
     'product_remark',
     'implementation_stage',
     'xvi_tool_type',
@@ -835,6 +836,11 @@ export default function PYPCSMatrixSubmission({
             if (value && !EMAIL_PATTERN.test(value)) {
                 nextErrors[key] = 'Invalid PdO owner email.';
             }
+            const groupEmailKey = getCellKey('product_group_email', moduleKey);
+            const groupEmail = String(expanded[groupEmailKey] || '').trim();
+            if (groupEmail && !EMAIL_PATTERN.test(groupEmail)) {
+                nextErrors[groupEmailKey] = 'Invalid product group email.';
+            }
         });
         return nextErrors;
     }
@@ -894,6 +900,20 @@ export default function PYPCSMatrixSubmission({
             setStatusMessage(message);
             focusCellError(applicable.length ? getCellKey(questionId, applicable[0]) : null);
             return;
+        }
+
+        if (error.status === 422 && typeof detail?.field === 'string'
+            && typeof detail.message === 'string' && !detail.code) {
+            const question = questions.find((item) => item.question_id === detail.field);
+            if (question) {
+                const applicable = selectedModules.filter((moduleKey) =>
+                    isQuestionApplicableToModule(question, moduleKey));
+                setErrors(Object.fromEntries(applicable.map((moduleKey) =>
+                    [getCellKey(detail.field, moduleKey), detail.message])));
+                setStatusMessage(detail.message);
+                focusCellError(applicable.length ? getCellKey(detail.field, applicable[0]) : null);
+                return;
+            }
         }
 
         const missing = Array.isArray(detail?.missing_required)
@@ -1169,13 +1189,15 @@ export default function PYPCSMatrixSubmission({
         return (
             <input
                 className="w-full rounded border px-2 py-1 text-sm"
-                type={question.question_id === 'pdo_owner' ? 'email' : 'text'}
+                type={['pdo_owner', 'product_group_email'].includes(question.question_id) ? 'email' : 'text'}
                 id={inputId}
                 readOnly={disabled}
+                autoComplete={question.question_id === 'product_group_email' ? 'off' : undefined}
                 aria-label={label}
                 aria-invalid={invalid || undefined}
                 aria-describedby={errorId}
                 placeholder={question.question_id === 'pdo_owner' ? 'name@intel.com'
+                    : question.question_id === 'product_group_email' ? 'team-dl@intel.com'
                     : question.question_id === 'nsb_comment' ? 'Explain why this is Non-Synergy-Build' : undefined}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}

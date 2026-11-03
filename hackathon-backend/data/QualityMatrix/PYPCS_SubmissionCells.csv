@@ -7144,3 +7144,18 @@ e172cb02-8739-4f34-9849-3f0e586a6c23,edm_check_enable,HDMx_AHMT,ME,Y,"",admin
 38240892-7d62-4f74-9c1a-5e8f01ac5564,xvi_tool_type,LCBI,TI,DVI,"",admin
 38240892-7d62-4f74-9c1a-5e8f01ac5564,fab_technology,LCBI,TI,dio,"",admin
 38240892-7d62-4f74-9c1a-5e8f01ac5564,lts_ball,LCBI,TI,Y,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,product_name,LCBI,TI,diddi,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,product_remark,LCBI,TI,diddi,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,pdo_owner,LCBI,TI,anh.minh.phan@intel.com,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,prodgroup3,LCBI,TI,ADLG601,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,operation,LCBI,TI,7460,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,nsb,LCBI,TI,N,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,mcp,LCBI,TI,N,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,package,LCBI,TI,BGA,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,bare_die_lid,LCBI,TI,Bare die,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,foveros,LCBI,TI,Foveros,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,implementation_stage,LCBI,TI,diddi,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,segment,LCBI,TI,Client mobile,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,xvi_tool_type,LCBI,TI,DVI,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,fab_technology,LCBI,TI,diddi,"",admin
+a550bdce-9dcc-4350-9b5f-60283d714a67,lts_ball,LCBI,TI,N,"",admin

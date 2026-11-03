@@ -1,290 +1,313 @@
 import { useMemo, useRef, useState } from 'react';
-import { SendIcon, BotIcon, UserIcon, Loader2Icon } from 'lucide-react';
+import { Avatar, ConfigProvider, theme as antdTheme } from 'antd';
+import { Bubble, Prompts, Sender } from '@ant-design/x';
+import {
+    BotIcon,
+    CircleAlert,
+    CircleCheck,
+    DownloadIcon,
+    SearchIcon,
+    UserIcon,
+} from 'lucide-react';
 import { useSendChatMessageMutation } from '@/app/api/chatApi';
 
-function ChatBubble({ role, content }) {
-    const isUser = role === 'user';
+// Dark navy + gold palette taken from the login screen.
+const chatTheme = {
+    algorithm: antdTheme.darkAlgorithm,
+    token: {
+        colorPrimary: '#ffeba7',
+        colorTextLightSolid: '#102770',
+        colorBgBase: '#14161f',
+        colorBgLayout: '#14161f',
+        colorBgContainer: '#1f2029',
+        colorBgElevated: '#262733',
+        colorBorder: 'rgba(255, 255, 255, 0.12)',
+        colorBorderSecondary: 'rgba(255, 255, 255, 0.08)',
+        colorText: '#f4f3f5',
+        colorTextSecondary: '#c4c3ca',
+        colorTextTertiary: '#9b9aab',
+        borderRadius: 10,
+        fontFamily: 'inherit',
+    },
+};
 
-    return (
-        <div
-            style={{
-                display: 'flex',
-                justifyContent: isUser ? 'flex-end' : 'flex-start',
-                marginBottom: 12,
-            }}
-        >
-            <div
+const QUICK_PROMPTS = [
+    {
+        key: 'xrb-status',
+        icon: <SearchIcon size={14} />,
+        label: 'What XRB case statuses and types are in the data?',
+    },
+    {
+        key: 'xrb-modules',
+        icon: <CircleAlert size={14} />,
+        label: 'Which modules have the most XRB cases?',
+    },
+    {
+        key: 'action-items',
+        icon: <CircleCheck size={14} />,
+        label: 'Summarize the View 2 action items.',
+    },
+    {
+        key: 'solutions',
+        icon: <DownloadIcon size={14} />,
+        label: 'What solutions exist in the GL-MQR catalogue?',
+    },
+];
+
+const GREETING =
+    'Hi there, I am your Quality Matrix AI assistant. Ask me about modules, solutions, action items, submissions, or XRB cases - I answer from the current project data.';
+
+const roleConfig = {
+    ai: {
+        placement: 'start',
+        variant: 'filled',
+        avatar: (
+            <Avatar
+                size={32}
+                style={{ backgroundColor: '#ffeba7', color: '#102770' }}
+                icon={<BotIcon size={16} />}
+            />
+        ),
+        styles: {
+            content: {
+                background: '#262733',
+                color: '#f4f3f5',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+            },
+        },
+    },
+    user: {
+        placement: 'end',
+        variant: 'filled',
+        avatar: (
+            <Avatar
+                size={32}
                 style={{
-                    display: 'flex',
-                    gap: 10,
-                    alignItems: 'flex-start',
-                    maxWidth: '78%',
-                    flexDirection: isUser ? 'row-reverse' : 'row',
+                    backgroundColor: '#102770',
+                    color: '#ffeba7',
+                    border: '1px solid rgba(255, 235, 167, 0.4)',
                 }}
-            >
-                <div
-                    style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: isUser ? '#2563eb' : '#16a34a',
-                        color: '#fff',
-                        flexShrink: 0,
-                    }}
-                >
-                    {isUser ? <UserIcon size={18} /> : <BotIcon size={18} />}
-                </div>
-
-                <div
-                    style={{
-                        padding: '12px 14px',
-                        borderRadius: 14,
-                        background: isUser ? '#2563eb' : '#f3f4f6',
-                        color: isUser ? '#fff' : '#111827',
-                        whiteSpace: 'pre-wrap',
-                        lineHeight: 1.5,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                    }}
-                >
-                    {content}
-                </div>
-            </div>
-        </div>
-    );
-}
+                icon={<UserIcon size={16} />}
+            />
+        ),
+        styles: {
+            content: {
+                background: '#ffeba7',
+                color: '#102770',
+                fontWeight: 500,
+            },
+        },
+    },
+};
 
 export default function ChatAIPage() {
     const [messages, setMessages] = useState([
-        {
-            role: 'assistant',
-            content:
-                'Hi there, I am your Quality Matrix AI assistant. Ask me about XRB solutions, corrective actions, disposition, product basis, or module issues.',
-        },
+        { key: 'greeting', role: 'assistant', content: GREETING },
     ]);
-
     const [input, setInput] = useState('');
-    const [sendChatMessage, { isLoading: loading }] = useSendChatMessageMutation();
-    const textareaRef = useRef(null);
+    const [sendChatMessage, { isLoading: loading }] =
+        useSendChatMessageMutation();
+    const counter = useRef(0);
+
+    const nextKey = () => {
+        counter.current += 1;
+        return `msg-${counter.current}`;
+    };
 
     const history = useMemo(
         () =>
-            messages
-                .filter(
-                    (msg) => msg.role === 'user' || msg.role === 'assistant',
-                )
-                .map((msg) => ({
-                    role: msg.role,
-                    content: msg.content,
-                })),
+            messages.map(({ role, content }) => ({
+                role: role === 'user' ? 'user' : 'assistant',
+                content,
+            })),
         [messages],
     );
 
-    const sendMessage = async () => {
-        const text = input.trim();
+    const send = async (text) => {
+        const value = (typeof text === 'string' ? text : input).trim();
+        if (!value || loading) return;
 
-        if (!text || loading) return;
-
-        const userMessage = { role: 'user', content: text };
-        setMessages((prev) => [...prev, userMessage]);
+        const priorHistory = history;
+        setMessages((prev) => [
+            ...prev,
+            { key: nextKey(), role: 'user', content: value },
+        ]);
         setInput('');
 
         try {
-            const data = await sendChatMessage({ message: text, history }).unwrap();
+            const data = await sendChatMessage({
+                message: value,
+                history: priorHistory,
+            }).unwrap();
             setMessages((prev) => [
                 ...prev,
                 {
+                    key: nextKey(),
                     role: 'assistant',
-                    content: data.answer || 'No answer returned from bot.',
+                    content: data.answer || 'No answer returned from the bot.',
                 },
             ]);
         } catch (error) {
             setMessages((prev) => [
                 ...prev,
                 {
+                    key: nextKey(),
                     role: 'assistant',
                     content: `Error: ${error?.data?.detail || error?.data || error?.message || 'Chat API failed'}`,
                 },
             ]);
-        } finally {
-            setTimeout(() => {
-                textareaRef.current?.focus();
-            }, 0);
         }
     };
 
-    const handleKeyDown = (event) => {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            sendMessage();
+    const items = useMemo(() => {
+        const list = messages.map(({ key, role, content }) => ({
+            key,
+            role: role === 'user' ? 'user' : 'ai',
+            content,
+        }));
+        if (loading) {
+            list.push({
+                key: 'loading',
+                role: 'ai',
+                content: '',
+                loading: true,
+            });
         }
-    };
-
-    const quickPrompts = [
-        'What are common solutions and dispositions used in XRB cases?',
-        'Summarize corrective actions for stain on substrate issues.',
-        'What are typical lot dispositions in the XRB file?',
-        'Which XRB cases do not require corrective action and why?',
-    ];
+        return list;
+    }, [messages, loading]);
 
     return (
-        <div
-            style={{
-                height: 'calc(100vh - 80px)',
-                display: 'flex',
-                flexDirection: 'column',
-                background: '#ffffff',
-                borderRadius: 16,
-                overflow: 'hidden',
-                border: '1px solid #e5e7eb',
-            }}
-        >
+        <ConfigProvider theme={chatTheme}>
             <div
                 style={{
-                    padding: '18px 22px',
-                    borderBottom: '1px solid #e5e7eb',
-                    background:
-                        'linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%)',
-                }}
-            >
-                <h2 style={{ margin: 0, fontSize: 22, color: '#111827' }}>
-                    AI Chat
-                </h2>
-
-                <p style={{ margin: '6px 0 0', color: '#6b7280' }}>
-                    Ask the chatbot about XRB solutions, corrective actions,
-                    root causes, and lot disposition.
-                </p>
-            </div>
-
-            <div
-                style={{
-                    padding: '14px 18px',
+                    height: 'calc(100vh - 80px)',
                     display: 'flex',
-                    gap: 8,
-                    flexWrap: 'wrap',
-                    borderBottom: '1px solid #f1f5f9',
-                    background: '#ffffff',
+                    flexDirection: 'column',
+                    background: '#14161f',
+                    borderRadius: 16,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    boxShadow: '0 18px 45px rgba(9, 12, 24, 0.35)',
                 }}
             >
-                {quickPrompts.map((prompt) => (
-                    <button
-                        key={prompt}
-                        type="button"
-                        onClick={() => setInput(prompt)}
-                        style={{
-                            border: '1px solid #dbeafe',
-                            background: '#eff6ff',
-                            color: '#1d4ed8',
-                            padding: '8px 10px',
-                            borderRadius: 999,
-                            cursor: 'pointer',
-                            fontSize: 13,
-                        }}
-                    >
-                        {prompt}
-                    </button>
-                ))}
-            </div>
-
-            <div
-                style={{
-                    flex: 1,
-                    overflowY: 'auto',
-                    padding: 22,
-                    background: '#fafafa',
-                }}
-            >
-                {messages.map((msg, index) => (
-                    <ChatBubble
-                        key={`${msg.role}-${index}`}
-                        role={msg.role}
-                        content={msg.content}
-                    />
-                ))}
-
-                {loading && (
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            color: '#6b7280',
-                            marginTop: 8,
-                        }}
-                    >
-                        <Loader2Icon size={18} className="spin" />
-                        Bot is thinking...
-                    </div>
-                )}
-            </div>
-
-            <div
-                style={{
-                    padding: 16,
-                    borderTop: '1px solid #e5e7eb',
-                    background: '#ffffff',
-                }}
-            >
-                <div
+                <header
                     style={{
                         display: 'flex',
-                        gap: 10,
-                        alignItems: 'flex-end',
+                        alignItems: 'center',
+                        gap: 14,
+                        padding: '18px 22px',
+                        background:
+                            'linear-gradient(160deg, #1b2b62 0%, #102770 52%, #0c2056 100%)',
+                        borderBottom:
+                            '1px solid rgba(255, 235, 167, 0.18)',
                     }}
                 >
-                    <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(event) => setInput(event.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Type a message. Press Enter to send, Shift + Enter for new line."
-                        rows={2}
+                    <div
                         style={{
-                            flex: 1,
-                            resize: 'none',
-                            border: '1px solid #d1d5db',
+                            width: 40,
+                            height: 40,
                             borderRadius: 12,
-                            padding: '12px 14px',
-                            outline: 'none',
-                            fontSize: 14,
-                            lineHeight: 1.5,
-                        }}
-                    />
-
-                    <button
-                        type="button"
-                        onClick={sendMessage}
-                        disabled={loading || !input.trim()}
-                        style={{
-                            width: 46,
-                            height: 46,
-                            borderRadius: 12,
-                            border: 'none',
-                            background:
-                                loading || !input.trim()
-                                    ? '#9ca3af'
-                                    : '#2563eb',
-                            color: '#ffffff',
-                            cursor:
-                                loading || !input.trim()
-                                    ? 'not-allowed'
-                                    : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            display: 'grid',
+                            placeItems: 'center',
+                            background: '#ffeba7',
+                            color: '#102770',
+                            flexShrink: 0,
                         }}
                     >
-                        {loading ? (
-                            <Loader2Icon size={20} />
-                        ) : (
-                            <SendIcon size={20} />
-                        )}
-                    </button>
+                        <BotIcon size={20} />
+                    </div>
+                    <div>
+                        <h2
+                            style={{
+                                margin: 0,
+                                fontSize: 20,
+                                fontWeight: 600,
+                                color: '#f4f3f5',
+                            }}
+                        >
+                            AI Chat
+                        </h2>
+                        <p
+                            style={{
+                                margin: '4px 0 0',
+                                fontSize: 13,
+                                color: 'rgba(244, 243, 245, 0.72)',
+                            }}
+                        >
+                            Ask about modules, solutions, action items,
+                            submissions, and XRB cases.
+                        </p>
+                    </div>
+                </header>
+
+                <div
+                    style={{
+                        padding: '12px 18px',
+                        borderBottom:
+                            '1px solid rgba(255, 255, 255, 0.06)',
+                        background: '#171923',
+                    }}
+                >
+                    <Prompts
+                        items={QUICK_PROMPTS}
+                        wrap
+                        onItemClick={({ data }) =>
+                            setInput(String(data.label))
+                        }
+                        styles={{
+                            list: { gap: 8 },
+                            item: {
+                                background: 'rgba(255, 235, 167, 0.06)',
+                                border: '1px solid rgba(255, 235, 167, 0.28)',
+                                color: '#ffeba7',
+                                borderRadius: 999,
+                                padding: '6px 14px',
+                                fontSize: 13,
+                                cursor: 'pointer',
+                            },
+                        }}
+                    />
+                </div>
+
+                <Bubble.List
+                    autoScroll
+                    role={roleConfig}
+                    items={items}
+                    style={{
+                        flex: 1,
+                        minHeight: 0,
+                        overflowY: 'auto',
+                        padding: '20px 22px',
+                    }}
+                />
+
+                <div
+                    style={{
+                        padding: '14px 22px 10px',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: '#1b1c26',
+                    }}
+                >
+                    <Sender
+                        value={input}
+                        onChange={setInput}
+                        onSubmit={send}
+                        loading={loading}
+                        placeholder="Type a message. Press Enter to send, Shift + Enter for a new line."
+                        autoSize={{ minRows: 1, maxRows: 6 }}
+                    />
+                    <p
+                        style={{
+                            margin: '8px 2px 0',
+                            fontSize: 12,
+                            color: '#9b9aab',
+                        }}
+                    >
+                        Answers come from the current project data files and
+                        may lag a few minutes.
+                    </p>
                 </div>
             </div>
-        </div>
+        </ConfigProvider>
     );
 }

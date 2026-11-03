@@ -1,6 +1,7 @@
 import express from 'express';
 import {
     approveUser,
+    changePassword,
     disableUser,
     getMe,
     getUsers,
@@ -17,6 +18,7 @@ router.post('/auth/login', login);
 router.post('/auth/guest', guest);
 router.post('/auth/logout', logout);
 router.post('/auth/request-account', requestAccount);
+router.post('/auth/change-password', changePassword);
 router.get('/auth/me', getMe);
 router.get('/auth/users', getUsers);
 router.post('/auth/users/:username/approve', approveUser);

@@ -5,7 +5,12 @@ import os
 from fastapi import APIRouter, HTTPException
 
 from app.models.chat import AIChatRequest, AIChatResponse
-from app.services.chat_service import NYRA_CHAT_MODEL, get_nyra_client
+from app.services.chat_context import get_data_snapshot
+from app.services.chat_service import (
+    CHAT_SYSTEM_PROMPT,
+    NYRA_CHAT_MODEL,
+    get_nyra_client,
+)
 
 router = APIRouter()
 
@@ -23,17 +28,16 @@ def chat_health():
 def chat_with_ai(req: AIChatRequest):
     client = get_nyra_client()
 
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a helpful Quality Matrix assistant. "
-                "Answer clearly and practically. "
-                "If the user asks in Vietnamese, answer in Vietnamese. "
-                "If the user asks in English, answer in English."
-            ),
-        }
-    ]
+    system_content = CHAT_SYSTEM_PROMPT
+    snapshot = get_data_snapshot()
+    if snapshot:
+        system_content = (
+            f"{CHAT_SYSTEM_PROMPT}"
+            "\n\nLIVE DATA SNAPSHOT (read from the app's current data files):\n"
+            f"{snapshot}"
+        )
+
+    messages = [{"role": "system", "content": system_content}]
 
     for item in req.history[-10:]:
         role = item.get("role", "")

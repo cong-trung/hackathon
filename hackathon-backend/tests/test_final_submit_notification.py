@@ -17,6 +17,7 @@ MODULES = ["HDMx_Class", "HDMx_EQA", "STHI"]
 PRODGROUP3 = "GNRLCP/GNRLR1S"
 OWNER_A = "owner.a@example.com"
 OWNER_B = "owner.b@example.com"
+GROUP_EMAIL = "group.dl@example.com"
 
 
 def _write_csv(path, rows, fieldnames):
@@ -123,13 +124,15 @@ def matrix(tmp_path, monkeypatch, mail):
     pypcs_service._canonical_module_keys.cache_clear()
 
 
-def _payload(status, owners, submission_id=None):
+def _payload(status, owners, submission_id=None, group_email=None):
     cells = []
     for module in MODULES:
         cells.append({"question_id": "product_name", "module_key": module, "answer": "Notify Product"})
         cells.append({"question_id": "prodgroup3", "module_key": module, "answer": PRODGROUP3})
         if owners.get(module):
             cells.append({"question_id": "pdo_owner", "module_key": module, "answer": owners[module]})
+        if group_email is not None:
+            cells.append({"question_id": "product_group_email", "module_key": module, "answer": group_email})
     body = {
         "selected_modules": MODULES,
         "role": "TI",
@@ -320,3 +323,88 @@ def test_outlook_transport_sends_via_com_and_uninitializes(matrix, mail, monkeyp
     assert item.reply_recipients == ["submitter@example.com"]
     assert item.sent is True
     assert com_calls == ["init", "uninit"]
+
+
+def _require_group_email(tmp_path):
+    map_path = tmp_path / "data" / QUESTION_MODULE_MAP
+    rows = _read_csv(map_path)
+    for row in rows:
+        if row["question_id"] == "product_group_email":
+            row["required"] = "Y"
+    _write_csv(map_path, rows, list(rows[0]))
+
+
+def test_final_submit_without_group_email_is_422_when_required(matrix, mail, tmp_path):
+    client, _ = matrix
+    _require_group_email(tmp_path)
+    response = client.post("/pypcs/matrix-submission", json=_payload("final", OWNERS))
+    assert response.status_code == 422
+    assert response.json()["detail"]["field"] == "product_group_email"
+    assert mail.sent == []
+
+
+def test_draft_without_group_email_is_allowed_when_required(matrix, mail, tmp_path):
+    client, _ = matrix
+    _require_group_email(tmp_path)
+    response = client.post("/pypcs/matrix-submission", json=_payload("draft", OWNERS))
+    assert response.status_code == 200
+    assert mail.sent == []
+
+
+def test_invalid_group_email_is_422(matrix, mail):
+    client, _ = matrix
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("draft", {}, group_email="not-an-email"),
+    )
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["field"] == "product_group_email"
+    assert detail["message"] == "Invalid product group email."
+
+
+def test_group_email_receives_links_for_all_module_groups(matrix, mail):
+    client, _ = matrix
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("final", {}, group_email=GROUP_EMAIL),
+    )
+    assert response.status_code == 200
+    assert [message["To"] for message in mail.sent] == [GROUP_EMAIL]
+    plain = mail.sent[0].get_body(preferencelist=("plain",)).get_content()
+    assert "Quality matrix - HDMx:" in plain
+    assert "Quality matrix - STHI:" in plain
+
+
+def test_group_email_and_owner_same_address_sends_one_email(matrix, mail):
+    client, _ = matrix
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("final", {"STHI": GROUP_EMAIL.upper()}, group_email=GROUP_EMAIL),
+    )
+    assert response.status_code == 200
+    assert len(mail.sent) == 1
+    assert mail.sent[0]["To"].casefold() == GROUP_EMAIL
+    plain = mail.sent[0].get_body(preferencelist=("plain",)).get_content()
+    assert "Quality matrix - HDMx:" in plain
+    assert "Quality matrix - STHI:" in plain
+
+
+def test_group_email_with_owner_sends_to_both(matrix, mail):
+    client, _ = matrix
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("final", {"STHI": OWNER_B}, group_email=GROUP_EMAIL),
+    )
+    assert response.status_code == 200
+    assert sorted(message["To"] for message in mail.sent) == sorted([GROUP_EMAIL, OWNER_B])
+
+
+def test_no_owner_sends_only_to_group_email(matrix, mail):
+    client, _ = matrix
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("final", {}, group_email=GROUP_EMAIL),
+    )
+    assert response.status_code == 200
+    assert [message["To"] for message in mail.sent] == [GROUP_EMAIL]

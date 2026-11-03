@@ -1,10 +1,12 @@
-"""Email notifications to PdO owners when a PYPCS matrix submission becomes final."""
+"""Email notifications to PdO owners and product groups when a PYPCS matrix submission becomes final."""
 
+import argparse
 import html
 import logging
 import re
 import smtplib
 import ssl
+import sys
 from collections.abc import Iterable
 from email.message import EmailMessage
 from urllib.parse import quote
@@ -28,6 +30,7 @@ from app.services.product_action_matrix_service import _group_for_module, _modul
 logger = logging.getLogger(__name__)
 
 PDO_OWNER_QUESTION_ID = "pdo_owner"
+PRODUCT_GROUP_EMAIL_QUESTION_ID = "product_group_email"
 SMTP_TIMEOUT_SECONDS = 10
 
 
@@ -63,6 +66,27 @@ def collect_pdo_owner_groups(
                 logger.warning("Skipping invalid PdO owner email for module group %s.", group)
                 continue
             display, groups = recipients.setdefault(email.casefold(), (email, []))
+            if group not in groups:
+                groups.append(group)
+    return recipients
+
+
+def collect_notification_recipients(
+    cells: list[dict[str, str]],
+    selected_modules: list[str],
+) -> dict[str, tuple[str, list[str]]]:
+    """Merge PdO owners (their module groups) with the product group email (all module groups)."""
+    by_key, _ = _module_catalog()
+    recipients = collect_pdo_owner_groups(cells)
+    all_groups = list(dict.fromkeys(_group_for_module(module, by_key) for module in selected_modules))
+    for cell in cells:
+        if value_to_str(cell.get("question_id", "")) != PRODUCT_GROUP_EMAIL_QUESTION_ID:
+            continue
+        email = _valid_address(value_to_str(cell.get("answer", "")).strip())
+        if not email:
+            continue
+        display, groups = recipients.setdefault(email.casefold(), (email, []))
+        for group in all_groups:
             if group not in groups:
                 groups.append(group)
     return recipients
@@ -187,6 +211,7 @@ def notify_final_submission(
     *,
     submission_id: str,
     cells: list[dict[str, str]],
+    selected_modules: list[str],
     product_name: str,
     prodgroup3: str,
     submitter_name: str,
@@ -194,7 +219,7 @@ def notify_final_submission(
 ) -> None:
     """Background-task entry point; logs and swallows every failure."""
     try:
-        recipients = collect_pdo_owner_groups(cells)
+        recipients = collect_notification_recipients(cells, selected_modules)
         messages = build_final_submission_messages(
             recipients=recipients,
             product_name=product_name,
@@ -212,7 +237,7 @@ def notify_final_submission(
         QUALITY_MATRIX_MAIL_TRANSPORT,
     )
     if not messages:
-        logger.warning("Final-submission notification for %s: no valid PdO owner emails.", submission_id)
+        logger.warning("Final-submission notification for %s: no valid PdO owner or product group emails.", submission_id)
         return
     for recipient, message in messages:
         try:
@@ -222,3 +247,39 @@ def notify_final_submission(
             continue
         if transport != "log":
             logger.info("Sent final-submission notification for %s to %s via %s.", submission_id, recipient, transport)
+
+
+def _send_test(recipient: str) -> int:
+    message = EmailMessage()
+    message["Subject"] = "[Quality Matrix] Mail transport test"
+    message["From"] = QUALITY_MATRIX_MAIL_FROM
+    message["To"] = recipient
+    message.set_content("This is a test message from the Quality Matrix backend. No action is needed.\n")
+    host = f"{QUALITY_MATRIX_SMTP_HOST}:{QUALITY_MATRIX_SMTP_PORT}" if QUALITY_MATRIX_SMTP_HOST else "(none)"
+    print(f"Transport: {QUALITY_MATRIX_MAIL_TRANSPORT}")
+    print(f"SMTP host:port: {host}")
+    try:
+        transport = _deliver(recipient, message)
+    except Exception as exc:
+        print(f"Result: FAILED to send to {recipient}: {type(exc).__name__}: {exc}")
+        return 1
+    if transport == "log":
+        print(f"Result: NOT sent to {recipient}; transport is log (see log output above).")
+        return 1
+    print(f"Result: sent to {recipient} via {transport}.")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Send a Quality Matrix test email through the configured transport.")
+    parser.add_argument("--test-to", required=True, metavar="EMAIL", help="recipient address")
+    args = parser.parse_args(argv)
+    recipient = _valid_address(args.test_to)
+    if not recipient:
+        print(f"Result: invalid recipient address: {args.test_to}")
+        return 1
+    return _send_test(recipient)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

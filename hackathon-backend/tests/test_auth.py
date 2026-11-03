@@ -328,3 +328,147 @@ def test_final_submission_changes_require_admin():
         assert denied.json()["detail"]["code"] == "admin_required"
         deleted = client.delete("/pypcs/submissions/final-1", headers=admin)
         assert deleted.status_code == 200
+
+
+OLD_PASSWORD = "a-secure-password"
+NEW_PASSWORD = "another-secure-password"
+
+
+def create_editor(client, username, password=OLD_PASSWORD):
+    requested = client.post(
+        "/auth/request-account",
+        json={"username": username, "display_name": username, "password": password},
+    )
+    assert requested.status_code == 201
+    approved = client.post(
+        f"/auth/users/{username}/approve",
+        json={"role": "editor"},
+        headers=admin_headers(client),
+    )
+    assert approved.status_code == 200
+    return {"Authorization": f"Bearer {login(client, username, password).json()['token']}"}
+
+
+def read_users():
+    with (TEST_DATA_DIR / "Auth" / "Users.csv").open(encoding="utf-8-sig", newline="") as source:
+        return {row["username"]: row for row in csv.DictReader(source)}
+
+
+def change_password(client, headers, current, new, extra_ip="testclient"):
+    return client.post(
+        "/auth/change-password",
+        headers={**(headers or {}), "X-Test-Client-IP": extra_ip},
+        json={"current_password": current, "new_password": new},
+    )
+
+
+@pytest.fixture
+def change_password_ip(monkeypatch):
+    monkeypatch.setattr(
+        auth_router,
+        "_client_ip",
+        lambda request: request.headers.get("x-test-client-ip", "testclient"),
+    )
+
+
+def test_change_password_success_rotates_credentials(change_password_ip):
+    shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
+    with TestClient(app) as client:
+        headers = create_editor(client, "pwchanger")
+        response = change_password(client, headers, OLD_PASSWORD, NEW_PASSWORD)
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        assert "set-cookie" not in response.headers
+        assert login(client, "pwchanger", NEW_PASSWORD).status_code == 200
+        assert login(client, "pwchanger", OLD_PASSWORD).status_code == 401
+
+
+def test_change_password_wrong_current_returns_400(change_password_ip):
+    shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
+    with TestClient(app) as client:
+        headers = create_editor(client, "pwwrong")
+        response = change_password(client, headers, "not-the-password", NEW_PASSWORD)
+        assert response.status_code == 400
+        assert response.json()["detail"] == {
+            "code": "invalid_current_password",
+            "message": "Current password is incorrect.",
+        }
+        assert login(client, "pwwrong", OLD_PASSWORD).status_code == 200
+
+
+def test_change_password_rejects_short_or_extra_fields(change_password_ip):
+    shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
+    with TestClient(app) as client:
+        headers = create_editor(client, "pwshort")
+        short = change_password(client, headers, OLD_PASSWORD, "short")
+        assert short.status_code == 422
+        extra = client.post(
+            "/auth/change-password",
+            headers=headers,
+            json={"current_password": OLD_PASSWORD, "new_password": NEW_PASSWORD, "role": "admin"},
+        )
+        assert extra.status_code == 422
+
+
+def test_change_password_rejects_unchanged_password(change_password_ip):
+    shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
+    with TestClient(app) as client:
+        headers = create_editor(client, "pwsame")
+        response = change_password(client, headers, OLD_PASSWORD, OLD_PASSWORD)
+        assert response.status_code == 422
+        assert response.json()["detail"] == {"field": "new_password", "code": "password_unchanged"}
+
+
+def test_change_password_forbidden_for_guest(change_password_ip):
+    shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
+    with TestClient(app) as client:
+        guest_token = client.post("/auth/guest").json()["token"]
+        response = change_password(
+            client, {"Authorization": f"Bearer {guest_token}"}, "guest-current", NEW_PASSWORD
+        )
+        assert response.status_code == 403
+        assert response.json()["detail"]["code"] == "guest_not_allowed"
+
+
+def test_change_password_requires_authentication(change_password_ip):
+    shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
+    with TestClient(app) as client:
+        response = change_password(client, None, OLD_PASSWORD, NEW_PASSWORD)
+        assert response.status_code == 401
+        assert response.json()["detail"]["code"] == "unauthenticated"
+
+
+def test_change_password_is_throttled_per_user_and_ip(change_password_ip):
+    shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
+    with TestClient(app) as client:
+        headers = create_editor(client, "pwthrottle")
+        for _ in range(auth_router._LOGIN_FAILURE_LIMIT):
+            failed = change_password(client, headers, "wrong-password", NEW_PASSWORD, "198.51.100.30")
+            assert failed.status_code == 400
+        throttled = change_password(client, headers, OLD_PASSWORD, NEW_PASSWORD, "198.51.100.30")
+        assert throttled.status_code == 429
+        assert throttled.json()["detail"]["code"] == "too_many_attempts"
+        other_ip = change_password(client, headers, OLD_PASSWORD, NEW_PASSWORD, "198.51.100.31")
+        assert other_ip.status_code == 200
+
+
+def test_change_password_audit_row_has_no_secrets_and_other_users_untouched(change_password_ip):
+    shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
+    with TestClient(app) as client:
+        headers = create_editor(client, "pwauditor")
+        create_editor(client, "pwbystander")
+        before = read_users()["pwbystander"]
+
+        response = change_password(client, headers, OLD_PASSWORD, NEW_PASSWORD)
+        assert response.status_code == 200
+
+        audit_text = (TEST_DATA_DIR / "Auth" / "AuditLog.csv").read_text(encoding="utf-8-sig")
+        audit_rows = list(csv.DictReader(audit_text.splitlines()))
+        assert audit_rows[-1]["username"] == "pwauditor"
+        assert audit_rows[-1]["path"] == "/auth/change-password"
+        assert audit_rows[-1]["status_code"] == "200"
+        assert OLD_PASSWORD not in audit_text
+        assert NEW_PASSWORD not in audit_text
+
+        after = read_users()["pwbystander"]
+        assert after == before

@@ -602,6 +602,7 @@ def _persist_matrix_submission(
                 notify_final_submission,
                 submission_id=submission_id,
                 cells=saved_cells,
+                selected_modules=selected_modules_ordered,
                 product_name=product_name,
                 prodgroup3=prodgroup3,
                 submitter_name=submitter_display_name or username,
@@ -1240,6 +1241,23 @@ def create_pypcs_matrix_submission(
             },
         )
 
+    invalid_group_emails = [
+        {"question_id": "product_group_email", "module_key": cell["module_key"]}
+        for cell in submitted_cells
+        if cell["question_id"] == "product_group_email"
+        and cell["answer"]
+        and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", cell["answer"])
+    ]
+    if invalid_group_emails:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "field": "product_group_email",
+                "message": "Invalid product group email.",
+                "invalid_cells": invalid_group_emails,
+            },
+        )
+
     missing_required = []
 
     if req.status == "final":
@@ -1309,6 +1327,15 @@ def create_pypcs_matrix_submission(
                             "role": nsb_comment_question.get("role", ""),
                         }
                     )
+
+    if any(item["question_id"] == "product_group_email" for item in missing_required):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "field": "product_group_email",
+                "message": "Product group email is required for final submission.",
+            },
+        )
 
     if missing_required:
         raise HTTPException(
