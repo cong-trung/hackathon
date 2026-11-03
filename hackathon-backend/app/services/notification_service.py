@@ -82,13 +82,14 @@ def collect_notification_recipients(
     for cell in cells:
         if value_to_str(cell.get("question_id", "")) != PRODUCT_GROUP_EMAIL_QUESTION_ID:
             continue
-        email = _valid_address(value_to_str(cell.get("answer", "")).strip())
-        if not email:
-            continue
-        display, groups = recipients.setdefault(email.casefold(), (email, []))
-        for group in all_groups:
-            if group not in groups:
-                groups.append(group)
+        for raw in re.split(r"[;,|\s]+", value_to_str(cell.get("answer", ""))):
+            email = _valid_address(raw.strip())
+            if not email:
+                continue
+            display, groups = recipients.setdefault(email.casefold(), (email, []))
+            for group in all_groups:
+                if group not in groups:
+                    groups.append(group)
     return recipients
 
 

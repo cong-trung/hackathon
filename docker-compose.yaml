@@ -1,7 +1,9 @@
 # Portable deployment for Quality Matrix.
 #
-# Works out of the box on a fresh Docker server: data is baked into the backend
-# image from hackathon-backend/data and both services pick safe defaults.
+# Both services pick safe defaults. Production mounts the NetApp share through the `quality_data` CIFS volume. It
+# needs QUALITY_SHARE_USERNAME and QUALITY_SHARE_PASSWORD in .env.production, and
+# optionally QUALITY_SHARE_DOMAIN and QUALITY_SHARE_SMB_VERSION.
+# Always run: docker compose --env-file .env.production ...
 #
 # Optional runtime overrides (secrets, NYRA, proxies) live in .env.production:
 #   cp .env.example .env.production   # then edit values
@@ -86,6 +88,9 @@ services:
       https_proxy: ${https_proxy:-}
       ftp_proxy: ${ftp_proxy:-}
       no_proxy: ${no_proxy:-}
+    # NetApp share (CIFS volume defined below), mounted at /app/data.
+    volumes:
+      - quality_data:/app/data
     restart: always
 
   # celery-beat:
@@ -96,3 +101,11 @@ services:
   #   depends_on:
   #     - redis
   #     - hackathon-backend
+
+volumes:
+  quality_data:
+    driver: local
+    driver_opts:
+      type: cifs
+      device: "//VNATSHFS.intel.com/VNATAnalysis$$/MAOATM/VN/Applications/TE/Quality"
+      o: "addr=VNATSHFS.intel.com,username=${QUALITY_SHARE_USERNAME:?set QUALITY_SHARE_USERNAME in .env.production},password=${QUALITY_SHARE_PASSWORD:?set QUALITY_SHARE_PASSWORD in .env.production},domain=${QUALITY_SHARE_DOMAIN:-},vers=${QUALITY_SHARE_SMB_VERSION:-3.0},uid=0,gid=0,file_mode=0664,dir_mode=0775"

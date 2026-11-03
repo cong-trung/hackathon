@@ -94,10 +94,9 @@ with `curl.exe --noproxy "*" http://127.0.0.1:8004/health`.
 ### Docker Compose
 
 Compose runs the frontend on port 8005 and the backend on port 8004. Both
-Dockerfiles are present. Data is baked into the backend image from
-`hackathon-backend/data`, so a fresh deploy needs no external share. To use the
-network share instead, uncomment the `volumes` entry for the backend in
-`docker-compose.yaml` (`/mnt/x/Quality:/app/data`).
+Dockerfiles are present. The backend's `/app/data` is the NetApp share, mounted
+through the `quality_data` CIFS volume in `docker-compose.yaml` (see
+[NetApp share mount](#netapp-share-mount)).
 
 Compose only reads `${...}` values from the shell or `--env-file`, not from
 `.env.production` automatically. Create the root `.env.production` from
@@ -125,7 +124,38 @@ docker build --secret id=nyra_git_token,env=NYRA_GIT_TOKEN -t hackathon-backend:
 
 The token is used only for that install step and is not stored in the image.
 
-Inside Docker, the admin account is created from `QUALITY_MATRIX_ADMIN_USERNAME` and `QUALITY_MATRIX_ADMIN_PASSWORD` in the host's `.env.production` only when `data/Auth/Users.csv` has no active admin; `data/Auth` is git-ignored but is copied into the backend image, and `QUALITY_MATRIX_AUTH_SECRET` keeps tokens valid across restarts.
+Inside Docker, the NetApp share is mounted at `/app/data`, so users come from the share's `Auth/Users.csv`; the admin is bootstrapped from `QUALITY_MATRIX_ADMIN_USERNAME` and `QUALITY_MATRIX_ADMIN_PASSWORD` in the host's `.env.production` only when no active admin exists there. `data/Auth` is git-ignored, and `QUALITY_MATRIX_AUTH_SECRET` keeps tokens valid across restarts.
+
+#### NetApp share mount
+
+Required keys in the host's `.env.production`: `QUALITY_SHARE_USERNAME` and `QUALITY_SHARE_PASSWORD`. Optional: `QUALITY_SHARE_DOMAIN` (for example `CCR` or `GAR`) and `QUALITY_SHARE_SMB_VERSION` (default `3.0`). Deploy with:
+
+```bash
+docker compose --env-file .env.production up -d --build
+```
+
+Verify the mount. Expect `Auth`, `QualityMatrix`, `View2`, and `View3`:
+
+```bash
+docker exec hackathon-backend ls /app/data
+```
+
+The CIFS volume options are fixed when the volume is created. After changing any `QUALITY_SHARE_*` value, recreate the volume:
+
+```bash
+docker compose --env-file .env.production down
+docker volume rm <project>_quality_data
+docker compose --env-file .env.production up -d
+```
+
+Troubleshooting:
+
+- `mount error(13): Permission denied`: check the username, password, and `QUALITY_SHARE_DOMAIN`.
+- `error(2)` or `No such file`: check the share path in `docker-compose.yaml`.
+- `Host is down` or `error(112)`: set `QUALITY_SHARE_SMB_VERSION=2.1` and recreate the volume.
+- `ENOENT` or `could not resolve address`: check DNS and the `VNATSHFS.intel.com` address.
+
+Warning: back up the share before the first deploy. Run only one backend against the share.
 
 ## Configuration
 

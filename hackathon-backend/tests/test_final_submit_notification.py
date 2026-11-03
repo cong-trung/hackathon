@@ -7,18 +7,21 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DATA_DIR = BACKEND_ROOT / "data"
 QUESTION_MODULE_MAP = "QualityMatrix/Settings/PYPCS_QuestionModuleMap.csv"
+SUBMISSION_CELLS = "QualityMatrix/PYPCS_SubmissionCells.csv"
 
 MODULES = ["HDMx_Class", "HDMx_EQA", "STHI"]
 PRODGROUP3 = "GNRLCP/GNRLR1S"
 OWNER_A = "owner.a@example.com"
 OWNER_B = "owner.b@example.com"
 GROUP_EMAIL = "group.dl@example.com"
+GROUP_EMAIL_2 = "group.two@example.com"
 
 
 def _write_csv(path, rows, fieldnames):
@@ -238,11 +241,15 @@ def test_draft_to_final_sends_once_and_admin_edit_of_final_sends_nothing(matrix,
     assert mail.sent == []
 
 
-def test_malformed_owner_email_is_rejected_before_any_mail(matrix, mail):
+def test_malformed_owner_email_in_list_is_rejected_before_any_mail(matrix, mail):
     client, _ = matrix
-    owners = {"STHI": f"{OWNER_B}; {OWNER_B.upper()}"}
+    owners = {"STHI": f"{OWNER_B}; not-an-email"}
     response = client.post("/pypcs/matrix-submission", json=_payload("final", owners))
-    assert response.status_code == 400
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "field": "pdo_owner",
+        "message": "Invalid email: not-an-email",
+    }
     assert mail.sent == []
 
 
@@ -437,7 +444,7 @@ def test_invalid_group_email_is_422(matrix, mail):
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert detail["field"] == "product_group_email"
-    assert detail["message"] == "Invalid product group email."
+    assert detail["message"] == "Invalid email: not-an-email"
 
 
 def test_group_email_receives_links_for_all_module_groups(matrix, mail):
@@ -485,3 +492,120 @@ def test_no_owner_sends_only_to_group_email(matrix, mail):
     )
     assert response.status_code == 200
     assert [message["To"] for message in mail.sent] == [GROUP_EMAIL]
+
+
+def _stored_answers(tmp_path, submission_id, question_id, module_key):
+    rows = _read_csv(tmp_path / "data" / SUBMISSION_CELLS)
+    return [
+        row["answer"]
+        for row in rows
+        if row["submission_id"] == submission_id
+        and row["question_id"] == question_id
+        and row["module_key"] == module_key
+    ]
+
+
+def test_owner_list_is_normalized_stored_and_each_owner_emailed(matrix, mail, tmp_path):
+    client, _ = matrix
+    owners = {"STHI": f"{OWNER_B};{OWNER_A} ,{OWNER_B}"}
+    response = client.post("/pypcs/matrix-submission", json=_payload("final", owners))
+    assert response.status_code == 200
+    submission_id = response.json()["submission_id"]
+    assert _stored_answers(tmp_path, submission_id, "pdo_owner", "STHI") == [
+        f"{OWNER_B}, {OWNER_A}"
+    ]
+    assert sorted(message["To"] for message in mail.sent) == sorted([OWNER_A, OWNER_B])
+
+
+def test_group_email_list_is_stored_normalized_and_emails_each_address(matrix, mail, tmp_path):
+    client, _ = matrix
+    group_list = f"{GROUP_EMAIL}\n{GROUP_EMAIL_2}; {GROUP_EMAIL.upper()}"
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("final", {}, group_email=group_list),
+    )
+    assert response.status_code == 200
+    submission_id = response.json()["submission_id"]
+    assert _stored_answers(tmp_path, submission_id, "product_group_email", "STHI") == [
+        f"{GROUP_EMAIL}, {GROUP_EMAIL_2}"
+    ]
+    assert sorted(message["To"] for message in mail.sent) == sorted([GROUP_EMAIL, GROUP_EMAIL_2])
+    for message in mail.sent:
+        plain = message.get_body(preferencelist=("plain",)).get_content()
+        assert "- HDMx: " in plain
+        assert "- STHI: " in plain
+
+
+def test_invalid_address_in_group_list_is_422_naming_it(matrix, mail):
+    client, _ = matrix
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("final", {}, group_email=f"{GROUP_EMAIL}; bad<b>@x"),
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "field": "product_group_email",
+        "message": "Invalid email: bad&lt;b&gt;@x",
+    }
+    assert mail.sent == []
+
+
+def test_too_many_addresses_in_group_list_is_422(matrix, mail):
+    client, _ = matrix
+    group_list = ", ".join(f"u{index}@example.com" for index in range(11))
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("final", {}, group_email=group_list),
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "field": "product_group_email",
+        "message": "Too many email addresses (max 10).",
+    }
+    assert mail.sent == []
+
+
+def _normalize(value):
+    from app.routers.pypcs import normalize_email_list
+
+    return normalize_email_list(value, field="pdo_owner")
+
+
+def test_normalize_email_list_accepts_comma_semicolon_and_newlines():
+    expected = "a@x.com, b@y.com"
+    assert _normalize("a@x.com,b@y.com") == expected
+    assert _normalize("a@x.com;b@y.com") == expected
+    assert _normalize(" a@x.com \n\n b@y.com ;; ") == expected
+    assert _normalize("  ") == ""
+
+
+def test_normalize_email_list_dedupes_case_insensitively_keeping_order():
+    assert _normalize("b@y.com, A@x.com, B@Y.com") == "b@y.com, A@x.com"
+
+
+def test_normalize_email_list_reports_first_invalid_address():
+    with pytest.raises(HTTPException) as info:
+        _normalize("a@x.com; bad-address")
+    assert info.value.status_code == 422
+    assert info.value.detail == {
+        "field": "pdo_owner",
+        "message": "Invalid email: bad-address",
+    }
+
+
+def test_normalize_email_list_truncates_and_escapes_bad_value():
+    with pytest.raises(HTTPException) as info:
+        _normalize("<" + "a" * 200)
+    message = info.value.detail["message"]
+    assert message == "Invalid email: " + "&lt;" + "a" * 99
+
+
+def test_normalize_email_list_limits_to_ten_unique_addresses():
+    ten = ", ".join(f"u{index}@example.com" for index in range(10))
+    assert _normalize(ten + ", U0@example.com").count("@") == 10
+    with pytest.raises(HTTPException) as info:
+        _normalize(ten + ", u10@example.com")
+    assert info.value.detail == {
+        "field": "pdo_owner",
+        "message": "Too many email addresses (max 10).",
+    }

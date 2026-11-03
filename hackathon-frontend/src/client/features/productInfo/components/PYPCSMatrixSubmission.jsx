@@ -29,6 +29,7 @@ import { scrollbarClassName } from '@/shared/utils/scrollbar';
 const API_BASE = '/api';
 const MIN_TP_NAME_LENGTH = 7;
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const EMAIL_QUESTION_IDS = new Set(['pdo_owner', 'product_group_email']);
 const numberColumn = { width: 48, minWidth: 48, maxWidth: 48, left: 0 };
 const labelColumn = { width: 256, minWidth: 256, maxWidth: 256, left: 48 };
 
@@ -828,19 +829,24 @@ export default function PYPCSMatrixSubmission({
         return nextErrors;
     }
 
-    function validateEmails() {
+    function validateEmails(requireGroupEmail) {
         const nextErrors = {};
-        selectedModules.forEach((moduleKey) => {
-            const key = getCellKey('pdo_owner', moduleKey);
-            const value = String(cells[key] || '').trim();
-            if (value && !EMAIL_PATTERN.test(value)) {
-                nextErrors[key] = 'Invalid PdO owner email.';
-            }
-            const groupEmailKey = getCellKey('product_group_email', moduleKey);
-            const groupEmail = String(expanded[groupEmailKey] || '').trim();
-            if (groupEmail && !EMAIL_PATTERN.test(groupEmail)) {
-                nextErrors[groupEmailKey] = 'Invalid product group email.';
-            }
+        questions.filter((question) => EMAIL_QUESTION_IDS.has(question.question_id)).forEach((question) => {
+            selectedModules.forEach((moduleKey) => {
+                if (!isQuestionApplicableToModule(question, moduleKey)) return;
+                const key = getCellKey(question.question_id, moduleKey);
+                const addresses = String(expanded[key] || '').split(/[,;\n]+/)
+                    .map((address) => address.trim()).filter(Boolean);
+                const invalidAddress = addresses.find((address) => !EMAIL_PATTERN.test(address));
+                if (invalidAddress) {
+                    nextErrors[key] = `Invalid email: ${invalidAddress}`;
+                } else if (new Set(addresses.map((address) => address.toLowerCase())).size > 10) {
+                    nextErrors[key] = 'Too many email addresses (max 10).';
+                } else if (requireGroupEmail && question.question_id === 'product_group_email'
+                    && isRequired(question, moduleKey) && !addresses.length) {
+                    nextErrors[key] = 'At least one valid address is required.';
+                }
+            });
         });
         return nextErrors;
     }
@@ -906,11 +912,12 @@ export default function PYPCSMatrixSubmission({
             && typeof detail.message === 'string' && !detail.code) {
             const question = questions.find((item) => item.question_id === detail.field);
             if (question) {
+                const message = detail.message.replaceAll('&lt;', '<').replaceAll('&gt;', '>');
                 const applicable = selectedModules.filter((moduleKey) =>
                     isQuestionApplicableToModule(question, moduleKey));
                 setErrors(Object.fromEntries(applicable.map((moduleKey) =>
-                    [getCellKey(detail.field, moduleKey), detail.message])));
-                setStatusMessage(detail.message);
+                    [getCellKey(detail.field, moduleKey), message])));
+                setStatusMessage(message);
                 focusCellError(applicable.length ? getCellKey(detail.field, applicable[0]) : null);
                 return;
             }
@@ -981,7 +988,7 @@ export default function PYPCSMatrixSubmission({
         const tpNameErrors = validateTpNameLength();
         const requiredErrors =
             nextStatus === 'final' ? validateMatrix() : {};
-        const emailErrors = validateEmails();
+        const emailErrors = validateEmails(nextStatus === 'final');
         const nextErrors = { ...requiredErrors, ...validateOperations(nextStatus === 'final'),
             ...validateMultiselects(nextStatus === 'final'), ...tpNameErrors, ...emailErrors };
 
@@ -1114,11 +1121,19 @@ export default function PYPCSMatrixSubmission({
     function renderFieldInput(question, value, onChange, label, errorId, inputKey, disabled = false, inputId) {
         const options = question.options || [];
         const invalid = Boolean(errorId);
+        const emailField = EMAIL_QUESTION_IDS.has(question.question_id);
+        const hintId = emailField ? `${inputId || inputKey}-hint` : undefined;
         const hasOtherOption = options.includes('Other');
         const isOtherSelected =
             hasOtherOption
             && value !== ''
             && (value === 'Other' || !options.includes(value));
+
+        if (disabled && emailField) {
+            return <output id={inputId} aria-label={label} className="block min-h-8 w-full select-text break-all rounded border px-2 py-1 text-sm">
+                {value}
+            </output>;
+        }
 
         if (disabled && (question.question_id === 'operation' || question.field_type === 'multiselect' || question.field_type === 'select')) {
             return <output id={inputId} aria-label={label} className="block min-h-8 w-full rounded border px-2 py-1 text-sm">
@@ -1187,21 +1202,27 @@ export default function PYPCSMatrixSubmission({
         }
 
         return (
-            <input
-                className="w-full rounded border px-2 py-1 text-sm"
-                type={['pdo_owner', 'product_group_email'].includes(question.question_id) ? 'email' : 'text'}
-                id={inputId}
-                readOnly={disabled}
-                autoComplete={question.question_id === 'product_group_email' ? 'off' : undefined}
-                aria-label={label}
-                aria-invalid={invalid || undefined}
-                aria-describedby={errorId}
-                placeholder={question.question_id === 'pdo_owner' ? 'name@intel.com'
-                    : question.question_id === 'product_group_email' ? 'team-dl@intel.com'
-                    : question.question_id === 'nsb_comment' ? 'Explain why this is Non-Synergy-Build' : undefined}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-            />
+            <>
+                <input
+                    className="w-full rounded border px-2 py-1 text-sm"
+                    type="text"
+                    inputMode={emailField ? 'email' : undefined}
+                    id={inputId}
+                    readOnly={disabled}
+                    autoComplete={emailField ? 'off' : undefined}
+                    spellCheck={emailField ? false : undefined}
+                    aria-label={label}
+                    aria-invalid={invalid || undefined}
+                    aria-describedby={[errorId, hintId].filter(Boolean).join(' ') || undefined}
+                    placeholder={emailField ? 'name@intel.com, team-dl@intel.com'
+                        : question.question_id === 'nsb_comment' ? 'Explain why this is Non-Synergy-Build' : undefined}
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                />
+                {emailField ? <p id={hintId} className="mt-1 text-xs text-muted-foreground">
+                    Separate multiple emails with a comma or semicolon.
+                </p> : null}
+            </>
         );
     }
 
@@ -1235,7 +1256,9 @@ export default function PYPCSMatrixSubmission({
                     key={moduleKey}
                     className="min-w-32 border-b border-r border-table-border bg-muted p-2 text-xs text-muted-foreground"
                 >
-                    Read only
+                    {EMAIL_QUESTION_IDS.has(question.question_id) && value
+                        ? <output aria-label={label} className="block select-text break-all">{value}</output>
+                        : 'Read only'}
                 </td>
             );
         }

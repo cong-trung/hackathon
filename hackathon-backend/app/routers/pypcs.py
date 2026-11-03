@@ -1,5 +1,6 @@
 """PYPCS dynamic questionnaire/matrix endpoints: modules, questions, submissions."""
 
+import html
 import json
 import logging
 import re
@@ -8,7 +9,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
-from app.auth import require_writer
+from app.auth import require_writer, validate_email
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
 from app.io.generic_csv import (
@@ -53,6 +54,8 @@ router = APIRouter()
 
 # TP name must be a real identifier, not a short placeholder.
 MIN_TP_NAME_LENGTH = 7
+EMAIL_LIST_QUESTION_IDS = ("pdo_owner", "product_group_email")
+MAX_EMAIL_LIST_ADDRESSES = 10
 PYPCS_SUBMISSION_CELL_HEADERS = [
     "submission_id",
     "question_id",
@@ -77,6 +80,39 @@ def action_item_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace(
         "+00:00", "Z"
     )
+
+
+def normalize_email_list(value: str, field: str) -> str:
+    """Split on commas/semicolons/newlines and return unique addresses joined by ', '."""
+    addresses: list[str] = []
+    seen: set[str] = set()
+    for raw in re.split(r"[,;\r\n]+", value):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            email = validate_email(raw)
+        except HTTPException:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "field": field,
+                    "message": f"Invalid email: {html.escape(raw[:100])}",
+                },
+            ) from None
+        if email.casefold() in seen:
+            continue
+        seen.add(email.casefold())
+        addresses.append(email)
+        if len(addresses) > MAX_EMAIL_LIST_ADDRESSES:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "field": field,
+                    "message": f"Too many email addresses (max {MAX_EMAIL_LIST_ADDRESSES}).",
+                },
+            )
+    return ", ".join(addresses)
 
 
 def _append_submission_history(
@@ -1163,6 +1199,8 @@ def create_pypcs_matrix_submission(
                 question.get("options", []),
                 field=question_id,
             )
+        elif question_id in EMAIL_LIST_QUESTION_IDS:
+            answer = normalize_email_list(answer, field=question_id)
         elif question_id == "operation":
             options_by_module = question.get("options_by_module", {})
             module_options = next(
@@ -1217,45 +1255,6 @@ def create_pypcs_matrix_submission(
                     }
                     for cell in short_tp_names
                 ],
-            },
-        )
-
-    invalid_pdo_owners = [
-        {
-            "question_id": "pdo_owner",
-            "module_key": cell["module_key"],
-            "display_label": questions_by_id["pdo_owner"].get(
-                "display_label", "PdO owner (email)"
-            ),
-        }
-        for cell in submitted_cells
-        if cell["question_id"] == "pdo_owner"
-        and cell["answer"]
-        and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", cell["answer"])
-    ]
-    if invalid_pdo_owners:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "message": "Invalid PdO owner email.",
-                "invalid_cells": invalid_pdo_owners,
-            },
-        )
-
-    invalid_group_emails = [
-        {"question_id": "product_group_email", "module_key": cell["module_key"]}
-        for cell in submitted_cells
-        if cell["question_id"] == "product_group_email"
-        and cell["answer"]
-        and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", cell["answer"])
-    ]
-    if invalid_group_emails:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "field": "product_group_email",
-                "message": "Invalid product group email.",
-                "invalid_cells": invalid_group_emails,
             },
         )
 
