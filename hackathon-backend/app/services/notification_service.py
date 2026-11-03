@@ -101,7 +101,8 @@ def build_final_submission_messages(
     recipients: dict[str, tuple[str, list[str]]],
     product_name: str,
     prodgroup3: str,
-    submitter_name: str,
+    submitter_username: str,
+    submitter_display_name: str,
     submitter_email: str,
 ) -> list[tuple[str, EmailMessage]]:
     if submitter_email and ("\r" in submitter_email or "\n" in submitter_email):
@@ -110,30 +111,53 @@ def build_final_submission_messages(
     sender = submitter_email or QUALITY_MATRIX_MAIL_FROM
     if not submitter_email:
         logger.info("No submitter email; using default sender %s.", sender)
+    submitter = submitter_username.strip() or submitter_display_name.strip() or "A user"
     subject = " ".join(
-        f"[Quality Matrix] New product to review: {product_name} ({prodgroup3})".split()
+        f"[Quality Matrix] {submitter} submitted {product_name} ({prodgroup3}) for review".split()
     )
-    sentence = (
-        f"{submitter_name} has final-submitted Product Info for {product_name} "
-        f"(ProdGroup3: {prodgroup3}). Please review it in the Quality Product Matrix "
-        "for your module(s):"
+    open_url = f"{QUALITY_MATRIX_PUBLIC_URL}/quality-product-matrix"
+    intro = (
+        f"{submitter} has submitted Product Info for product {product_name} "
+        f"(ProdGroup3: {prodgroup3})."
     )
+    footer = "This is an automated message from Quality Matrix."
+    if submitter_email:
+        footer += f" Reply to contact {submitter}."
 
     messages = []
     for email_address, module_groups in recipients.values():
         links = [(group, _review_url(group)) for group in module_groups]
-        text_body = "Hello,\n\n" + sentence + "\n\n" + "\n".join(
-            f"- Quality matrix - {group}: {url}" for group, url in links
+        text_body = "\n".join(
+            [
+                "Hello,",
+                "",
+                intro,
+                "Please review it in the Quality Product Matrix:",
+                "",
+                *(f"- {group}: {url}" for group, url in links),
+                "",
+                f"Open Quality Matrix: {open_url}",
+                "",
+                footer,
+            ]
         ) + "\n"
         html_items = "".join(
             f'<li><a href="{html.escape(url, quote=True)}">'
-            f"Quality matrix \u2013 {html.escape(group)}</a></li>"
+            f"Quality Product Matrix \u2013 {html.escape(group)}</a></li>"
             for group, url in links
         )
+        html_footer = "This is an automated message from Quality Matrix."
+        if submitter_email:
+            html_footer += f" Reply to contact <strong>{html.escape(submitter)}</strong>."
         html_body = (
             "<p>Hello,</p>"
-            f"<p>{html.escape(sentence)}</p>"
+            f"<p><strong>{html.escape(submitter)}</strong> has submitted Product Info "
+            f"for product {html.escape(product_name)} "
+            f"(ProdGroup3: {html.escape(prodgroup3)}).</p>"
+            "<p>Please review it in the Quality Product Matrix:</p>"
             f"<ul>{html_items}</ul>"
+            f'<p><a href="{html.escape(open_url, quote=True)}">Open Quality Matrix</a></p>'
+            f"<p>{html_footer}</p>"
         )
         message = EmailMessage()
         message["Subject"] = subject
@@ -194,7 +218,7 @@ def _deliver_smtp(recipient: str, message: EmailMessage) -> str:
             smtp.starttls(context=ssl.create_default_context())
         if QUALITY_MATRIX_SMTP_USERNAME:
             smtp.login(QUALITY_MATRIX_SMTP_USERNAME, QUALITY_MATRIX_SMTP_PASSWORD)
-        smtp.send_message(message)
+        smtp.send_message(message, to_addrs=[recipient])
     return "smtp"
 
 
@@ -207,6 +231,23 @@ def _deliver(recipient: str, message: EmailMessage) -> str:
     return _log_mail(recipient, message)
 
 
+def _deliver_with_sender_fallback(recipient: str, message: EmailMessage) -> str:
+    """Retry once with the configured sender when the relay refuses the submitter's From."""
+    try:
+        return _deliver(recipient, message)
+    except smtplib.SMTPSenderRefused as exc:
+        if message["From"] == QUALITY_MATRIX_MAIL_FROM:
+            raise
+        logger.warning(
+            "SMTP relay refused sender %s (%s); retrying with %s as From (Reply-To unchanged).",
+            message["From"],
+            exc.smtp_code,
+            QUALITY_MATRIX_MAIL_FROM,
+        )
+        message.replace_header("From", QUALITY_MATRIX_MAIL_FROM)
+        return _deliver(recipient, message)
+
+
 def notify_final_submission(
     *,
     submission_id: str,
@@ -214,7 +255,8 @@ def notify_final_submission(
     selected_modules: list[str],
     product_name: str,
     prodgroup3: str,
-    submitter_name: str,
+    submitter_username: str,
+    submitter_display_name: str,
     submitter_email: str,
 ) -> None:
     """Background-task entry point; logs and swallows every failure."""
@@ -224,7 +266,8 @@ def notify_final_submission(
             recipients=recipients,
             product_name=product_name,
             prodgroup3=prodgroup3,
-            submitter_name=submitter_name,
+            submitter_username=submitter_username,
+            submitter_display_name=submitter_display_name,
             submitter_email=submitter_email,
         )
     except Exception:
@@ -241,7 +284,7 @@ def notify_final_submission(
         return
     for recipient, message in messages:
         try:
-            transport = _deliver(recipient, message)
+            transport = _deliver_with_sender_fallback(recipient, message)
         except Exception:
             logger.exception("Failed to send final-submission notification for %s.", submission_id)
             continue

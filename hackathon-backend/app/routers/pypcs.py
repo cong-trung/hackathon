@@ -605,7 +605,8 @@ def _persist_matrix_submission(
                 selected_modules=selected_modules_ordered,
                 product_name=product_name,
                 prodgroup3=prodgroup3,
-                submitter_name=submitter_display_name or username,
+                submitter_username=username,
+                submitter_display_name=submitter_display_name,
                 submitter_email=submitter_email,
             )
         return {

@@ -7159,3 +7159,19 @@ a550bdce-9dcc-4350-9b5f-60283d714a67,segment,LCBI,TI,Client mobile,"",admin
 a550bdce-9dcc-4350-9b5f-60283d714a67,xvi_tool_type,LCBI,TI,DVI,"",admin
 a550bdce-9dcc-4350-9b5f-60283d714a67,fab_technology,LCBI,TI,diddi,"",admin
 a550bdce-9dcc-4350-9b5f-60283d714a67,lts_ball,LCBI,TI,N,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,product_name,HSX,TI,bruh,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,product_group_email,HSX,TI,anh.minh.phan@intel.com,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,pdo_owner,HSX,TI,anh.minh.phan@intel.com,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,prodgroup3,HSX,TI,ADLG601,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,operation,HSX,TI,2462,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,nsb,HSX,TI,N,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,mcp,HSX,TI,N,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,package,HSX,TI,BGA,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,bare_die_lid,HSX,TI,Bare die,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,foveros,HSX,TI,Foveros,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,implementation_stage,HSX,TI,bruh,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,segment,HSX,TI,Client mobile,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,xvi_tool_type,HSX,TI,DVI,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,fab_technology,HSX,TI,bruh,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,lts_ball,HSX,TI,Y,"",admin
+49a2a447-d955-4fef-9663-53e0d1236eef,hsx_placeholder,HSX,TI,BGA,"",admin

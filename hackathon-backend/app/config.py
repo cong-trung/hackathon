@@ -56,7 +56,7 @@ QUALITY_MATRIX_PUBLIC_URL = os.getenv(
     "QUALITY_MATRIX_PUBLIC_URL", "http://localhost:5173"
 ).strip().rstrip("/")
 QUALITY_MATRIX_MAIL_ENABLED = os.getenv("QUALITY_MATRIX_MAIL_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
-QUALITY_MATRIX_MAIL_FROM = os.getenv("QUALITY_MATRIX_MAIL_FROM", "no-reply@localhost").strip()
+QUALITY_MATRIX_MAIL_FROM = os.getenv("QUALITY_MATRIX_MAIL_FROM", "quality-matrix-vnat@intel.com").strip()
 QUALITY_MATRIX_SMTP_HOST = os.getenv("QUALITY_MATRIX_SMTP_HOST", "").strip()
 try:
     QUALITY_MATRIX_SMTP_PORT = int(os.getenv("QUALITY_MATRIX_SMTP_PORT", "25"))

@@ -75,6 +75,9 @@ services:
     environment:
       QUALITY_MATRIX_DATA_DIR: /app/data
       QUALITY_MATRIX_PUBLIC_URL: ${QUALITY_MATRIX_PUBLIC_URL:-http://quality-matrix-vnat.intel.com}
+      QUALITY_MATRIX_SMTP_HOST: ${QUALITY_MATRIX_SMTP_HOST:-SMTP.intel.com}
+      QUALITY_MATRIX_SMTP_PORT: ${QUALITY_MATRIX_SMTP_PORT:-25}
+      QUALITY_MATRIX_MAIL_FROM: ${QUALITY_MATRIX_MAIL_FROM:-quality-matrix-vnat@intel.com}
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       FTP_PROXY: ${FTP_PROXY:-}
