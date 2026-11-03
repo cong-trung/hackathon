@@ -19,10 +19,10 @@ Relay: `SMTP.intel.com`, port 25, no STARTTLS, no login (internal Intel network)
 |---|------|---------|-----------------------|
 | 1 | Firewall | Outbound TCP 25 from the Docker host to `SMTP.intel.com` | `<rule approved: yes/no>` |
 | 2 | Relay allow-list | The relay accepts mail from the Docker host IP, without login | `<docker-host-ip>` |
-| 3 | Allowed sender | The relay accepts `quality-matrix-vnat@intel.com` as sender | `<yes/no>` |
+| 3 | Allowed sender | The relay accepts `ba-chu-YP@intel.com` as sender | `<yes/no>` |
 | 4 | Recipient scope | Internal intel.com DLs and users only | `<confirm>` |
 
-The app uses the submitter's email as From when it is known, with the submitter as Reply-To. If the relay refuses that sender, the app retries once with `quality-matrix-vnat@intel.com`. So item 3 is required, and the submitter address does not need to be allowed.
+The app uses the submitter's email as From when it is known, with the submitter as Reply-To. If the relay refuses that sender, the app retries once with `ba-chu-YP@intel.com`. So item 3 is required, and the submitter address does not need to be allowed.
 
 ## 3. Server details
 
@@ -42,7 +42,7 @@ The app uses the submitter's email as From when it is known, with the submitter 
 | `QUALITY_MATRIX_SMTP_STARTTLS` | `false` | `false` | Set `true` for 587 or when the relay requires TLS. The relay must offer STARTTLS. |
 | `QUALITY_MATRIX_SMTP_USERNAME` | `<service-account>` | empty | Leave empty if the relay does not require login. If set, the app logs in. |
 | `QUALITY_MATRIX_SMTP_PASSWORD` | `<secret>` | empty | Secret. Never commit or paste in chat or tickets. |
-| `QUALITY_MATRIX_MAIL_FROM` | `quality-matrix-vnat@intel.com` | `quality-matrix-vnat@intel.com` | Sender used when the submitter's email is unknown, and the retry sender. Also the From of the test command. |
+| `QUALITY_MATRIX_MAIL_FROM` | `ba-chu-YP@intel.com` | `ba-chu-YP@intel.com` | Sender used when the submitter's email is unknown, and the retry sender. Also the From of the test command. |
 | `QUALITY_MATRIX_PUBLIC_URL` | `http://quality-matrix-vnat.intel.com` | `http://localhost:5173` in code; Compose defaults to `http://quality-matrix-vnat.intel.com` | Base URL for review links in emails. |
 | `QUALITY_MATRIX_LOG_LEVEL` | `INFO` | `INFO` | Log level for the app logger. |
 
@@ -56,7 +56,7 @@ QUALITY_MATRIX_SMTP_PORT=25
 QUALITY_MATRIX_SMTP_STARTTLS=false
 QUALITY_MATRIX_SMTP_USERNAME=
 QUALITY_MATRIX_SMTP_PASSWORD=
-QUALITY_MATRIX_MAIL_FROM=quality-matrix-vnat@intel.com
+QUALITY_MATRIX_MAIL_FROM=ba-chu-YP@intel.com
 QUALITY_MATRIX_PUBLIC_URL=http://quality-matrix-vnat.intel.com
 QUALITY_MATRIX_LOG_LEVEL=INFO
 ```
@@ -141,7 +141,7 @@ Mail failures are logged by the backend and do not fail the final submit. Check 
 | `SMTPNotSupportedError` (STARTTLS not supported) | STARTTLS is `true` but the relay does not offer it | Set STARTTLS to `false` or confirm the port with IT. |
 | `SMTPAuthenticationError` | Wrong username or password, or the relay does not use login | Verify the service account with IT. If the relay needs no login, leave `QUALITY_MATRIX_SMTP_USERNAME` and `QUALITY_MATRIX_SMTP_PASSWORD` empty. |
 | `SMTPRecipientsRefused` or `550 relay denied` | Docker host IP is not allow-listed, or the recipient is external or not allowed | Ask IT to allow-list the Docker host IP. Use internal recipients only. |
-| `SMTPSenderRefused`, or log WARNING `SMTP relay refused sender ... retrying with` | The relay rejected the submitter's email as From | Automatic: the app retries once with `quality-matrix-vnat@intel.com` as From and keeps the submitter as Reply-To. If the retry also fails, the relay does not allow `quality-matrix-vnat@intel.com`: ask IT to allow it. |
+| `SMTPSenderRefused`, or log WARNING `SMTP relay refused sender ... retrying with` | The relay rejected the submitter's email as From | Automatic: the app retries once with `ba-chu-YP@intel.com` as From and keeps the submitter as Reply-To. If the retry also fails, the relay does not allow `ba-chu-YP@intel.com`: ask IT to allow it. |
 | Email arrives but the review link is wrong | `QUALITY_MATRIX_PUBLIC_URL` is wrong, or was not applied | Check the value. Recreate with `--env-file .env.production` (step 4). |
 | Log shows `no valid PdO owner or product group emails` | No valid recipient addresses in the submitted data | Ask the app owner to check the PdO owner and product group email fields. |
 | Emails go to spam | SPF, DKIM, or DMARC is missing for the sender domain | Ask IT to publish SPF and DKIM for the sending domain. |

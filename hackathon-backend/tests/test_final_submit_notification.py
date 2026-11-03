@@ -194,7 +194,7 @@ def test_smtp_sends_to_recipient_explicitly(matrix, mail):
 def test_sender_refused_retries_once_with_configured_from(matrix, mail, monkeypatch, caplog):
     import app.services.notification_service as notification_service
 
-    default_from = "quality-matrix-vnat@intel.com"
+    default_from = "ba-chu-YP@intel.com"
     monkeypatch.setattr(notification_service, "QUALITY_MATRIX_MAIL_FROM", default_from)
     mail.reject_senders = {"submitter@example.com"}
     caplog.set_level(logging.WARNING, logger="app.services.notification_service")
