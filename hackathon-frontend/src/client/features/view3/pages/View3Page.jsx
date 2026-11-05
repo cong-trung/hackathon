@@ -130,11 +130,11 @@ function StatusCell({ row, column, table }) {
     const status = cell?.status;
     const draft = cell?.decision_state === 'draft';
         const label = draft ? `${status || 'N (default)'} draft` : status || 'N (default), not reviewed';
-        const style = draft ? `${status === 'Y' ? 'bg-green-200 text-green-900 dark:bg-green-900 dark:text-green-100'
-                : status === 'N' ? 'bg-red-200 text-red-900 dark:bg-red-900 dark:text-red-100'
+        const style = draft ? `${status === 'Y' ? 'bg-status-success text-status-success-foreground'
+            : status === 'N' ? 'bg-destructive/20 text-destructive'
                     : status === 'NA' ? 'bg-muted text-foreground'
                         : 'bg-muted text-muted-foreground'} border border-dashed border-border`
-                : status === 'Y' ? 'bg-green-600 text-white hover:bg-green-700'
+                : status === 'Y' ? 'bg-green-700 text-white hover:bg-green-800'
                 : status === 'N' ? 'bg-red-600 text-white hover:bg-red-700'
                     : status === 'NA' ? 'bg-muted text-foreground hover:bg-accent'
                         : 'text-muted-foreground hover:bg-muted';
@@ -256,7 +256,7 @@ export default function QualityProductMatrixPage() {
                     <span><span className="mr-1 inline-block size-3 bg-green-600 align-middle" />Y</span>
                     <span><span className="mr-1 inline-block size-3 bg-red-600 align-middle" />N</span>
                     <span><span className="mr-1 inline-block size-3 border bg-muted align-middle" />NA</span>
-                    <span><span className="mr-1 inline-block size-3 border border-dashed border-border bg-green-200 align-middle dark:bg-green-900" />Draft</span>
+                    <span><span className="mr-1 inline-block size-3 border border-dashed border-border bg-status-success align-middle" />Draft</span>
                     <span>N (default) = not reviewed yet</span>
                 </div>
                 <Tabs value={moduleGroup || '__all__'} onValueChange={(value) => { setModuleGroup(value === '__all__' ? '' : value); setPage(1); }} className="min-w-0">

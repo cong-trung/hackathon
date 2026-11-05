@@ -22,6 +22,7 @@ import {
     getPypcsActionItemOptions,
     createPypcsActionItem,
     updatePypcsActionItem,
+    deletePypcsActionItem,
     getPypcsProductActionMatrix,
     updatePypcsProductActionMatrixRow,
     exportPypcsProductActionMatrix,
@@ -54,6 +55,7 @@ router.get('/pypcs/action-items/options', getPypcsActionItemOptions);
 router.get('/pypcs/action-items', getPypcsActionItems);
 router.post('/pypcs/action-items', createPypcsActionItem);
 router.put('/pypcs/action-items/:nbr', updatePypcsActionItem);
+router.delete('/pypcs/action-items/:nbr', deletePypcsActionItem);
 router.get('/pypcs/product-action-matrix/export', exportPypcsProductActionMatrix);
 router.get('/pypcs/product-action-matrix', getPypcsProductActionMatrix);
 router.put('/pypcs/product-action-matrix/rows', updatePypcsProductActionMatrixRow);

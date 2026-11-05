@@ -88,7 +88,7 @@ export default function PYPCSMatrixTab() {
                         aria-pressed={activeMode === 'matrix'}
                         className={`rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring ${
                             activeMode === 'matrix'
-                                ? 'bg-primary text-primary-foreground'
+                                ? 'border-primary/50 bg-accent text-foreground'
                                 : 'bg-card'
                         }`}
                         onClick={() => changeMode('matrix')}
@@ -102,7 +102,7 @@ export default function PYPCSMatrixTab() {
                     aria-pressed={activeMode === 'review'}
                     className={`rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring ${
                         activeMode === 'review'
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'border-primary/50 bg-accent text-foreground'
                             : 'bg-card'
                     }`}
                     onClick={() => changeMode('review')}

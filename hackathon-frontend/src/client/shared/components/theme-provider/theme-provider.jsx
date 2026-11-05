@@ -1,48 +1,35 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 
-const ThemeProviderContext = createContext({
-  theme: 'system',
-  setTheme: () => null,
-});
+const ThemeProviderContext = createContext(null);
+const themes = ['midnight', 'intel-light', 'intel-dark'];
 
-export function ThemeProvider({
-  children,
-  defaultTheme = 'system',
-  storageKey = 'vite-ui-theme',
-  ...props
-}) {
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem(storageKey) || defaultTheme,
-  );
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.classList.toggle('dark', theme !== 'intel-light');
+}
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    root.classList.remove('light', 'dark');
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light';
-
-      root.classList.add(systemTheme);
-      return;
-    }
-
-    root.classList.add(theme);
-  }, [theme]);
+export function ThemeProvider({ children }) {
+  const [theme, setTheme] = useState(() => {
+    const initial = document.documentElement.dataset.theme;
+    return themes.includes(initial) ? initial : 'midnight';
+  });
 
   const value = {
     theme,
-    setTheme: (theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    setTheme: (nextTheme) => {
+      if (!themes.includes(nextTheme)) return;
+      applyTheme(nextTheme);
+      setTheme(nextTheme);
+      try {
+        localStorage.setItem('qm:theme', nextTheme);
+      } catch {
+        // The current selection still applies when storage is unavailable.
+      }
     },
   };
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext.Provider value={value}>
       {children}
     </ThemeProviderContext.Provider>
   );

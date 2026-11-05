@@ -1,11 +1,15 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { loginPath, useAuth } from '@/shared/hooks/useAuth';
+import { authErrorMessage, loginPath, useAuth } from '@/shared/hooks/useAuth';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
-import { ArrowDown, ArrowDownUp, ArrowUp, PencilIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { ArrowDown, ArrowDownUp, ArrowUp, PencilIcon, PlusIcon, SearchIcon, Trash2 } from 'lucide-react';
 
-import { useGetActionItemOptionsQuery, useGetActionItemsQuery } from '@/app/api/pypcsActionItemsApi';
+import { useDeleteActionItemMutation, useGetActionItemOptionsQuery, useGetActionItemsQuery } from '@/app/api/pypcsActionItemsApi';
 import ClientPagination from '@/shared/components/data-table/ClientPagination';
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/shared/components/ui/alert-dialog';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -77,10 +81,10 @@ function BadgesCell({ values, comment }) {
 }
 
 const frozen = {
-    actions: 'sticky z-10 bg-table-frozen group-hover:bg-table-hover',
-    nbr: 'sticky z-10 border-r-2 bg-table-frozen shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] group-hover:bg-table-hover lg:border-r lg:shadow-none',
-    event_id: 'lg:sticky lg:z-10 lg:bg-table-frozen lg:group-hover:bg-table-hover',
-    actionable_item: 'lg:sticky lg:z-10 lg:border-r-2 lg:bg-table-frozen lg:shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] lg:group-hover:bg-table-hover',
+    actions: 'sticky z-10 bg-table-frozen group-even:bg-table-stripe group-hover:bg-table-hover',
+    nbr: 'sticky z-10 border-r-2 bg-table-frozen shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] group-even:bg-table-stripe group-hover:bg-table-hover lg:border-r lg:shadow-none',
+    event_id: 'lg:sticky lg:z-10 lg:bg-table-frozen lg:group-even:bg-table-stripe lg:group-hover:bg-table-hover',
+    actionable_item: 'lg:sticky lg:z-10 lg:border-r-2 lg:bg-table-frozen lg:shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] lg:group-even:bg-table-stripe lg:group-hover:bg-table-hover',
 };
 
 function columnStyle(column) {
@@ -117,16 +121,30 @@ function UpdatedAtCell({ getValue }) {
 function ActionCell({ row, table }) {
     if (!table.options.meta.canEdit) return null;
     return (
-        <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="gap-1 px-2"
-            aria-label={`Edit item NBr# ${row.original.nbr}`}
-            onClick={() => table.options.meta.onEdit(row.original)}
-        >
-            <PencilIcon aria-hidden="true" className="mr-1 size-3.5" /> Edit
-        </Button>
+        <div className="flex items-center gap-1">
+            <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="size-7 shrink-0"
+                aria-label={`Edit item NBr# ${row.original.nbr}`}
+                onClick={() => table.options.meta.onEdit(row.original)}
+            >
+                <PencilIcon aria-hidden="true" className="size-3.5" />
+            </Button>
+            {table.options.meta.canDelete && (
+                <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="size-7 shrink-0 text-destructive hover:text-destructive"
+                    aria-label={`Delete item NBr# ${row.original.nbr}`}
+                    onClick={() => table.options.meta.onDelete(row.original)}
+                >
+                    <Trash2 aria-hidden="true" className="size-3.5" />
+                </Button>
+            )}
+        </div>
     );
 }
 
@@ -146,13 +164,13 @@ function columnsFor() {
         {
             id: 'actions',
             header: <span className="sr-only">Actions</span>,
-            size: 80,
+            size: 72,
             cell: ActionCell,
         },
         { accessorKey: 'nbr', header: 'NBr#', size: 64 },
-        text('event_id', 'Event ID', 144),
+        text('event_id', 'Event ID', 120),
+        text('actionable_item', 'Actionable item', 200),
         { accessorKey: 'module', header: 'Module', size: 175, cell: ApplicabilityValueCell },
-        text('actionable_item', 'Actionable item', 208),
         text('reference', 'Reference', 240),
         text('description', 'Description', 240),
         ...applicability.map(([key, title]) => ({
@@ -177,16 +195,21 @@ const columns = columnsFor();
 const sortableColumns = new Set(['nbr', 'event_id', 'actionable_item', 'owner', 'updated_at']);
 
 export default function ActionableItemsPage() {
-    const { isAuthenticated, isGuest } = useAuth();
+    const { isAuthenticated, isGuest, isAdmin } = useAuth();
     const location = useLocation();
     const { data, isLoading, isError, refetch } = useGetActionItemsQuery();
     const { data: options } = useGetActionItemOptionsQuery();
+    const [deleteActionItem, { isLoading: isDeleting }] = useDeleteActionItemMutation();
+    const searchRef = useRef(null);
+    const deletedRef = useRef(false);
     const [search, setSearch] = useState('');
     const [moduleGroup, setModuleGroup] = useState('');
     const [sort, setSort] = useState({ key: 'nbr', direction: 'ascending' });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
     const [activeItem, setActiveItem] = useState(undefined);
+    const [pendingDelete, setPendingDelete] = useState(null);
+    const [deleteError, setDeleteError] = useState('');
     const items = data?.items ?? EMPTY;
     const modules = useMemo(() => options?.fields?.module?.length
         ? options.fields.module
@@ -228,7 +251,12 @@ export default function ActionableItemsPage() {
     const table = useReactTable({
         data: visibleItems,
         columns,
-        meta: { onEdit: (item) => { if (isAuthenticated && !isGuest) setActiveItem(item); }, canEdit: isAuthenticated && !isGuest },
+        meta: {
+            onEdit: (item) => { if (isAuthenticated && !isGuest) setActiveItem(item); },
+            canEdit: isAuthenticated && !isGuest,
+            onDelete: (item) => { deletedRef.current = false; setDeleteError(''); setPendingDelete(item); },
+            canDelete: isAdmin,
+        },
         getRowId: (row) => String(row.nbr),
         getCoreRowModel: getCoreRowModel(),
     });
@@ -236,6 +264,24 @@ export default function ActionableItemsPage() {
     const leafColumns = table.getAllLeafColumns();
     const applicabilityStart = leafColumns.findIndex((column) => column.id === applicability[0][0]);
     const applicabilityEnd = applicabilityStart + applicability.length;
+
+    async function confirmDelete() {
+        if (!pendingDelete || isDeleting) return;
+        setDeleteError('');
+        try {
+            await deleteActionItem({ nbr: pendingDelete.nbr, expectedVersion: pendingDelete.version }).unwrap();
+            deletedRef.current = true;
+            setPendingDelete(null);
+        } catch (error) {
+            setDeleteError(error?.status === 409
+                ? error.data?.detail?.message ?? 'This item changed. Reload the page and try again.'
+                : error?.status === 401 || error?.status === 403
+                  ? authErrorMessage(error)
+                  : error?.status === 404
+                    ? 'This action item no longer exists.'
+                    : 'Could not delete the action item. Please try again.');
+        }
+    }
 
     function renderHeader(column) {
         if (!sortableColumns.has(column.id)) return column.columnDef.header;
@@ -270,6 +316,7 @@ export default function ActionableItemsPage() {
                 <div className="relative w-full max-w-sm">
                 <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                    ref={searchRef}
                     type="search"
                     aria-label="Search action items"
                     placeholder="Search action items"
@@ -382,6 +429,28 @@ export default function ActionableItemsPage() {
                     onClose={() => setActiveItem(undefined)}
                 />
             )}
+            <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => { if (!open && !isDeleting) setPendingDelete(null); }}>
+                <AlertDialogContent onCloseAutoFocus={(event) => {
+                    if (deletedRef.current) {
+                        event.preventDefault();
+                        searchRef.current?.focus();
+                        deletedRef.current = false;
+                    }
+                }}>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete item NBr# {pendingDelete?.nbr}?</AlertDialogTitle>
+                        <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        {deleteError && <p role="alert" className="mr-auto text-sm text-destructive">{deleteError}</p>}
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={(event) => { event.preventDefault(); confirmDelete(); }}>
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronsUpDown, KeyRound, LogIn, LogOut } from 'lucide-react';
+import { ChevronsUpDown, KeyRound, LogIn, LogOut, Palette } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +14,8 @@ import {
 } from '@/shared/components/ui/dialog';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+    DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent,
+    DropdownMenuRadioGroup, DropdownMenuRadioItem,
 } from '@/shared/components/ui/dropdown-menu';
 import {
     Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
@@ -21,6 +23,25 @@ import {
 import { Input } from '@/shared/components/ui/input';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/shared/components/ui/sidebar';
 import { useAuth, authErrorMessage, loginPath } from '@/shared/hooks/useAuth';
+import { useTheme } from '@/shared/components/theme-provider/theme-provider';
+
+const appearanceOptions = [
+    { value: 'midnight', label: 'Midnight', swatch: 'bg-[#303342]' },
+    { value: 'intel-light', label: 'Intel Light', swatch: 'bg-[#0068b5]' },
+    { value: 'intel-dark', label: 'Intel Dark', swatch: 'bg-[#00c7fd]' },
+];
+
+function AppearanceOptions() {
+    const { theme, setTheme } = useTheme();
+    return <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+        {appearanceOptions.map(({ value, label, swatch }) => (
+            <DropdownMenuRadioItem key={value} value={value}>
+                <span aria-hidden="true" className={`mr-2 size-3 shrink-0 rounded-full border border-current ${swatch}`} />
+                {label}
+            </DropdownMenuRadioItem>
+        ))}
+    </DropdownMenuRadioGroup>;
+}
 
 const passwordSchema = z.object({
     current_password: z.string().min(1, 'Enter your current password.'),
@@ -57,6 +78,14 @@ export default function NavUser() {
     if (isLoading) return null;
     if (!user) return (
         <SidebarMenu>
+            <SidebarMenuItem><DropdownMenu>
+                <DropdownMenuTrigger asChild><SidebarMenuButton tooltip="Appearance">
+                    <Palette /><span>Appearance</span>
+                </SidebarMenuButton></DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="end" aria-label="Appearance" className="min-w-40">
+                    <AppearanceOptions />
+                </DropdownMenuContent>
+            </DropdownMenu></SidebarMenuItem>
             <SidebarMenuItem><SidebarMenuButton asChild tooltip="Log in">
                 <Link to={loginPath(location.pathname + location.search)}><LogIn /><span>Log in</span></Link>
             </SidebarMenuButton></SidebarMenuItem>
@@ -129,6 +158,10 @@ export default function NavUser() {
                 <ChevronsUpDown className="size-4" />
             </SidebarMenuButton></DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="end" className="min-w-48">
+                <DropdownMenuSub>
+                    <DropdownMenuSubTrigger><Palette className="mr-2 size-4" /> Appearance</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent aria-label="Appearance"><AppearanceOptions /></DropdownMenuSubContent>
+                </DropdownMenuSub>
                 {!isGuest && <DropdownMenuItem onSelect={() => setPasswordOpen(true)}>
                     <KeyRound className="mr-2 size-4" /> Change password
                 </DropdownMenuItem>}

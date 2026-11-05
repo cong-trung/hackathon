@@ -37,7 +37,7 @@ def module_client(tmp_path, monkeypatch):
     import app.io.generic_csv as generic_csv
     import app.services.product_action_matrix_service as matrix_service
     import app.services.pypcs_service as pypcs_service
-    from app.auth import require_writer
+    from app.auth import get_current_user, require_writer
     from app.main import app
 
     monkeypatch.setattr(config, "DATA_DIR", data_dir)
@@ -62,6 +62,7 @@ def module_client(tmp_path, monkeypatch):
     yield client, data_dir
     client.close()
     app.dependency_overrides.pop(require_writer, None)
+    app.dependency_overrides.pop(get_current_user, None)
     pypcs_service._canonical_module_keys.cache_clear()
 
 
@@ -210,3 +211,69 @@ def test_decision_for_untagged_action_returns_422(module_client):
     )
     assert response.status_code == 422
     assert response.json()["detail"]["field"] == "cells[0].action_nbr"
+
+
+def _as_user(role):
+    from app.auth import get_current_user
+    from app.main import app
+
+    app.dependency_overrides[get_current_user] = lambda: {
+        "username": f"{role}-test",
+        "role": role,
+    }
+
+
+def _action_item_nbrs(client):
+    return [item["nbr"] for item in client.get("/pypcs/action-items").json()["items"]]
+
+
+def test_admin_can_delete_action_item(module_client):
+    client, data_dir = module_client
+    _seed_action_items(data_dir)
+    _as_user("admin")
+    response = client.delete("/pypcs/action-items/991")
+    assert response.status_code == 200
+    assert response.json() == {"deleted": True, "nbr": 991}
+    assert _action_item_nbrs(client) == [992]
+
+
+def test_non_admin_writer_cannot_delete_action_item(module_client):
+    client, data_dir = module_client
+    _seed_action_items(data_dir)
+    _as_user("editor")
+    response = client.delete("/pypcs/action-items/991")
+    assert response.status_code == 403
+    assert response.json()["detail"] == {"code": "admin_required"}
+    assert _action_item_nbrs(client) == [991, 992]
+
+
+def test_unauthenticated_cannot_delete_action_item(module_client):
+    client, data_dir = module_client
+    _seed_action_items(data_dir)
+    response = client.delete("/pypcs/action-items/991")
+    assert response.status_code == 401
+    assert _action_item_nbrs(client) == [991, 992]
+
+
+def test_delete_missing_action_item_returns_404(module_client):
+    client, data_dir = module_client
+    _seed_action_items(data_dir)
+    _as_user("admin")
+    response = client.delete("/pypcs/action-items/12345")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PYPCS action item not found."
+    assert _action_item_nbrs(client) == [991, 992]
+
+
+def test_delete_with_stale_expected_version_returns_409(module_client):
+    client, data_dir = module_client
+    _seed_action_items(data_dir)
+    _as_user("admin")
+    response = client.delete(
+        "/pypcs/action-items/991", params={"expected_version": "stale"}
+    )
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert detail["code"] == "conflict"
+    assert detail["current"]["nbr"] == 991
+    assert _action_item_nbrs(client) == [991, 992]

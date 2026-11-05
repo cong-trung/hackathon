@@ -2,6 +2,17 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
+        <script>
+            try {
+                const saved = localStorage.getItem('qm:theme');
+                const theme = ['midnight', 'intel-light', 'intel-dark'].includes(saved) ? saved : 'midnight';
+                document.documentElement.dataset.theme = theme;
+                document.documentElement.classList.toggle('dark', theme !== 'intel-light');
+            } catch {
+                document.documentElement.dataset.theme = 'midnight';
+                document.documentElement.classList.add('dark');
+            }
+        </script>
         <link rel="icon" type="image/svg+xml" href="/intel_2.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Quality matrix</title>

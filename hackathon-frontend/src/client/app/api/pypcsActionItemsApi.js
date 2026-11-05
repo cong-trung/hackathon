@@ -25,6 +25,14 @@ export const pypcsActionItemsApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['PYPCSActionItem', 'ProductActionMatrix'],
         }),
+        deleteActionItem: builder.mutation({
+            query: ({ nbr, expectedVersion }) => ({
+                url: `/pypcs/action-items/${nbr}`,
+                method: 'DELETE',
+                params: expectedVersion ? { expected_version: expectedVersion } : undefined,
+            }),
+            invalidatesTags: ['PYPCSActionItem', 'ProductActionMatrix'],
+        }),
     }),
 });
 
@@ -33,4 +41,5 @@ export const {
     useGetActionItemOptionsQuery,
     useCreateActionItemMutation,
     useUpdateActionItemMutation,
+    useDeleteActionItemMutation,
 } = pypcsActionItemsApi;

@@ -66,13 +66,13 @@ export const getColumns = () => {
                 const value = row.getValue('status');
                 if (value === 'in_progress') {
                     return (
-                        <div className="text-yellow-600 font-medium capitalize">
+                        <div className="text-status-warning-foreground font-medium capitalize">
                             In Progress
                         </div>
                     );
                 } else if (value === 'pending') {
                     return (
-                        <div className="text-red-600 font-medium capitalize">
+                        <div className="text-destructive font-medium capitalize">
                             Pending
                         </div>
                     );

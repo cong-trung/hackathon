@@ -207,7 +207,7 @@ function OperationInput({ options, value, onChange, label, errorId, invalid, dis
                         aria-invalid={invalid || Boolean(customError) || undefined}
                         aria-describedby={[errorId, customError ? `${inputId}-custom-error` : null].filter(Boolean).join(' ') || undefined}
                         disabled={disabled}
-                        className="w-full justify-between font-normal"
+                        className="w-full justify-between border-input bg-card font-normal hover:bg-accent"
                     >
                         <span className="truncate">
                             {known.length + unknown.length
@@ -254,7 +254,7 @@ function OperationInput({ options, value, onChange, label, errorId, invalid, dis
             {multiselect && options.includes('Other') ? (
                 <div className="flex flex-wrap gap-1">
                     <input
-                        className="min-w-0 flex-1 rounded border px-2 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                        className="min-w-0 flex-1 rounded border border-input bg-card px-2 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
                         type="text"
                         readOnly={disabled}
                         aria-label={`Other value for ${label}`}
@@ -281,7 +281,7 @@ function OperationInput({ options, value, onChange, label, errorId, invalid, dis
                 </div>
             ) : hasOther ? (
                 <input
-                    className="w-full rounded border px-2 py-1 text-sm"
+                    className="w-full rounded border border-input bg-card px-2 py-1 text-sm"
                     type="text"
                     readOnly={disabled}
                     aria-label={`Specify other operation for ${label}`}
@@ -296,7 +296,7 @@ function OperationInput({ options, value, onChange, label, errorId, invalid, dis
             {values.filter((item) => item && item !== 'Other').length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                     {values.map((item, index) => item && item !== 'Other' ? (
-                        <span key={`${item}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded border bg-white px-1 text-xs">
+                        <span key={`${item}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded border bg-secondary px-1 text-xs text-secondary-foreground">
                             <span className="truncate" title={item}>{item}</span>
                             <button
                                 type="button"
@@ -1151,7 +1151,7 @@ export default function PYPCSMatrixSubmission({
             return (
                 <>
                     <select
-                        className="w-full rounded border px-2 py-1 text-sm"
+                        className="w-full rounded border border-input bg-card px-2 py-1 text-sm"
                         id={inputId}
                         disabled={disabled}
                         aria-label={label}
@@ -1170,7 +1170,7 @@ export default function PYPCSMatrixSubmission({
 
                     {isOtherSelected ? (
                         <input
-                            className="mt-1 w-full rounded border px-2 py-1 text-sm"
+                            className="mt-1 w-full rounded border border-input bg-card px-2 py-1 text-sm"
                             type="text"
                             readOnly={disabled}
                             aria-label={`Specify other value for ${label}`}
@@ -1188,7 +1188,7 @@ export default function PYPCSMatrixSubmission({
         if (question.field_type === 'textarea') {
             return (
                 <textarea
-                    className="min-h-20 w-full rounded border px-2 py-1 text-sm"
+                    className="min-h-20 w-full rounded border border-input bg-card px-2 py-1 text-sm"
                     id={inputId}
                     readOnly={disabled}
                     aria-label={label}
@@ -1204,7 +1204,7 @@ export default function PYPCSMatrixSubmission({
         return (
             <>
                 <input
-                    className="w-full rounded border px-2 py-1 text-sm"
+                    className="w-full rounded border border-input bg-card px-2 py-1 text-sm"
                     type="text"
                     inputMode={emailField ? 'email' : undefined}
                     id={inputId}
@@ -1270,7 +1270,7 @@ export default function PYPCSMatrixSubmission({
         return (
             <td key={moduleKey}
                 ref={(node) => { if (node) fieldRefs.current.set(cellKey, node); else fieldRefs.current.delete(cellKey); }}
-                className={`min-w-40 border-b border-r border-table-border p-2 ${missing ? 'border-l-4 border-l-status-warning-foreground bg-status-warning/50' : 'bg-background'} ${pulseKey === cellKey ? 'ring-2 ring-status-warning-foreground motion-safe:animate-pulse' : ''}`}>
+                className={`min-w-40 border-b border-r border-table-border p-2 ${missing ? 'border-l-2 border-l-status-warning-foreground/70 bg-status-warning/50' : 'bg-background'} ${pulseKey === cellKey ? 'ring-2 ring-status-warning-foreground motion-safe:animate-pulse' : ''}`}>
                 {missing ? <span className="sr-only">Required</span> : null}
                 {renderFieldInput(
                     cellQuestion,
@@ -1309,7 +1309,7 @@ export default function PYPCSMatrixSubmission({
                     if (node) fieldRefs.current.set(fieldKey, node);
                     else fieldRefs.current.delete(fieldKey);
                 }); }}
-                className={`min-w-0 space-y-1 ${missing ? 'border-l-4 border-l-status-warning-foreground bg-status-warning/50 pl-2' : ''} ${pulseKey?.startsWith(`${question.question_id}__`) ? 'ring-2 ring-status-warning-foreground motion-safe:animate-pulse' : ''}`}>
+                className={`min-w-0 space-y-1 ${missing ? 'border-l-2 border-l-status-warning-foreground/70 bg-status-warning/50 pl-2' : ''} ${pulseKey?.startsWith(`${question.question_id}__`) ? 'ring-2 ring-status-warning-foreground motion-safe:animate-pulse' : ''}`}>
                 {missing ? <span className="sr-only">Required</span> : null}
                 <div className="flex items-center gap-1">
                     <label htmlFor={inputId} className="min-w-0 break-words text-xs font-medium">
@@ -1487,8 +1487,8 @@ export default function PYPCSMatrixSubmission({
                     <div className="flex items-center gap-2">
                         <span>Editing submission ID: {submissionId}</span>
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${submissionStatus === 'draft'
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
-                            : 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200'}`}>
+                            ? 'bg-status-warning text-status-warning-foreground'
+                            : 'bg-status-success text-status-success-foreground'}`}>
                             {submissionStatus === 'draft' ? 'Draft' : 'Final'}
                         </span>
                     </div>
@@ -1608,18 +1608,18 @@ export default function PYPCSMatrixSubmission({
                                     {index + 1}
                                 </td>
 
-                                <th scope="row" style={labelColumn} className="sticky z-10 border-b-2 border-r-2 border-table-border bg-primary py-2 pl-2 pr-3 text-left align-top font-medium text-primary-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] [overflow-wrap:anywhere]">
+                                <th scope="row" style={labelColumn} className="sticky z-10 border-b-2 border-r-2 border-table-border bg-table-frozen py-2 pl-2 pr-3 text-left align-top font-medium text-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] [overflow-wrap:anywhere]">
                                     <span className="flex items-start gap-1">
                                         <span className="min-w-0 flex-1">
                                             {question.display_label || question.header || question.question_id}
-                                            {question.required ? <span className="ml-1">*</span> : null}
+                                            {question.required ? <span className="ml-1 text-status-warning-foreground">*</span> : null}
                                         </span>
-                                        {renderDescription(question, true)}
+                                        {renderDescription(question)}
                                     </span>
                                     {APPLY_TO_ALL_QUESTION_IDS.has(question.question_id) && (() => {
                                         const { source, targets } = applyTargets(question);
                                         return <Button type="button" size="sm" variant="outline"
-                                            className="mt-1 h-7 border-white bg-white px-1.5 text-xs text-primary hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white"
+                                            className="mt-1 h-7 border-primary/40 bg-card px-1.5 text-xs text-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                                             aria-label={`Apply ${question.display_label || question.header || question.question_id} to all selected modules`}
                                             disabled={!source || !targets.length || loading || locked}
                                             onClick={() => handleApply(question)}>

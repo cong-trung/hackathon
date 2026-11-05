@@ -52,7 +52,9 @@ function isAllowedOrigin(origin, req) {
 
 function protectApiMutations(req, res, next) {
     if (!mutatingMethods.has(req.method)) return next();
-    if (!req.is('application/json')) {
+    // Bodiless DELETE is non-simple, so CORS preflight + Origin check still guard it.
+    const isJson = req.is('application/json');
+    if (!isJson && !(req.method === 'DELETE' && isJson === null)) {
         return res.status(415).json({ code: 'unsupported_media_type' });
     }
 

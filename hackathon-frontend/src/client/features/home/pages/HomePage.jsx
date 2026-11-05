@@ -226,8 +226,8 @@ export default function HomePage() {
     };
 
     return (
-        <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col gap-8 pb-4">
-            <header className="relative overflow-hidden rounded-xl border bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-sm md:p-10">
+        <div className={cn('grid min-h-full w-full max-w-screen-2xl content-start gap-5 pb-2 lg:items-start', showGuide && 'lg:grid-cols-[minmax(0,1fr)_320px]')}>
+            <header className="relative min-w-0 overflow-hidden rounded-xl border bg-gradient-to-br from-primary/10 via-background to-background p-5 shadow-sm lg:col-start-1">
                 <div
                     aria-hidden="true"
                     className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-primary/20 blur-3xl"
@@ -236,20 +236,20 @@ export default function HomePage() {
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                         Quality Matrix
                     </p>
-                    <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
+                    <h1 className="mt-2 text-3xl font-semibold tracking-tight lg:text-4xl">
                         {timeOfDayGreeting()}
                         {firstName ? `, ${firstName}` : ''}
                     </h1>
-                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                         Capture product quality, track the action items behind
                         every finding, and ship a clear action plan — all from
                         one workspace.
                     </p>
-                    <div className="mt-7 flex flex-wrap items-center gap-3">
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
                         {primaryWorkspace && (
                             <Button
                                 asChild
-                                className="h-11 px-6 text-base"
+                                className="h-10 px-4"
                             >
                                 <Link
                                     to={primaryWorkspace.path}
@@ -268,7 +268,7 @@ export default function HomePage() {
                             <Button
                                 asChild
                                 variant="outline"
-                                className="h-11 px-6 text-base"
+                                className="h-10 px-4"
                             >
                                 <Link to={chatWorkspace.path}>
                                     <MessageCircleQuestionMark />
@@ -277,7 +277,7 @@ export default function HomePage() {
                             </Button>
                         )}
                     </div>
-                    <div className="mt-7 flex flex-wrap items-center gap-2">
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
                         <Badge
                             variant="secondary"
                             className="gap-1.5 px-3 py-1 text-xs"
@@ -300,13 +300,13 @@ export default function HomePage() {
                 </div>
             </header>
 
-            <section className="flex flex-col gap-5">
+            <section className="flex min-w-0 flex-col gap-3 lg:col-start-1">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards">
-                        <h2 className="text-2xl font-semibold tracking-tight">
+                        <h2 className="text-xl font-semibold tracking-tight">
                             Jump into a workspace
                         </h2>
-                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-base text-muted-foreground">
+                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
                             Type to filter, press <Kbd>/</Kbd> to focus,
                             <Kbd>Enter</Kbd> opens the top match.
                         </p>
@@ -345,7 +345,7 @@ export default function HomePage() {
                         onKeyDown={handleSearchKeyDown}
                         placeholder="Search workspaces — try matrix, action or chat"
                         aria-label="Search workspaces"
-                        className="h-12 rounded-lg pl-11 pr-20 text-base shadow-sm"
+                        className="h-10 rounded-lg pl-11 pr-20 text-sm shadow-sm"
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1.5 text-muted-foreground md:flex">
                         <Kbd>/</Kbd>
@@ -382,7 +382,7 @@ export default function HomePage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
                         {filtered.map((workspace, index) => (
                             <Link
                                 key={workspace.key}
@@ -393,12 +393,12 @@ export default function HomePage() {
                                 style={{
                                     animationDelay: `${120 + index * 50}ms`,
                                 }}
-                                className="group flex animate-in flex-col rounded-xl border bg-card p-5 shadow-sm outline-none transition-all duration-200 fade-in fill-mode-backwards slide-in-from-bottom-2 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"
+                                className="group flex animate-in flex-col rounded-lg border bg-card p-4 shadow-sm outline-none transition-all duration-200 fade-in fill-mode-backwards slide-in-from-bottom-2 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <span
                                         className={cn(
-                                            'flex size-11 shrink-0 items-center justify-center rounded-lg',
+                                            'flex size-9 shrink-0 items-center justify-center rounded-md',
                                             workspace.accent,
                                         )}
                                     >
@@ -413,7 +413,7 @@ export default function HomePage() {
                                         </Badge>
                                     )}
                                 </div>
-                                <h3 className="mt-4 text-lg font-semibold">
+                                <h3 className="mt-3 text-base font-semibold">
                                     <Highlight
                                         text={workspace.title}
                                         needle={needle}
@@ -425,7 +425,7 @@ export default function HomePage() {
                                         needle={needle}
                                     />
                                 </p>
-                                <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+                                <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
                                     Open
                                     <ArrowRight
                                         className="size-4 transition-transform group-hover:translate-x-0.5"
@@ -439,21 +439,21 @@ export default function HomePage() {
             </section>
 
             {showGuide && (
-                <section>
+                <section className="lg:sticky lg:top-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
                     <Card
                         style={{ animationDelay: '160ms' }}
                         className="animate-in fade-in fill-mode-backwards slide-in-from-bottom-2 duration-500"
                     >
-                        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+                        <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 p-4">
                             <div>
-                                <CardTitle className="flex items-center gap-2 text-xl">
+                                <CardTitle className="flex items-center gap-2 text-lg">
                                     <Rocket
                                         aria-hidden="true"
                                         className="size-5 text-primary"
                                     />
                                     Getting started
                                 </CardTitle>
-                                <CardDescription className="mt-1.5 text-base">
+                                <CardDescription className="mt-1 text-sm">
                                     Three steps from requesting access to your
                                     first submission.
                                 </CardDescription>
@@ -470,25 +470,27 @@ export default function HomePage() {
                                 <X />
                             </Button>
                         </CardHeader>
-                        <CardContent className="grid gap-6 md:grid-cols-3">
+                        <CardContent className="grid gap-4 px-4 pb-4 pt-0">
                             {accessSteps.map((step, index) => (
                                 <div
                                     key={step.title}
-                                    className="flex flex-col gap-2"
+                                    className="flex gap-3"
                                 >
-                                    <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                                         {index + 1}
                                     </span>
-                                    <h3 className="text-base font-semibold">
-                                        {step.title}
-                                    </h3>
-                                    <p className="text-sm leading-relaxed text-muted-foreground">
-                                        {step.description}
-                                    </p>
+                                    <div className="min-w-0">
+                                        <h3 className="text-sm font-semibold">
+                                            {step.title}
+                                        </h3>
+                                        <p className="text-sm leading-relaxed text-muted-foreground">
+                                            {step.description}
+                                        </p>
+                                    </div>
                                 </div>
                             ))}
                         </CardContent>
-                        <CardFooter className="border-t px-6 py-4">
+                        <CardFooter className="border-t px-4 py-2">
                             <Collapsible className="w-full">
                                 <CollapsibleTrigger asChild>
                                     <Button
@@ -501,7 +503,7 @@ export default function HomePage() {
                                     </Button>
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="pt-3">
-                                    <ul className="grid gap-2.5 md:grid-cols-3">
+                                    <ul className="grid gap-2.5">
                                         {tips.map((tip) => (
                                             <li
                                                 key={tip}

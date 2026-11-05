@@ -165,6 +165,17 @@ export async function updatePypcsActionItem(req, res) {
     });
 }
 
+export async function deletePypcsActionItem(req, res) {
+    const nbr = encodeURIComponent(String(req.params.nbr));
+    const queryString = new URLSearchParams(req.query).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    return proxyRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/action-items/${nbr}${suffix}`,
+        { method: 'DELETE', headers: requestHeaders(req) },
+    );
+}
+
 export async function getPypcsProductActionMatrix(req, res) {
     const queryString = new URLSearchParams(req.query).toString();
     const suffix = queryString ? `?${queryString}` : '';

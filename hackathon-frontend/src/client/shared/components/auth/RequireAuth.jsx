@@ -8,7 +8,7 @@ export default function RequireAuth() {
 
     if (isLoading) {
         return (
-            <main className="flex min-h-dvh items-center justify-center bg-[#1f2029] text-[#c4c3ca]" role="status">
+            <main className="flex min-h-dvh items-center justify-center bg-background text-foreground" role="status">
                 Checking session...
             </main>
         );

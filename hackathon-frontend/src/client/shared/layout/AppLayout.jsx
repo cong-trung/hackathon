@@ -32,7 +32,7 @@ function AppLayout() {
         <SidebarProvider defaultOpen={true}>
             <AppSidebar />
             <SidebarInset className="min-h-0 min-w-0 md:h-dvh md:max-h-dvh">
-                <header className="sticky top-0 z-20 border-b bg-background h-12 flex shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+                <header className="sticky top-0 z-20 border-b bg-card h-12 flex shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
                     <div className="flex items-center gap-2 px-4 flex-1">
                         <SidebarTrigger className="-ml-1" />
                         <Separator
@@ -63,7 +63,7 @@ function AppLayout() {
                         </Breadcrumb>
                     </div>
                 </header>
-                <div className={`min-h-0 w-full flex-1 overflow-auto ${viewportPage ? 'bg-background p-2 md:overflow-hidden md:p-3' : 'bg-muted-foreground/5 p-4'}`}>
+                <div className={`min-h-0 w-full flex-1 overflow-auto bg-background ${viewportPage ? 'p-2 md:overflow-hidden md:p-3' : 'p-4'}`}>
                     <Outlet />
                 </div>
             </SidebarInset>

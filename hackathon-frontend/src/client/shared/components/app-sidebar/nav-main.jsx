@@ -27,7 +27,7 @@ const NavMain = memo(() => {
   const { theme } = useTheme();
   const { isAdmin } = useAuth();
 
-  const activeBg = '!bg-sidebar-primary !text-sidebar-primary-foreground hover:!bg-sidebar-primary hover:!text-sidebar-primary-foreground focus-visible:!ring-inset focus-visible:!ring-white';
+  const activeBg = '!border-l-2 !border-l-sidebar-primary !bg-sidebar-accent !text-sidebar-accent-foreground hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground focus-visible:!ring-inset focus-visible:!ring-sidebar-ring';
   const nonActiveHover = 'hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground';
 
   return (

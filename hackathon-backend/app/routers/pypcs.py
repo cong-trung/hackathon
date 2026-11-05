@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
-from app.auth import require_writer, validate_email
+from app.auth import require_admin, require_writer, validate_email
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
 from app.io.generic_csv import (
@@ -348,6 +348,40 @@ def update_pypcs_action_item(
         write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
     invalidate_product_action_matrix_cache()
     return normalize_action_item(updated)
+
+
+@router.delete("/pypcs/action-items/{nbr}")
+def delete_pypcs_action_item(
+    nbr: int,
+    expected_version: str | None = None,
+    _admin: dict = Depends(require_admin),
+):
+    with locked_files(PYPCS_ACTION_ITEMS_FILE):
+        rows = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
+        target_index = next(
+            (
+                index
+                for index, row in enumerate(rows)
+                if safe_int(row.get("nbr", ""), -1) == nbr
+            ),
+            -1,
+        )
+        if target_index < 0:
+            raise HTTPException(status_code=404, detail="PYPCS action item not found.")
+        current = normalize_action_item(rows[target_index])
+        if expected_version is not None and expected_version != current["version"]:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "conflict",
+                    "message": "This action item was changed by someone else. Reload to see the latest version.",
+                    "current": current,
+                },
+            )
+        del rows[target_index]
+        write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+    invalidate_product_action_matrix_cache()
+    return {"deleted": True, "nbr": nbr}
 
 
 def normalize_status(value: str) -> str:

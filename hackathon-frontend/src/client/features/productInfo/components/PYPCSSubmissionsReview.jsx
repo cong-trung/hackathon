@@ -290,7 +290,7 @@ export default function PYPCSSubmissionsReview({
                     <tbody>
                         {matrixRows.map((row) => (
                             <tr key={row.question_id} className="even:bg-table-stripe hover:bg-table-hover">
-                                <td className="border-b border-r border-table-border bg-primary p-3 font-medium text-primary-foreground">
+                                <td className="border-b border-r border-table-border bg-table-frozen p-3 font-medium text-foreground">
                                     {row.display_label}
                                 </td>
 
@@ -562,8 +562,8 @@ export default function PYPCSSubmissionsReview({
                                         <span
                                             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                                                 isDraft
-                                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
-                                                    : 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200'
+                                                    ? 'bg-status-warning text-status-warning-foreground'
+                                                    : 'bg-status-success text-status-success-foreground'
                                             }`}
                                         >
                                             {isDraft ? 'Draft' : 'Final'}
@@ -597,7 +597,7 @@ export default function PYPCSSubmissionsReview({
                                             {isDraft && isAuthenticated && !isGuest ? (
                                                 <button
                                                     type="button"
-                                                    className="rounded-md border border-amber-700 px-3 py-1 text-amber-800 dark:text-amber-300"
+                                                    className="rounded-md border border-status-warning-foreground px-3 py-1 text-status-warning-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
                                                     onClick={() =>
                                                         onContinueEditing(
                                                             item.submission_id,

@@ -14,5 +14,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+# beta_test: keep the deployment env tracked so servers get the NYRA key
+!/.env.production
 
 intel-ca.crt

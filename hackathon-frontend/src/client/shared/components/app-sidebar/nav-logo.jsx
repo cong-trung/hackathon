@@ -11,8 +11,7 @@ import { useTheme } from '@/shared/components/theme-provider/theme-provider';
 
 function NavLogo() {
     const { theme } = useTheme();
-    // Default to light if theme is system or undefined
-    const isDark = theme === 'dark';
+    const isDark = theme !== 'intel-light';
     const logoSrc = isDark ? '/intel_light.png' : '/intel_dark.png';
     return (
         <SidebarMenu>
