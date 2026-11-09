@@ -168,8 +168,6 @@ def _submissions_section() -> str:
 
 
 def _xrb_path() -> Path:
-    # override = os.getenv("QUALITY_MATRIX_XRB_PATH", "").strip()
-    # return Path(override) if override else DATA_DIR / "XRB.csv"
     return DATA_DIR / "XRB.csv"
 
 

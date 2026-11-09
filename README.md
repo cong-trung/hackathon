@@ -167,7 +167,7 @@ Warning: back up the share before the first deploy. Run only one backend against
 | `COOKIE_SECURE`                                            | Frontend environment / root `.env.production` | Sets the `Secure` flag on the `qm_token` cookie: `true` or `false`. Unset defaults to `true` when `NODE_ENV=production`. Compose defaults to `false`; set `true` once served over HTTPS. |
 | `VITE_ENCRYPTION_KEY`                                      | Frontend `.env.development`              | Loaded into server config; keep any value private.                                                                                                                                                      |
 | `VITE_API_BASE_URL`                                        | Frontend `.env.development`              | Present in the env file; no consumer was found in current source.                                                                                                                                       |
-| `QUALITY_MATRIX_DATA_DIR`                                  | Backend `.env.production` or shell       | `.env.production` sets the team network share location. Defaults to `data`; for local data, set `$env:QUALITY_MATRIX_DATA_DIR = "data"` in the backend PowerShell window before starting Uvicorn. |
+| `QUALITY_MATRIX_DATA_DIR`                                  | Backend `.env.production` or shell       | Docker production mounts the team share at `/app/data` via docker-compose (`QUALITY_MATRIX_DATA_DIR=/app/data`); do not set a UNC path in `.env.production`. Defaults to `data`; for local data, set `$env:QUALITY_MATRIX_DATA_DIR = "data"` in the backend PowerShell window before starting Uvicorn. |
 | `ALLOWED_ORIGINS`                                          | Backend environment                        | Comma-separated browser origins; defaults include ports 5173 and 3000.                                                                                                                                  |
 | `QUALITY_MATRIX_LOG_LEVEL`                                 | Backend environment                        | Log level for the `app` logger (stderr); default `INFO`, invalid values fall back to `INFO`. Logged PdO emails appear at `INFO`.                                                                       |
 | `NYRA_API_KEY`                                             | Backend `.env.production`                | Required by the chat endpoint; secret.                                                                                                                                                                  |
@@ -213,7 +213,7 @@ The stale Browserslist data warning at frontend startup is harmless.
 | Quality Matrix (PYPCS; matrix mode, form mode removed) | `/pypcs`                         | `/pypcs/modules`, `/pypcs/questions`, `/pypcs/submissions`, `/pypcs/matrix-submission`, and related `/pypcs/*` endpoints | `QualityMatrix/PYPCS_Submissions.csv`, `QualityMatrix/PYPCS_SubmissionCells.csv`, `QualityMatrix/Settings/PYPCS_Modules.csv`, `QualityMatrix/Settings/PYPCS_Questions.csv`, `QualityMatrix/Settings/PYPCS_QuestionModuleMap.csv`, `QualityMatrix/Settings/Operation_Process_Step.csv` |
 | View 2                                                 | `/view-2`                        | `/pypcs/action-items` and `/pypcs/action-items/options`                                                                        | `View2/PYPCS_ActionItems.csv`                                                                                                                                                                                                                                                                   |
 | View 3                                                 | `/view-3`                        | `/pypcs/product-action-matrix`, `/pypcs/product-action-matrix/rows`, `/pypcs/product-action-matrix/export`                   | `View3/PYPCS_ProductActionDecisions.csv` plus Quality Matrix submissions/cells, Quality Matrix module settings, and `View2/PYPCS_ActionItems.csv`                                                                                                                                             |
-| Chat                                                   | `/chat`                          | `/chat` (health: `/chat/health`)                                                                                               | Requires an active `NYRA_API_KEY` and `nyra-services` (installed from an Intel git URL, not in `requirements.txt`). Answers are grounded in a live data snapshot; XRB comes from `QUALITY_MATRIX_XRB_PATH` (default `<DATA_DIR>/XRB.csv`). UI built with Ant Design X.                     |
+| Chat                                                   | `/chat`                          | `/chat` (health: `/chat/health`)                                                                                               | Requires an active `NYRA_API_KEY` and `nyra-services` (installed from an Intel git URL, not in `requirements.txt`). Answers are grounded in a live data snapshot; XRB comes from `<DATA_DIR>/XRB.csv`. UI built with Ant Design X.                     |
 
 The GL-MQR proxy path and FastAPI route do not currently match; see the API
 routers before relying on that page. View 2 supports adding and editing action
@@ -228,10 +228,9 @@ appropriate trusted environment.
 
 ### Network share data
 
-When `QUALITY_MATRIX_DATA_DIR` is not overridden, the backend reads the share
-configured in `hackathon-backend/.env.production`:
-`\\VNATSHFS.intel.com\VNATAnalysis$\MAOATM\VN\Applications\TE\Quality`.
-Data is grouped by owning tab: `QualityMatrix/PYPCS_Submissions.csv`,
+In Docker production, docker-compose mounts the team share at `/app/data` and
+sets `QUALITY_MATRIX_DATA_DIR=/app/data`; the container cannot reach the UNC
+path, so do not set one in `.env.production`. Data is grouped by owning tab: `QualityMatrix/PYPCS_Submissions.csv`,
 `QualityMatrix/PYPCS_SubmissionCells.csv`, and `QualityMatrix/Settings/` for
 modules, questions, question/module mappings, and operation steps;
 `View2/PYPCS_ActionItems.csv`; `View3/PYPCS_ProductActionDecisions.csv`;
