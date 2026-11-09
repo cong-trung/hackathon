@@ -56,8 +56,8 @@ const workspaceMeta = {
         keywords: 'matrix decisions review final export grid',
     },
     chat_page: {
-        description: 'Ask the AI assistant about anything in the data.',
-        keywords: 'chat assistant ai questions ask help',
+        description: 'Ask MOPSOD about anything in the data.',
+        keywords: 'chat assistant ai mopsod questions ask help',
     },
 };
 
@@ -272,7 +272,7 @@ export default function HomePage() {
                             >
                                 <Link to={chatWorkspace.path}>
                                     <MessageCircleQuestionMark />
-                                    Ask the assistant
+                                    Ask MOPSOD
                                 </Link>
                             </Button>
                         )}

@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import { Avatar, ConfigProvider, theme as antdTheme } from 'antd';
 import { Bubble, Prompts, Sender } from '@ant-design/x';
 import {
-    BotIcon,
     CircleAlert,
     CircleCheck,
     DownloadIcon,
@@ -55,7 +54,7 @@ const QUICK_PROMPTS = [
 ];
 
 const GREETING =
-    'Hi there, I am your Quality Matrix AI assistant. Ask me about modules, solutions, action items, submissions, or XRB cases - I answer from the current project data.';
+    'Hi there, I am MOPSOD, your Quality Matrix assistant. Ask me about modules, solutions, action items, submissions, or XRB cases - I answer from the current project data.';
 
 const roleConfig = {
     ai: {
@@ -63,9 +62,10 @@ const roleConfig = {
         variant: 'filled',
         avatar: (
             <Avatar
-                size={32}
+                size={40}
+                src="/SOP.jpg"
+                alt="MOPSOD"
                 style={{ backgroundColor: '#ffeba7', color: '#102770' }}
-                icon={<BotIcon size={16} />}
             />
         ),
         styles: {
@@ -81,13 +81,13 @@ const roleConfig = {
         variant: 'filled',
         avatar: (
             <Avatar
-                size={32}
+                size={40}
                 style={{
                     backgroundColor: '#102770',
                     color: '#ffeba7',
                     border: '1px solid rgba(255, 235, 167, 0.4)',
                 }}
-                icon={<UserIcon size={16} />}
+                icon={<UserIcon size={20} />}
             />
         ),
         styles: {
@@ -204,17 +204,25 @@ export default function ChatAIPage() {
                 >
                     <div
                         style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 12,
+                            width: 72,
+                            height: 72,
                             display: 'grid',
                             placeItems: 'center',
-                            background: '#ffeba7',
-                            color: '#102770',
+                            overflow: 'hidden',
                             flexShrink: 0,
                         }}
                     >
-                        <BotIcon size={20} />
+                        <img
+                            src="/SOP-bot.gif"
+                            alt=""
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                transform: 'scale(1.5)',
+                                transformOrigin: '41% 66%',
+                            }}
+                        />
                     </div>
                     <div>
                         <h2
@@ -225,7 +233,7 @@ export default function ChatAIPage() {
                                 color: '#f4f3f5',
                             }}
                         >
-                            AI Chat
+                            Ask MOPSOD
                         </h2>
                         <p
                             style={{
