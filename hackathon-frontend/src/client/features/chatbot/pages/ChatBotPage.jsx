@@ -54,7 +54,7 @@ const QUICK_PROMPTS = [
 ];
 
 const GREETING =
-    'Hi there, I am MOPSOD, your Quality Matrix assistant. Ask me about modules, solutions, action items, submissions, or XRB cases - I answer from the current project data.';
+    'Hi there, I am SOPMOD, your Quality Matrix assistant. Ask me about modules, solutions, action items, submissions, or XRB cases - I answer from the current project data.';
 
 const roleConfig = {
     ai: {
@@ -64,7 +64,7 @@ const roleConfig = {
             <Avatar
                 size={40}
                 src="/SOP.jpg"
-                alt="MOPSOD"
+                alt="SOPMOD"
                 style={{ backgroundColor: '#ffeba7', color: '#102770' }}
             />
         ),
@@ -233,7 +233,7 @@ export default function ChatAIPage() {
                                 color: '#f4f3f5',
                             }}
                         >
-                            Ask MOPSOD
+                            Ask SOPMOD
                         </h2>
                         <p
                             style={{
