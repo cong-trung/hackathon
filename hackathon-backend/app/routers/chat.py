@@ -1,5 +1,7 @@
 """AI chat endpoints backed by the NYRA gateway."""
 
+import importlib.util
+import logging
 import os
 
 from fastapi import APIRouter, HTTPException
@@ -13,6 +15,7 @@ from app.services.chat_service import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/chat/health")
@@ -20,13 +23,18 @@ def chat_health():
     return {
         "status": "ok",
         "nyra_api_key_configured": bool(os.getenv("NYRA_API_KEY")),
+        "nyra_services_installed": importlib.util.find_spec("nyra_services") is not None,
         "model": NYRA_CHAT_MODEL,
     }
 
 
 @router.post("/chat", response_model=AIChatResponse)
 def chat_with_ai(req: AIChatRequest):
-    client = get_nyra_client()
+    try:
+        client = get_nyra_client()
+    except HTTPException as exc:
+        logger.error("Chat unavailable: %s", exc.detail)
+        raise
 
     system_content = CHAT_SYSTEM_PROMPT
     snapshot = get_data_snapshot()
@@ -53,6 +61,7 @@ def chat_with_ai(req: AIChatRequest):
             messages=messages,
         )
     except Exception as exc:  # noqa: BLE001
+        logger.exception("NYRA chat request failed")
         raise HTTPException(
             status_code=500,
             detail=f"NYRA chat request failed: {exc}",

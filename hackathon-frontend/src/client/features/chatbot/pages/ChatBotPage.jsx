@@ -153,7 +153,7 @@ export default function ChatAIPage() {
                 {
                     key: nextKey(),
                     role: 'assistant',
-                    content: `Error: ${error?.data?.detail || error?.data || error?.message || 'Chat API failed'}`,
+                    content: `Error: ${error?.data?.detail || error?.data?.message || error?.data || error?.message || 'Chat API failed'}`,
                 },
             ]);
         }
