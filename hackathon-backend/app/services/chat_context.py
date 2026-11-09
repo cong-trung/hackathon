@@ -11,13 +11,12 @@ from __future__ import annotations
 import csv
 import html
 import logging
-import os
 import re
 import threading
 import time
 from collections import Counter
+from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Iterable, Iterator
 
 from app.config import DATA_DIR
 
@@ -75,11 +74,16 @@ def _solutions_section() -> str:
     flagged = sum(
         1
         for row in rows
-        if (row.get("Excursion Releated") or "").strip().lower() in {"y", "yes", "true", "1"}
+        if (row.get("Excursion Releated") or "").strip().lower()
+        in {"y", "yes", "true", "1"}
     )
     summary = f"GL-MQR solution catalogue: {len(rows)} solutions"
     if by_module:
-        summary += " (" + ", ".join(f"{name}={count}" for name, count in by_module.most_common(8)) + ")"
+        summary += (
+            " ("
+            + ", ".join(f"{name}={count}" for name, count in by_module.most_common(8))
+            + ")"
+        )
     summary += f"; flagged 'Excursion Related': {flagged}."
     for module, _ in by_module.most_common(3):
         samples = [
@@ -164,8 +168,9 @@ def _submissions_section() -> str:
 
 
 def _xrb_path() -> Path:
-    override = os.getenv("QUALITY_MATRIX_XRB_PATH", "").strip()
-    return Path(override) if override else DATA_DIR / "XRB.csv"
+    # override = os.getenv("QUALITY_MATRIX_XRB_PATH", "").strip()
+    # return Path(override) if override else DATA_DIR / "XRB.csv"
+    return DATA_DIR / "XRB.csv"
 
 
 def _build_xrb_summary() -> str:
@@ -198,7 +203,9 @@ def _build_xrb_summary() -> str:
 
     def top(counter: Counter[str], limit: int = 8) -> str:
         counter = Counter({name: count for name, count in counter.items() if name})
-        return ", ".join(f"{name}={count}" for name, count in counter.most_common(limit))
+        return ", ".join(
+            f"{name}={count}" for name, count in counter.most_common(limit)
+        )
 
     for label, counter in (("Status", status), ("Type", kind), ("Top-module", module)):
         values = top(counter)
