@@ -7,6 +7,8 @@
 #
 # Optional runtime overrides (secrets, NYRA, proxies) live in .env.production:
 #   cp .env.example .env.production   # then edit values
+# Build-time: put NYRA_GIT_TOKEN=<mfg-github token with read access to nyra-services> in .env.production;
+# then plain `docker compose up -d --build` installs nyra-services.
 #
 # If you are outside the Intel network, skip the internal-only nyra-services
 # package at build time by setting NYRA_PACKAGE_URL to an empty value:
@@ -57,6 +59,8 @@ services:
     build:
       context: ./hackathon-backend
       dockerfile: Dockerfile
+      secrets:
+        - nyra_env
       args:
         NYRA_PACKAGE_URL: ${NYRA_PACKAGE_URL-git+https://mfg-github.mfg.intel.com/intel-manufacturing/applications.manufacturing.intel.common.imi.api.nyra.nyra-services.git@main}
         HTTP_PROXY: ${HTTP_PROXY:-}
@@ -100,3 +104,8 @@ services:
   #   depends_on:
   #     - redis
   #     - hackathon-backend
+
+# Backend build reads NYRA_GIT_TOKEN from this file.
+secrets:
+  nyra_env:
+    file: ./.env.production
