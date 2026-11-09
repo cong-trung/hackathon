@@ -205,9 +205,24 @@ export default function PYPCSSubmissionsReview({
                 setStatusMessage('Submission deleted.');
             }
         } catch (error) {
+            if (error.status === 404) {
+                setPendingDeleteId(null);
+                if (selectedDetail?.submission?.submission_id === submissionId) {
+                    setSelectedDetail(null);
+                }
+                if (await loadSubmissions()) {
+                    setStatusKind('success');
+                    setStatusMessage('Submission was already deleted; list refreshed.');
+                }
+                return;
+            }
+            if (error.status !== 401 && error.status !== 403) {
+                setPendingDeleteId(null);
+                await loadSubmissions();
+            }
             setStatusKind('error');
             setStatusMessage(error.status === 401 || error.status === 403
-                ? authErrorMessage(error) : `Failed to delete submission: ${error.message}`);
+                ? authErrorMessage(error) : `Failed to delete submission: ${typeof error.detail === 'string' ? error.detail : error.message}`);
         } finally {
             setLoading(false);
         }
