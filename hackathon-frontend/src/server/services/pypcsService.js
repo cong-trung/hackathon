@@ -110,6 +110,14 @@ export async function getPypcsSubmissions(req, res) {
     });
 }
 
+export async function getPypcsSubmissionsMeta(req, res) {
+    const queryString = new URLSearchParams(req.query).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/submissions/meta${suffix}`, {
+        headers: requestHeaders(req),
+    });
+}
+
 export async function getPypcsSubmissionDetail(req, res) {
     const submissionId = encodeURIComponent(String(req.params.submissionId));
     return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}`, {
@@ -145,7 +153,23 @@ export async function submitPypcsMatrixSubmission(req, res) {
 }
 
 export async function getPypcsActionItems(req, res) {
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items`);
+    const queryString = new URLSearchParams(req.query).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items${suffix}`, {
+        headers: requestHeaders(req),
+    });
+}
+
+export async function getPypcsActionItemsMeta(req, res) {
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items/meta`, {
+        headers: requestHeaders(req),
+    });
+}
+
+export async function getPypcsOptionReviewMeta(req, res) {
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/option-review/meta`, {
+        headers: requestHeaders(req),
+    });
 }
 
 export async function getPypcsOptionReview(req, res) {
@@ -202,6 +226,26 @@ export async function getPypcsProductActionMatrix(req, res) {
     return proxyRawRequest(
         res,
         `${BACKEND_BASE_URL}/pypcs/product-action-matrix${suffix}`,
+        { headers: requestHeaders(req) },
+    );
+}
+
+export async function getPypcsProductActionMatrixMeta(req, res) {
+    const queryString = new URLSearchParams(req.query).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    return proxyRawRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/product-action-matrix/meta${suffix}`,
+        { headers: requestHeaders(req) },
+    );
+}
+
+export async function getPypcsProductActionMatrixRow(req, res) {
+    const queryString = new URLSearchParams(req.query).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    return proxyRawRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/product-action-matrix/row${suffix}`,
         { headers: requestHeaders(req) },
     );
 }

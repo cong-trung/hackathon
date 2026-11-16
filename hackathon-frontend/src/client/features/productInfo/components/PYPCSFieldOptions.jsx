@@ -1,14 +1,18 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
-    useDecideOptionMutation, useGetOptionReviewsQuery,
-    useGetPypcsQuestionsQuery, useGetReviewSubmissionsQuery,
+    useDecideOptionMutation, useGetOptionReviewsMetaQuery, useGetOptionReviewsPageQuery,
+    useGetPypcsQuestionsQuery,
 } from '@/app/api/pypcsOptionReviewApi';
 import DataTable from '@/shared/components/data-table/data-table';
+import ServerPagination from '@/shared/components/data-table/ServerPagination';
+import LazyTabs from '@/shared/components/lazy-tabs/LazyTabs';
+import useServerTable from '@/shared/hooks/useServerTable';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -17,7 +21,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { fieldOptionsColumns } from './fieldOptionsColumns';
 
-const statuses = ['pending', 'approved', 'mapped', 'rejected', 'all'];
 const decisionSchema = z.object({
     mapped_to: z.string(),
     operation_description: z.string().max(200, 'Description must be at most 200 characters.'),
@@ -36,22 +39,26 @@ function reviewError(error) {
 
 export default function PYPCSFieldOptions({ modeSwitch }) {
     const { isAdmin, isTI } = useAuth();
-    const [status, setStatus] = useState('pending');
-    const [search, setSearch] = useState('');
+    const [searchParams] = useSearchParams();
+    const metaQuery = useGetOptionReviewsMetaQuery(undefined, { skip: !isAdmin && !isTI });
+    const tabs = (metaQuery.data?.tabs ?? []).map((tab) => ({ ...tab, label: tab.key[0].toUpperCase() + tab.key.slice(1) }));
+    const requestedStatus = searchParams.get('status');
+    const status = tabs.some((tab) => tab.key === requestedStatus) ? requestedStatus : 'pending';
+    const tableState = useServerTable({ tabKey: status });
     const [decision, setDecision] = useState(null);
     const [decisionError, setDecisionError] = useState('');
-    const { data, isLoading, isFetching, error, refetch } = useGetOptionReviewsQuery(status, { skip: !isAdmin && !isTI });
+    const { currentData: data, isLoading, isFetching, error, refetch } = useGetOptionReviewsPageQuery(
+        { status, q: tableState.args.q, limit: tableState.limit, offset: tableState.offset },
+        { skip: !metaQuery.data || (!isAdmin && !isTI) },
+    );
+    const loadingPage = isLoading || (isFetching && !data);
     const { data: questions, isFetching: questionsLoading, error: questionsError } = useGetPypcsQuestionsQuery(undefined, { skip: decision?.action !== 'map' });
-    const { data: submissions, error: submissionsError } = useGetReviewSubmissionsQuery(undefined, { skip: !isAdmin && !isTI });
     const [decide, { isLoading: saving }] = useDecideOptionMutation();
     const form = useForm({ resolver: zodResolver(decisionSchema), defaultValues: { mapped_to: '', operation_description: '', note: '' } });
     const question = questions?.items?.find((item) => item.question_id === decision?.item.question_id);
     const options = (decision?.item.question_id === 'operation'
         ? question?.options_by_module?.[decision.item.module_key] : question?.options) || [];
     const targets = options.filter((option) => option && option.toLowerCase() !== 'other');
-    const submissionsById = Object.fromEntries((submissions?.items || []).map((item) => [item.submission_id, item]));
-    const visible = (data?.items || []).filter((item) => [item.question_label, item.module_key, item.value, item.status]
-        .some((value) => String(value || '').toLowerCase().includes(search.trim().toLowerCase())));
 
     function openDecision(item, action) {
         if (action === 'map' && item.final_submission_count > 0 && !isAdmin) return;
@@ -93,13 +100,12 @@ export default function PYPCSFieldOptions({ modeSwitch }) {
             }).unwrap();
             toast.success(`Field option ${{ map: 'mapped', approve: 'approved', reject: 'rejected' }[decision.action]}.`);
             setDecision(null);
-            refetch();
         } catch (requestError) {
             setDecisionError(reviewError(requestError));
         }
     }
 
-    const columns = fieldOptionsColumns({ submissionsById, onAction: openDecision, isAdmin });
+    const columns = fieldOptionsColumns({ onAction: openDecision, isAdmin });
     const mapLoading = decision?.action === 'map' && questionsLoading;
     return (
         <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4" aria-label="Field options review">
@@ -107,27 +113,25 @@ export default function PYPCSFieldOptions({ modeSwitch }) {
                 {modeSwitch}
                 <h2 className="text-lg font-semibold">Field options</h2>
             </div>
+            {metaQuery.error && <div role="alert" className="text-sm text-destructive">{reviewError(metaQuery.error)} <Button variant="outline" size="sm" onClick={metaQuery.refetch}>Retry</Button></div>}
+            <LazyTabs tabs={tabs} activeKey={status} urlParam="status" loading={!metaQuery.data}
+                onChange={() => tableState.resetOffset()} renderPanel={() => (<>
             <div className="flex flex-wrap gap-3">
-                <div className="w-44">
-                    <label className="mb-1 block text-sm font-medium" htmlFor="option-review-status">Status</label>
-                    <Select value={status} onValueChange={setStatus}>
-                        <SelectTrigger id="option-review-status"><SelectValue /></SelectTrigger>
-                        <SelectContent>{statuses.map((value) => <SelectItem key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</SelectItem>)}</SelectContent>
-                    </Select>
-                </div>
                 <div className="min-w-44 flex-1 sm:max-w-xs">
                     <label className="mb-1 block text-sm font-medium" htmlFor="option-review-search">Search field options</label>
-                    <Input id="option-review-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search field, module, value" />
+                    <Input id="option-review-search" type="search" value={tableState.search} onChange={(event) => tableState.setSearch(event.target.value)} placeholder="Search field, module, value" />
                 </div>
             </div>
             {error ? <div role="alert" className="text-sm text-destructive">{reviewError(error)} <Button variant="outline" size="sm" onClick={refetch}>Retry</Button></div> : null}
-            {submissionsError ? <p role="alert" className="text-sm text-destructive">Product names could not be loaded; submission IDs are shown instead.</p> : null}
-            {isLoading ? <p role="status">Loading field options…</p> : !error ? (
+            {loadingPage ? <p role="status">Loading field options…</p> : !error ? (
                 <div className="min-h-0" aria-busy={isFetching}>
-                    {!visible.length ? <p className="mb-2 text-sm text-muted-foreground">No field options match this filter.</p> : null}
-                    <DataTable columns={columns} data={visible} paginationPageSize={25} paginationArray={[25, 50, 100]} />
+                    {!data?.items?.length ? <p className="mb-2 text-sm text-muted-foreground">No field options match this filter.</p> : null}
+                    <DataTable columns={columns} data={data?.items || []} manualPagination TablePagination={null} />
                 </div>
             ) : null}
+            {!loadingPage && !error && <ServerPagination label="Field options" total={data?.total ?? 0}
+                limit={tableState.limit} offset={tableState.offset} onOffsetChange={tableState.setOffset} onLimitChange={tableState.changeLimit} />}
+            </>)} />
             <Dialog open={Boolean(decision)} onOpenChange={(open) => { if (!open && !saving) setDecision(null); }}>
                 <DialogContent>
                     <DialogHeader>

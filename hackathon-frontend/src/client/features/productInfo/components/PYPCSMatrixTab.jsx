@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useBlocker, useLocation } from 'react-router-dom';
 
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useGetOptionReviewsQuery } from '@/app/api/pypcsOptionReviewApi';
+import { useGetOptionReviewsMetaQuery } from '@/app/api/pypcsOptionReviewApi';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -43,7 +43,8 @@ async function requestJson(path, options = {}) {
 export default function PYPCSMatrixTab() {
     const { permissions, isAdmin, isTI } = useAuth();
     const canReviewOptions = isAdmin || isTI;
-    const { data: pendingOptions } = useGetOptionReviewsQuery('pending', { skip: !canReviewOptions });
+    const { data: optionsMeta } = useGetOptionReviewsMetaQuery(undefined, { skip: !canReviewOptions });
+    const pendingCount = optionsMeta?.tabs?.find((tab) => tab.key === 'pending')?.count ?? 0;
     const location = useLocation();
     const submissionLink = new URLSearchParams(location.search).get('submission');
     const [activeMode, setActiveMode] = useState('matrix');
@@ -139,7 +140,7 @@ export default function PYPCSMatrixTab() {
                     <button type="button" aria-pressed={activeMode === 'options'}
                         className={`rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring ${activeMode === 'options' ? 'border-primary/50 bg-accent text-foreground' : 'bg-card'}`}
                         onClick={() => changeMode('options')}>
-                        Field options <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs text-foreground" aria-label={`${pendingOptions?.counts?.pending ?? 0} pending field options`}>{pendingOptions?.counts?.pending ?? 0}</span>
+                        Field options <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs text-foreground" aria-label={`${pendingCount} pending field options`}>{pendingCount}</span>
                     </button>
                 )}
         </div>

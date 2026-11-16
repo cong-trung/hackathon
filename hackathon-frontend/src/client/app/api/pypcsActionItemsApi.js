@@ -2,8 +2,14 @@ import { apiSlice } from './apiSlice';
 
 export const pypcsActionItemsApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        getActionItems: builder.query({
-            query: () => '/pypcs/action-items',
+        getActionItemsMeta: builder.query({
+            query: () => '/pypcs/action-items/meta',
+            keepUnusedDataFor: 60,
+            providesTags: ['PYPCSActionItem'],
+        }),
+        getActionItemsPage: builder.query({
+            query: (params) => ({ url: '/pypcs/action-items', params: { view: 'page', ...params } }),
+            keepUnusedDataFor: 30,
             providesTags: ['PYPCSActionItem'],
         }),
         getActionItemOptions: builder.query({
@@ -37,7 +43,8 @@ export const pypcsActionItemsApi = apiSlice.injectEndpoints({
 });
 
 export const {
-    useGetActionItemsQuery,
+    useGetActionItemsMetaQuery,
+    useGetActionItemsPageQuery,
     useGetActionItemOptionsQuery,
     useCreateActionItemMutation,
     useUpdateActionItemMutation,

@@ -6,6 +6,7 @@ import logging
 import re
 import uuid
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
@@ -60,6 +61,7 @@ from app.services.pypcs_service import (
     canonical_multiselect_answer,
     canonical_module_group,
     canonical_module_key,
+    module_group_options,
     normalize_pypcs_map,
     normalize_pypcs_module,
     normalize_pypcs_question,
@@ -265,12 +267,91 @@ def normalize_action_item(row: dict[str, str]) -> dict:
     return item
 
 
-@router.get("/pypcs/action-items")
-def get_pypcs_action_items():
+@router.get("/pypcs/action-items/meta")
+def get_pypcs_action_items_meta():
+    items = _normalized_action_items()
+    tabs = [
+        {
+            "key": group,
+            "label": group,
+            "count": sum(
+                1 for item in items if any(value.casefold() == group.casefold() for value in item["module"])
+            ),
+        }
+        for group in module_group_options()
+    ]
+    return {"tabs": tabs, "total": len(items)}
+
+
+def _normalized_action_items() -> list[dict]:
     rows = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
     rows.sort(key=lambda row: safe_int(row.get("nbr", "")))
-    items = [normalize_action_item(row) for row in rows]
-    return {"count": len(items), "items": items}
+    return [normalize_action_item(row) for row in rows]
+
+
+def _action_item_matches(item: dict, term: str) -> bool:
+    for key, value in item.items():
+        if key == "version":
+            continue
+        text = " ".join(value) if isinstance(value, list) else str(value if value is not None else "")
+        if term in text.casefold():
+            return True
+    return False
+
+
+def _action_item_sort_key(sort: str):
+    if sort == "nbr":
+        return lambda item: item["nbr"]
+    if sort == "updated_at":
+        return lambda item: item["updated_at"]
+    return lambda item: [
+        (0, int(part), "") if part.isdigit() else (1, 0, part)
+        for part in re.split(r"(\d+)", str(item[sort]).casefold())
+        if part
+    ]
+
+
+@router.get("/pypcs/action-items")
+def get_pypcs_action_items(
+    view: Literal["page"] | None = Query(default=None),
+    module: str | None = Query(default=None, max_length=100),
+    q: str | None = Query(default=None, max_length=200),
+    sort: Literal["nbr", "event_id", "actionable_item", "owner", "updated_at"] | None = Query(
+        default=None
+    ),
+    dir: Literal["asc", "desc"] = Query(default="asc"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+):
+    items = _normalized_action_items()
+    if view != "page":
+        return {"count": len(items), "items": items}
+
+    group = ""
+    if module and module.strip():
+        group = canonical_module_group(module)
+        if group.casefold() not in {value.casefold() for value in module_group_options()}:
+            raise HTTPException(
+                status_code=422,
+                detail={"field": "module", "message": "Unknown module group."},
+            )
+        items = [
+            item for item in items if any(value.casefold() == group.casefold() for value in item["module"])
+        ]
+    term = (q or "").strip().casefold()
+    if term:
+        items = [item for item in items if _action_item_matches(item, term)]
+    if sort:
+        items = sorted(items, key=_action_item_sort_key(sort), reverse=dir == "desc")
+    elif dir == "desc":
+        items = items[::-1]
+    return {
+        "module": group,
+        "items": items[offset : offset + limit],
+        "total": len(items),
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @router.get("/pypcs/action-items/options")
@@ -937,11 +1018,18 @@ def list_pypcs_submissions(
     module: str | None = None,
     prodgroup3: str | None = None,
     submitted_by: str | None = None,
+    status: Literal["draft", "waiting_me", "final"] | None = None,
+    q: str | None = Query(default=None, max_length=200),
+    assigned_to_me: bool | None = None,
+    sort: Literal["created_at", "updated_at", "product_name", "prodgroup3", "status"] | None = None,
+    dir: Literal["asc", "desc"] | None = None,
     limit: int = Query(200, ge=1, le=5000),
     offset: int = Query(0, ge=0),
     user: dict | None = Depends(get_optional_user),
 ):
     rows = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
+    owner_index = build_owner_index()
+    email = user_email(user)
 
     if role:
         role_upper = value_to_str(role).upper()
@@ -987,6 +1075,44 @@ def list_pypcs_submissions(
         reverse=True,
     )
 
+    if status:
+        rows = [row for row in rows if normalize_status(row.get("status", "")) == status]
+
+    if assigned_to_me:
+        rows = [
+            row for row in rows
+            if owned_modules(owner_index, value_to_str(row.get("submission_id", "")), email)
+        ]
+
+    term = (q or "").strip().casefold()
+    if term:
+        rows = [
+            row for row in rows
+            if any(
+                term in value.casefold()
+                for value in (
+                    value_to_str(row.get("product_name", "")),
+                    value_to_str(row.get("prodgroup3", "")),
+                    value_to_str(row.get("submitted_by", "")),
+                    value_to_str(row.get("operation", "")),
+                    *(
+                        canonical_module_key(item)
+                        for item in split_pipe_value(row.get("selected_modules", ""))
+                    ),
+                )
+            )
+        ]
+
+    if sort:
+        direction = dir or ("desc" if sort in {"created_at", "updated_at"} else "asc")
+        if sort == "status":
+            sort_key = lambda row: normalize_status(row.get("status", ""))
+        else:
+            sort_key = lambda row: value_to_str(row.get(sort, "")).casefold()
+        rows = sorted(rows, key=sort_key, reverse=direction == "desc")
+    elif dir == "asc":
+        rows = rows[::-1]
+
     items = []
 
     for row in rows[offset : offset + limit]:
@@ -1011,8 +1137,6 @@ def list_pypcs_submissions(
             }
         )
 
-    owner_index = build_owner_index()
-    email = user_email(user)
     for item in items:
         permissions = submission_permissions(
             user,
@@ -1035,6 +1159,30 @@ def list_pypcs_submissions(
         "offset": offset,
         "items": items,
     }
+
+
+@router.get("/pypcs/submissions/meta")
+def get_pypcs_submissions_meta(user: dict | None = Depends(get_optional_user)):
+    rows = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
+    counts = {"draft": 0, "waiting_me": 0, "final": 0}
+    for row in rows:
+        counts[normalize_status(row.get("status", ""))] += 1
+    result = {
+        "tabs": [
+            {"key": "all", "count": len(rows)},
+            *({"key": key, "count": counts[key]} for key in ("draft", "waiting_me", "final")),
+        ],
+        "total": len(rows),
+    }
+    email = user_email(user)
+    if email:
+        owner_index = build_owner_index()
+        result["assigned_to_me_count"] = sum(
+            1
+            for row in rows
+            if owned_modules(owner_index, value_to_str(row.get("submission_id", "")), email)
+        )
+    return result
 
 
 @router.get("/pypcs/submissions/{submission_id}")

@@ -1,24 +1,28 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { loginPath, useAuth } from '@/shared/hooks/useAuth';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { ArrowDown, ArrowDownUp, ArrowUp, CircleAlert, CircleCheck, DownloadIcon, PencilIcon, PencilLine, SearchIcon } from 'lucide-react';
 
-import { useGetProductActionMatrixQuery } from '@/app/api/productActionMatrixApi';
-import ClientPagination from '@/shared/components/data-table/ClientPagination';
+import { useGetProductActionMatrixMetaQuery, useGetProductActionMatrixPageQuery, useGetProductActionMatrixRowQuery } from '@/app/api/productActionMatrixApi';
+import ServerPagination from '@/shared/components/data-table/ServerPagination';
+import LazyTabs from '@/shared/components/lazy-tabs/LazyTabs';
+import useServerTable from '@/shared/hooks/useServerTable';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Input } from '@/shared/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/shared/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { scrollbarClassName } from '@/shared/utils/scrollbar';
 import RowEditor from '../components/RowEditor';
+import { mergeMatrixTabs } from '../tabs.config';
 
 const EMPTY = [];
 const attributes = [
@@ -58,17 +62,6 @@ function applicableActions(row, actions) {
         module.toLowerCase() === row.module_group?.toLowerCase()));
 }
 
-function reviewStatus(row, actions) {
-    const applicable = applicableActions(row, actions);
-    if (applicable.some((action) => !row.cells?.[action.nbr]?.status)) return 'needs_review';
-    if (applicable.some((action) => row.cells?.[action.nbr]?.decision_state === 'draft')) return 'draft';
-    return 'reviewed';
-}
-
-function rowNeedsReview(row, actions) {
-    return reviewStatus(row, actions) !== 'reviewed';
-}
-
 const reviewBadges = {
     needs_review: { label: 'Needs review', Icon: CircleAlert, color: 'border-status-warning-foreground bg-status-warning text-status-warning-foreground' },
     draft: { label: 'In draft', Icon: PencilLine, color: 'border-status-info-foreground bg-status-info text-status-info-foreground' },
@@ -76,7 +69,7 @@ const reviewBadges = {
 };
 
 function ReviewStatusCell({ row }) {
-    const { label, Icon, color } = reviewBadges[row.original.reviewStatus];
+    const { label, Icon, color } = reviewBadges[row.original.review_status] ?? reviewBadges.needs_review;
     return (
         <Badge variant="outline" className={`gap-1 whitespace-nowrap px-1.5 py-0.5 text-[11px] ${color}`}>
             <Icon aria-hidden="true" className="size-3 shrink-0" />
@@ -139,10 +132,11 @@ function StatusCell({ row, column, table }) {
                 : status === 'N' ? 'bg-red-600 text-white'
                     : status === 'NA' ? 'bg-muted text-foreground'
                         : 'text-muted-foreground';
+        const comment = `${cell?.comment || ''}${cell?.comment_truncated ? '…' : ''}`;
         const description = draft
-                ? `Draft · ${cell.comment || '—'} · ${cell.updated_by || '—'} · ${cell.updated_at || '—'}`
+            ? `Draft · ${comment || '—'} · ${cell.updated_by || '—'} · ${cell.updated_at || '—'}`
                 : status
-        ? `${cell.comment || ''}${cell.updated_by ? `\nUpdated by: ${cell.updated_by}` : ''}${cell.updated_at ? `\nUpdated at: ${cell.updated_at}` : ''}`
+        ? `${comment}${cell.updated_by ? `\nUpdated by: ${cell.updated_by}` : ''}${cell.updated_at ? `\nUpdated at: ${cell.updated_at}` : ''}`
         : '';
 
     const content = draft ? <span className="flex items-center gap-1 truncate">
@@ -188,58 +182,39 @@ export default function QualityProductMatrixPage() {
     const canEdit = isAuthenticated && !isViewer;
     const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
-    const [search, setSearch] = useState('');
+    const tableState = useServerTable({ initialSort: 'product_name', initialDir: 'asc', tabKey: searchParams.get('module') });
     const [needsReview, setNeedsReview] = useState(false);
-    const [sort, setSort] = useState({ key: 'product_name', direction: 'ascending' });
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(25);
     const [editor, setEditor] = useState(null);
     const [activeDescription, setActiveDescription] = useState(null);
-    const allQuery = useGetProductActionMatrixQuery({});
-    const groups = allQuery.currentData?.module_groups ?? EMPTY;
+    const metaQuery = useGetProductActionMatrixMetaQuery();
+    const tabs = mergeMatrixTabs(metaQuery.currentData);
     const requestedModule = searchParams.get('module');
-    const moduleGroup = groups.find((group) => group.key.toLowerCase() === requestedModule?.toLowerCase())?.key ?? '';
+    const activeKey = tabs.some((tab) => tab.key === requestedModule) ? requestedModule : '__all__';
+    const moduleGroup = activeKey === '__all__' ? '' : activeKey;
+    const query = useGetProductActionMatrixPageQuery({
+        module_group: moduleGroup, ...tableState.args, needs_review: needsReview,
+    }, { skip: !metaQuery.currentData || metaQuery.isError });
+    const detailQuery = useGetProductActionMatrixRowQuery({
+        productKey: editor?.row.product_key, moduleGroup: editor?.row.module_group,
+    }, { skip: !editor });
     useEffect(() => {
-        if (!allQuery.currentData || requestedModule === null || moduleGroup) return;
-        setSearchParams((previous) => {
-            const next = new URLSearchParams(previous);
-            next.delete('module');
-            return next;
-        }, { replace: true });
-    }, [allQuery.currentData, requestedModule, moduleGroup, setSearchParams]);
-    const filteredQuery = useGetProductActionMatrixQuery({ moduleGroup }, { skip: !moduleGroup });
-    const query = moduleGroup ? filteredQuery : allQuery;
+        if (editor && detailQuery.error?.status === 404) {
+            toast.error('This row no longer exists');
+            setEditor(null);
+            query.refetch();
+            metaQuery.refetch();
+        }
+    }, [editor, detailQuery.error, query, metaQuery]);
     const data = query.currentData;
-    const actions = useMemo(() => moduleGroup
-        ? (data?.actions ?? EMPTY).filter((action) => action.modules?.some((module) => module.toLowerCase() === moduleGroup.toLowerCase()))
-        : data?.actions ?? EMPTY, [data?.actions, moduleGroup]);
-    const rows = data?.rows ?? EMPTY;
-    const term = useDeferredValue(search).trim().toLowerCase();
-    const visibleRows = useMemo(() => rows.filter((row) => {
-        const matches = !term || [row.product_name, row.prodgroup3, displayValue(row.prodgroup3), row.module_group, ...(row.module_keys ?? [])]
-            .some((value) => value?.toLowerCase().includes(term));
-        return matches && (!needsReview || rowNeedsReview(row, actions));
-    }), [rows, actions, term, needsReview]);
-    const sortedRows = useMemo(() => visibleRows.map((row) => ({ ...row, reviewStatus: reviewStatus(row, actions) }))
-        .sort((first, second) => {
-            const comparison = sort.key === 'review_status'
-                ? ['needs_review', 'draft', 'reviewed'].indexOf(first.reviewStatus)
-                    - ['needs_review', 'draft', 'reviewed'].indexOf(second.reviewStatus)
-                : String(first[sort.key] ?? '').localeCompare(String(second[sort.key] ?? ''), undefined, { numeric: true });
-            return sort.direction === 'ascending' ? comparison : -comparison;
-        }), [visibleRows, actions, sort]);
-    const currentPage = Math.min(page, Math.max(1, Math.ceil(sortedRows.length / pageSize)));
-        const pagedRows = useMemo(
-            () => sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize),
-            [sortedRows, currentPage, pageSize],
-        );
+    const actions = data?.actions ?? EMPTY;
+    const rows = data?.items ?? EMPTY;
     const columns = useMemo(() => columnsFor(actions), [actions]);
     const onEdit = useCallback((row, actionNbr) => {
         if (canEdit && row.can_edit) setEditor({ row, actionNbr });
     }, [canEdit]);
     const tableMeta = useMemo(() => ({ onEdit, actions, canEdit }), [onEdit, actions, canEdit]);
     const table = useReactTable({
-        data: pagedRows,
+        data: rows,
         columns,
         meta: tableMeta,
         getRowId: (row) => `${row.product_key}::${row.module_group}`,
@@ -252,11 +227,11 @@ export default function QualityProductMatrixPage() {
 
     function renderHeader(column) {
         if (!['product_name', 'review_status'].includes(column.id)) return column.columnDef.header;
-        const direction = sort.key === column.id ? sort.direction : 'none';
+        const direction = tableState.sort === column.id ? (tableState.dir === 'asc' ? 'ascending' : 'descending') : 'none';
         const Icon = direction === 'ascending' ? ArrowUp : direction === 'descending' ? ArrowDown : ArrowDownUp;
         return (
             <button type="button" className="inline-flex items-center gap-1 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                onClick={() => { setSort({ key: column.id, direction: direction === 'ascending' ? 'descending' : 'ascending' }); setPage(1); }}>
+                onClick={() => tableState.changeSort(column.id)}>
                 {column.columnDef.header}<Icon aria-hidden="true" className="size-4 shrink-0" />
             </button>
         );
@@ -274,36 +249,22 @@ export default function QualityProductMatrixPage() {
                     <span><span className="mr-1 inline-block size-3 border border-dashed border-border bg-status-success align-middle" />Draft</span>
                     <span>N (default) = not reviewed yet</span>
                 </div>
-                <Tabs value={moduleGroup || '__all__'} onValueChange={(value) => {
-                    setSearchParams((previous) => {
-                        const next = new URLSearchParams(previous);
-                        if (value === '__all__') next.delete('module');
-                        else next.set('module', value);
-                        return next;
-                    }, { replace: true });
-                    setPage(1);
-                }} className="min-w-0">
-                    <div className={`overflow-x-auto ${scrollbarClassName}`}>
-                        <TabsList className="h-auto w-max justify-start gap-1">
-                            <TabsTrigger value="__all__">All ({allQuery.data?.rows?.length ?? rows.length})</TabsTrigger>
-                            {groups.map((group) => (
-                                <TabsTrigger key={group.key} value={group.key}>{group.label} ({group.product_count})</TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </div>
-                </Tabs>
+                {metaQuery.isError && <div role="alert" className="text-sm text-destructive">Could not load module tabs. <Button type="button" variant="outline" onClick={metaQuery.refetch}>Retry</Button></div>}
+                <LazyTabs tabs={tabs} activeKey={requestedModule ?? '__all__'} urlParam="module" loading={!metaQuery.currentData}
+                    onChange={() => { tableState.resetOffset(); setEditor(null); }} renderPanel={() => (
+                    <>
                 <div className="flex flex-wrap items-center gap-4">
                     <div className="relative w-full max-w-sm">
                         <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input type="search" aria-label="Search products, ProdGroup3 or module"
-                            placeholder="Search products or modules" value={search}
-                            onChange={(event) => { setSearch(event.target.value); setPage(1); }} className="pl-9" />
+                            placeholder="Search products or modules" value={tableState.search}
+                            onChange={(event) => tableState.setSearch(event.target.value)} className="pl-9" />
                     </div>
                     <label className="flex cursor-pointer items-center gap-2 text-sm">
-                        <Checkbox checked={needsReview} onCheckedChange={(value) => { setNeedsReview(value === true); setPage(1); }} />
+                        <Checkbox checked={needsReview} onCheckedChange={(value) => { setNeedsReview(value === true); tableState.resetOffset(); }} />
                         Needs review only
                     </label>
-                    <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{visibleRows.length} products found · {actions.length} actions</span>
+                    <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{data?.total ?? 0} products found · {actions.length} actions</span>
                     <Button asChild variant="outline" size="sm" className="ml-auto shrink-0">
                         <a href={exportUrl} download><DownloadIcon className="mr-2 size-4" /> Export CSV</a>
                     </Button>
@@ -321,7 +282,7 @@ export default function QualityProductMatrixPage() {
                 ) : (
                     <div aria-busy={query.isFetching} className={`min-h-[320px] min-w-0 max-w-full overflow-auto rounded-md border border-table-border md:min-h-0 md:flex-1 ${scrollbarClassName}`}>
                         {query.isFetching && <p className="sr-only" role="status">Updating matrix</p>}
-                        {moduleGroup && !actions.length && <p className="p-4 text-sm text-muted-foreground">No actionable items tagged for {moduleGroup}.</p>}
+                        {moduleGroup && tabs.find((tab) => tab.key === moduleGroup)?.action_count === 0 && <p className="p-4 text-sm text-muted-foreground">No actionable items tagged for {moduleGroup}.</p>}
                         <Table style={{ width: table.getTotalSize() }} className="table-fixed border-separate border-spacing-0 text-xs">
                             <colgroup>
                                 {leafColumns.map((column) => <col key={column.id} style={{ width: column.getSize() }} />)}
@@ -343,7 +304,7 @@ export default function QualityProductMatrixPage() {
                                 </TableRow>
                                 <TableRow className="bg-table-header hover:bg-table-header">
                                     {leafColumns.map((column) => (
-                                        <TableHead key={column.id} aria-sort={['product_name', 'review_status'].includes(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined} style={columnStyle(column)}
+                                        <TableHead key={column.id} aria-sort={['product_name', 'review_status'].includes(column.id) ? (tableState.sort === column.id ? (tableState.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined} style={columnStyle(column)}
                                             className={`border-b border-r border-white/20 bg-table-header align-top font-semibold text-table-header-foreground ${stickyClass(column, true)}`}>
                                             {column.columnDef.meta?.action ? (
                                                 <Tooltip>
@@ -408,12 +369,12 @@ export default function QualityProductMatrixPage() {
                                     </TableRow>
                                 )) : (
                                     <TableRow><TableCell colSpan={leafColumns.length} className="h-32 text-center text-muted-foreground">
-                                        {rows.length ? <>No matching products.{' '}
-                                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setNeedsReview(false); setSearchParams((previous) => {
+                                        {data.total || tableState.search || needsReview ? <>No matching products.{' '}
+                                            <Button type="button" variant="outline" size="sm" onClick={() => { tableState.setSearch(''); setNeedsReview(false); setSearchParams((previous) => {
                                                 const next = new URLSearchParams(previous);
                                                 next.delete('module');
                                                 return next;
-                                            }); setPage(1); }}>Clear filters</Button>
+                                            }); tableState.resetOffset(); }}>Clear filters</Button>
                                         </> : 'No Product Info submissions yet'}
                                     </TableCell></TableRow>
                                 )}
@@ -421,19 +382,27 @@ export default function QualityProductMatrixPage() {
                         </Table>
                     </div>
                 )}
-                {!query.isLoading && !query.isError && <ClientPagination label="Products" total={sortedRows.length}
-                    page={currentPage} pageSize={pageSize} onPageChange={setPage}
-                    onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
-                {canEdit && editor?.row.can_edit && <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
-                    row={editor.row} actions={actions} focusedAction={editor.actionNbr}
-                    onReload={async () => {
-                        const latest = await query.refetch().unwrap();
-                        const row = latest.rows.find((entry) =>
-                            entry.product_key === editor.row.product_key
-                            && entry.module_group === editor.row.module_group);
-                        if (!row) throw new Error('Row no longer exists.');
-                        return row;
-                    }} onClose={() => setEditor(null)} />}
+                {!query.isLoading && !query.isError && <ServerPagination label="Products" total={data?.total ?? 0}
+                    limit={tableState.limit} offset={tableState.offset} onOffsetChange={tableState.setOffset}
+                    onLimitChange={tableState.changeLimit} />}
+                    </>
+                )} />
+                {canEdit && editor?.row.can_edit && (detailQuery.isFetching || detailQuery.isError || !detailQuery.currentData ? (
+                    <Dialog open onOpenChange={(open) => !open && setEditor(null)}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Loading row</DialogTitle>
+                                <DialogDescription>Loading the latest decisions for this product.</DialogDescription>
+                            </DialogHeader>
+                            {detailQuery.isError && detailQuery.error?.status !== 404 ? (
+                                <div role="alert">Could not load this row. <Button type="button" onClick={detailQuery.refetch}>Retry</Button></div>
+                            ) : <Skeleton className="h-32 w-full" />}
+                        </DialogContent>
+                    </Dialog>
+                ) : <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
+                    row={detailQuery.currentData.row} actions={detailQuery.currentData.actions} focusedAction={editor.actionNbr}
+                    onReload={async () => (await detailQuery.refetch().unwrap()).row}
+                    onClose={() => setEditor(null)} />)}
             </div>
         </TooltipProvider>
     );

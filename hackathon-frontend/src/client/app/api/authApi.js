@@ -24,8 +24,14 @@ export const authApi = apiSlice.injectEndpoints({
         requestAccount: builder.mutation({
             query: (body) => ({ url: '/auth/request-account', method: 'POST', body }),
         }),
-        listUsers: builder.query({
-            query: (status) => ({ url: '/auth/users', params: { status } }),
+        getUsersMeta: builder.query({
+            query: () => '/auth/users/meta',
+            keepUnusedDataFor: 60,
+            providesTags: ['Users'],
+        }),
+        getUsersPage: builder.query({
+            query: (params) => ({ url: '/auth/users', params: { view: 'page', ...params } }),
+            keepUnusedDataFor: 30,
             providesTags: ['Users'],
         }),
         approveUser: builder.mutation({
@@ -70,7 +76,8 @@ export const {
     useLogoutMutation,
     useChangePasswordMutation,
     useRequestAccountMutation,
-    useListUsersQuery,
+    useGetUsersMetaQuery,
+    useGetUsersPageQuery,
     useApproveUserMutation,
     useChangeUserRoleMutation,
     useRejectUserMutation,

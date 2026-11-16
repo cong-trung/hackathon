@@ -176,11 +176,8 @@ def _latest_decisions() -> dict[_Key, dict[str, str]]:
     return latest
 
 
-def _submission_statuses() -> dict[str, str]:
-    return {
-        _clean(row.get("submission_id")): _clean(row.get("status"))
-        for row in read_generic_csv(PYPCS_SUBMISSIONS_FILE)
-    }
+def _submission_rows() -> dict[str, dict[str, str]]:
+    return {_clean(row.get("submission_id")): row for row in read_generic_csv(PYPCS_SUBMISSIONS_FILE)}
 
 
 @dataclass
@@ -241,13 +238,19 @@ def _question_order(catalog: _Catalog, question_id: str) -> int:
     return safe_int(catalog.questions.get(question_id, {}).get("sort_order"), 10**6)
 
 
-def list_option_reviews(status_filter: str) -> dict[str, Any]:
+def _check_status_filter(status_filter: str) -> None:
     if status_filter not in STATUS_FILTERS:
         raise _error(422, "invalid_status", "Status must be pending, approved, mapped, rejected, or all.")
+
+
+def _build_review_items() -> tuple[list[dict[str, Any]], dict[str, int], dict[str, dict[str, str]]]:
     catalog = _load_catalog()
     decisions = _latest_decisions()
     groups = _collect_groups(catalog, decisions)
-    final_ids = {sid for sid, status in _submission_statuses().items() if normalize_status(status) == "final"}
+    submissions = _submission_rows()
+    final_ids = {
+        sid for sid, row in submissions.items() if normalize_status(row.get("status")) == "final"
+    }
 
     items: list[dict[str, Any]] = []
     for key, group in groups.items():
@@ -284,8 +287,63 @@ def list_option_reviews(status_filter: str) -> dict[str, Any]:
     counts = {"pending": 0, "approved": 0, "mapped": 0, "rejected": 0}
     for item in items:
         counts[item["status"]] = counts.get(item["status"], 0) + 1
-    visible = items if status_filter == "all" else [item for item in items if item["status"] == status_filter]
-    return {"items": visible, "counts": counts}
+    return items, counts, submissions
+
+
+def _filter_by_status(items: list[dict[str, Any]], status_filter: str) -> list[dict[str, Any]]:
+    return items if status_filter == "all" else [item for item in items if item["status"] == status_filter]
+
+
+def list_option_reviews(status_filter: str) -> dict[str, Any]:
+    _check_status_filter(status_filter)
+    items, counts, _submissions = _build_review_items()
+    return {"items": _filter_by_status(items, status_filter), "counts": counts}
+
+
+def option_review_meta() -> dict[str, Any]:
+    items, counts, _submissions = _build_review_items()
+    tabs = [{"key": key, "count": counts[key]} for key in STATUS_FILTERS if key != "all"]
+    tabs.append({"key": "all", "count": len(items)})
+    return {"tabs": tabs}
+
+
+def list_option_reviews_page(
+    status_filter: str,
+    q: str | None = None,
+    question_id: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, Any]:
+    _check_status_filter(status_filter)
+    items, counts, submissions = _build_review_items()
+    rows = _filter_by_status(items, status_filter)
+    wanted_question = _clean(question_id)
+    if wanted_question:
+        rows = [item for item in rows if item["question_id"] == wanted_question]
+    term = _clean(q).casefold()
+    if term:
+        rows = [
+            item
+            for item in rows
+            if any(
+                term in str(item[field]).casefold()
+                for field in ("question_label", "question_id", "module_key", "value", "status")
+            )
+        ]
+    page = []
+    for item in rows[offset : offset + limit]:
+        entry = dict(item)
+        entry["submissions"] = [
+            {
+                "submission_id": sid,
+                "product_name": _clean(submissions.get(sid, {}).get("product_name")),
+                "module_key": item["module_key"],
+                "status": normalize_status(submissions[sid].get("status")) if sid in submissions else "",
+            }
+            for sid in item["submission_ids"]
+        ]
+        page.append(entry)
+    return {"items": page, "total": len(rows), "limit": limit, "offset": offset, "counts": counts}
 
 
 # ---------------------------------------------------------------------------

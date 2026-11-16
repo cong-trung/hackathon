@@ -15,19 +15,24 @@ import {
     updatePypcsQuestionDescription,
     getPypcsVisibleQuestions,
     getPypcsSubmissions,
+    getPypcsSubmissionsMeta,
     getPypcsSubmissionDetail,
     getPypcsSubmissionHistory,
     deletePypcsSubmission,
     submitPypcsMatrixSubmission,
     getPypcsActionItems,
+    getPypcsActionItemsMeta,
     getPypcsActionItemOptions,
     createPypcsActionItem,
     updatePypcsActionItem,
     deletePypcsActionItem,
     getPypcsProductActionMatrix,
+    getPypcsProductActionMatrixMeta,
+    getPypcsProductActionMatrixRow,
     updatePypcsProductActionMatrixRow,
     exportPypcsProductActionMatrix,
     getPypcsOptionReview,
+    getPypcsOptionReviewMeta,
     postPypcsOptionReviewDecision,
 } from '../services/pypcsService.js';
 
@@ -51,18 +56,23 @@ router.get('/pypcs/questions', getPypcsQuestions);
 router.patch('/pypcs/questions/:questionId', updatePypcsQuestionDescription);
 router.post('/pypcs/visible-questions', getPypcsVisibleQuestions);
 router.get('/pypcs/submissions', getPypcsSubmissions);
+router.get('/pypcs/submissions/meta', getPypcsSubmissionsMeta);
 router.get('/pypcs/submissions/:submissionId/history', getPypcsSubmissionHistory);
 router.get('/pypcs/submissions/:submissionId', getPypcsSubmissionDetail);
 router.delete('/pypcs/submissions/:submissionId', deletePypcsSubmission);
 router.post('/pypcs/matrix-submission', submitPypcsMatrixSubmission);
+router.get('/pypcs/option-review/meta', getPypcsOptionReviewMeta);
 router.get('/pypcs/option-review', getPypcsOptionReview);
 router.post('/pypcs/option-review/decision', postPypcsOptionReviewDecision);
 router.get('/pypcs/action-items/options', getPypcsActionItemOptions);
+router.get('/pypcs/action-items/meta', getPypcsActionItemsMeta);
 router.get('/pypcs/action-items', getPypcsActionItems);
 router.post('/pypcs/action-items', createPypcsActionItem);
 router.put('/pypcs/action-items/:nbr', updatePypcsActionItem);
 router.delete('/pypcs/action-items/:nbr', deletePypcsActionItem);
 router.get('/pypcs/product-action-matrix/export', exportPypcsProductActionMatrix);
+router.get('/pypcs/product-action-matrix/meta', getPypcsProductActionMatrixMeta);
+router.get('/pypcs/product-action-matrix/row', getPypcsProductActionMatrixRow);
 router.get('/pypcs/product-action-matrix', getPypcsProductActionMatrix);
 router.put('/pypcs/product-action-matrix/rows', updatePypcsProductActionMatrixRow);
 export default router;

@@ -11,6 +11,6 @@ export const apiSlice = createApi({
         }
         return result;
     },
-    tagTypes: ['PdSolution', 'PYPCSActionItem', 'ProductActionMatrix', 'Auth', 'Users', 'Changes', 'PYPCSQuestions', 'PYPCSOptionReview'],
+    tagTypes: ['PdSolution', 'PYPCSActionItem', 'ProductActionMatrix', 'PYPCSSubmissions', 'Auth', 'Users', 'Changes', 'PYPCSQuestions', 'PYPCSOptionReview'],
     endpoints: () => ({}),
 });

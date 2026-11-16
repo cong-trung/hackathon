@@ -1094,6 +1094,7 @@ export default function PYPCSMatrixSubmission({
                 method: 'POST',
                 body: JSON.stringify(payload),
             });
+            store.dispatch(apiSlice.util.invalidateTags(['PYPCSSubmissions', 'ProductActionMatrix']));
 
             setSubmissionId(result.submission_id || null);
             setSubmissionStatus(result.status || nextStatus);

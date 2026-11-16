@@ -1,11 +1,13 @@
-import { useDeferredValue, useMemo, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authErrorMessage, loginPath, useAuth } from '@/shared/hooks/useAuth';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import { ArrowDown, ArrowDownUp, ArrowUp, PencilIcon, PlusIcon, SearchIcon, Trash2 } from 'lucide-react';
 
-import { useDeleteActionItemMutation, useGetActionItemOptionsQuery, useGetActionItemsQuery } from '@/app/api/pypcsActionItemsApi';
-import ClientPagination from '@/shared/components/data-table/ClientPagination';
+import { useDeleteActionItemMutation, useGetActionItemsMetaQuery, useGetActionItemsPageQuery } from '@/app/api/pypcsActionItemsApi';
+import ServerPagination from '@/shared/components/data-table/ServerPagination';
+import LazyTabs from '@/shared/components/lazy-tabs/LazyTabs';
+import useServerTable from '@/shared/hooks/useServerTable';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -14,7 +16,6 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import {
     Table,
     TableBody,
@@ -197,58 +198,25 @@ export default function ActionableItemsPage() {
     const { isAuthenticated, permissions, isAdmin } = useAuth();
     const canEdit = Boolean(permissions.can_edit_action_items);
     const location = useLocation();
-    const { data, isLoading, isError, refetch } = useGetActionItemsQuery();
-    const { data: options } = useGetActionItemOptionsQuery();
+    const [searchParams] = useSearchParams();
+    const metaQuery = useGetActionItemsMetaQuery();
+    const tabs = metaQuery.data?.tabs ?? EMPTY;
+    const requestedModule = searchParams.get('module');
+    const selectedModule = tabs.some((tab) => tab.key === requestedModule)
+        ? requestedModule : tabs.find((tab) => tab.count > 0)?.key ?? tabs[0]?.key ?? '';
+    const tableState = useServerTable({ tabKey: selectedModule, initialSort: 'nbr', initialDir: 'asc' });
+    const { currentData: data, isLoading, isFetching, isError, refetch } = useGetActionItemsPageQuery(
+        { module: selectedModule, ...tableState.args }, { skip: !selectedModule },
+    );
+    const loadingPage = isLoading || (isFetching && !data);
     const [deleteActionItem, { isLoading: isDeleting }] = useDeleteActionItemMutation();
     const searchRef = useRef(null);
     const deletedRef = useRef(false);
-    const [search, setSearch] = useState('');
-    const [moduleGroup, setModuleGroup] = useState('');
-    const [sort, setSort] = useState({ key: 'nbr', direction: 'ascending' });
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(25);
     const [activeItem, setActiveItem] = useState(undefined);
     const [pendingDelete, setPendingDelete] = useState(null);
     const [deleteError, setDeleteError] = useState('');
-    const items = data?.items ?? EMPTY;
-    const modules = useMemo(() => options?.fields?.module?.length
-        ? options.fields.module
-        : [...new Set(items.flatMap((item) => item.module ?? []))], [options, items]);
-    const moduleCounts = useMemo(() => new Map(modules.map((module) => [
-        module, items.filter((item) => item.module?.includes(module)).length,
-    ])), [modules, items]);
-    const selectedModule = modules.includes(moduleGroup)
-        ? moduleGroup
-        : modules.find((module) => moduleCounts.get(module) > 0) ?? modules[0] ?? '';
+    const visibleItems = data?.items ?? EMPTY;
     const columns = useMemo(() => columnsFor(selectedModule.toLowerCase() === 'hdmx'), [selectedModule]);
-    const deferredSearch = useDeferredValue(search);
-    const term = deferredSearch.trim().toLowerCase();
-    const searchIndex = useMemo(
-        () => new Map(items.map((item) => [
-            item,
-            Object.values(item).map((value) =>
-                (Array.isArray(value) ? value.join(' ') : String(value ?? '')).toLowerCase(),
-            ),
-        ])),
-        [items],
-    );
-    const filtered = useMemo(
-        () => items.filter((item) => item.module?.includes(selectedModule)
-            && (!term || searchIndex.get(item).some((value) => value.includes(term)))),
-        [items, searchIndex, term, selectedModule],
-    );
-    const sorted = useMemo(() => [...filtered].sort((first, second) => {
-        const left = sort.key === 'updated_at' ? Date.parse(first.updated_at) || 0 : first[sort.key];
-        const right = sort.key === 'updated_at' ? Date.parse(second.updated_at) || 0 : second[sort.key];
-        const comparison = typeof left === 'number' && typeof right === 'number'
-            ? left - right : String(left ?? '').localeCompare(String(right ?? ''), undefined, { numeric: true });
-        return sort.direction === 'ascending' ? comparison : -comparison;
-    }), [filtered, sort]);
-    const currentPage = Math.min(page, Math.max(1, Math.ceil(sorted.length / pageSize)));
-    const visibleItems = useMemo(
-        () => sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize),
-        [sorted, currentPage, pageSize],
-    );
     const table = useReactTable({
         data: visibleItems,
         columns,
@@ -271,6 +239,9 @@ export default function ActionableItemsPage() {
         setDeleteError('');
         try {
             await deleteActionItem({ nbr: pendingDelete.nbr, expectedVersion: pendingDelete.version }).unwrap();
+            if (visibleItems.length === 1 && tableState.offset > 0) {
+                tableState.setOffset(Math.max(0, tableState.offset - tableState.limit));
+            }
             deletedRef.current = true;
             setPendingDelete(null);
         } catch (error) {
@@ -286,14 +257,11 @@ export default function ActionableItemsPage() {
 
     function renderHeader(column) {
         if (!sortableColumns.has(column.id)) return column.columnDef.header;
-        const direction = sort.key === column.id ? sort.direction : 'none';
+        const direction = tableState.sort === column.id ? (tableState.dir === 'asc' ? 'ascending' : 'descending') : 'none';
         const Icon = direction === 'ascending' ? ArrowUp : direction === 'descending' ? ArrowDown : ArrowDownUp;
         return (
             <button type="button" className="inline-flex items-center gap-1 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                onClick={() => {
-                    setSort({ key: column.id, direction: direction === 'ascending' ? 'descending' : 'ascending' });
-                    setPage(1);
-                }}>
+                onClick={() => tableState.changeSort(column.id)}>
                 {column.columnDef.header}<Icon aria-hidden="true" className="size-4 shrink-0" />
             </button>
         );
@@ -302,17 +270,9 @@ export default function ActionableItemsPage() {
     return (
         <div className="flex min-w-0 flex-col gap-3 md:h-full md:min-h-0 md:overflow-hidden">
             <h1 className="sr-only">Actionable Items</h1>
-            {modules.length > 0 && (
-                <Tabs value={selectedModule} onValueChange={(value) => { setModuleGroup(value); setPage(1); }} className="min-w-0">
-                    <div className={`overflow-x-auto ${scrollbarClassName}`}>
-                        <TabsList className="h-auto w-max justify-start gap-1">
-                            {modules.map((module) => (
-                                <TabsTrigger key={module} value={module}>{module} ({moduleCounts.get(module)})</TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </div>
-                </Tabs>
-            )}
+            {metaQuery.isError && <div role="alert">Could not load modules. <Button variant="outline" onClick={metaQuery.refetch}>Retry</Button></div>}
+            <LazyTabs tabs={tabs} activeKey={selectedModule} urlParam="module" loading={!metaQuery.data}
+                onChange={() => tableState.resetOffset()} renderPanel={() => (<>
             <div className="flex flex-wrap items-center gap-3">
                 <div className="relative w-full max-w-sm">
                 <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -321,12 +281,12 @@ export default function ActionableItemsPage() {
                     type="search"
                     aria-label="Search action items"
                     placeholder="Search action items"
-                    value={search}
-                    onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+                    value={tableState.search}
+                    onChange={(event) => tableState.setSearch(event.target.value)}
                     className="pl-9"
                 />
                 </div>
-                <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{filtered.length} action items found</span>
+                <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{data?.total ?? 0} action items found</span>
                 {!isAuthenticated && <Link className="ml-auto text-sm underline" to={loginPath(location.pathname + location.search)}>Log in to edit</Link>}
                 {canEdit && <Button size="sm" className="ml-auto" onClick={() => setActiveItem(null)}>
                     <PlusIcon className="mr-2 size-4" /> Add new item
@@ -340,7 +300,7 @@ export default function ActionableItemsPage() {
                         Retry
                     </Button>
                 </div>
-            ) : isLoading ? (
+            ) : loadingPage ? (
                 <div aria-label="Loading action items" className="space-y-3 rounded-md border p-4">
                     <Skeleton className="h-10 w-full" />
                     {[1, 2, 3, 4].map((row) => (
@@ -361,7 +321,7 @@ export default function ActionableItemsPage() {
                                     <TableHead
                                         key={column.id}
                                         rowSpan={2}
-                                        aria-sort={sortableColumns.has(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined}
+                                        aria-sort={sortableColumns.has(column.id) ? (tableState.sort === column.id ? (tableState.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
                                         style={columnStyle(column)}
                                         className={`border-b border-r border-white/20 align-middle font-semibold text-table-header-foreground ${frozen[column.id] || ''} ${frozen[column.id] ? '!z-30 !bg-table-header' : ''}`}
                                     >
@@ -372,7 +332,7 @@ export default function ActionableItemsPage() {
                                     Applicability (Product Info questions)
                                 </TableHead>
                                 {leafColumns.slice(applicabilityEnd).map((column) => (
-                                    <TableHead key={column.id} rowSpan={2} aria-sort={sortableColumns.has(column.id) ? (sort.key === column.id ? sort.direction : 'none') : undefined} style={columnStyle(column)} className="border-b border-r border-white/20 align-middle font-semibold text-table-header-foreground">
+                                    <TableHead key={column.id} rowSpan={2} aria-sort={sortableColumns.has(column.id) ? (tableState.sort === column.id ? (tableState.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined} style={columnStyle(column)} className="border-b border-r border-white/20 align-middle font-semibold text-table-header-foreground">
                                         {renderHeader(column)}
                                     </TableHead>
                                 ))}
@@ -403,8 +363,8 @@ export default function ActionableItemsPage() {
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={leafColumns.length} className="h-32 text-center text-muted-foreground">
-                                        {term ? <>No matching actionable items in {selectedModule}.{' '}
-                                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setPage(1); }}>Clear filters</Button>
+                                        {tableState.args.q ? <>No matching actionable items in {selectedModule}.{' '}
+                                            <Button type="button" variant="outline" size="sm" onClick={() => tableState.setSearch('')}>Clear filters</Button>
                                         </> : selectedModule ? `No actionable items tagged for ${selectedModule}.` : 'No actionable items yet.'}
                                     </TableCell>
                                 </TableRow>
@@ -414,8 +374,9 @@ export default function ActionableItemsPage() {
                 </div>
             )}
 
-            {!isLoading && !isError && <ClientPagination label="Action items" total={sorted.length} page={currentPage}
-                pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
+            {!loadingPage && !isError && <ServerPagination label="Action items" total={data?.total ?? 0}
+                limit={tableState.limit} offset={tableState.offset} onOffsetChange={tableState.setOffset} onLimitChange={tableState.changeLimit} />}
+            </>)} />
 
             {canEdit && activeItem !== undefined && (
                 <ActionItemForm
@@ -424,7 +385,7 @@ export default function ActionableItemsPage() {
                     onReload={async () => {
                         const latest = await refetch().unwrap();
                         const item = latest.items.find((entry) => entry.nbr === activeItem.nbr);
-                        if (!item) throw new Error('Action item no longer exists.');
+                        if (!item) throw new Error('Action item is no longer on this page.');
                         return item;
                     }}
                     onClose={() => setActiveItem(undefined)}

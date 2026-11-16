@@ -95,6 +95,7 @@ _MATRIX_INPUT_FILES = (
 _CACHE_LOCK = threading.RLock()
 _CACHE_FINGERPRINT: tuple[tuple[str, int | None, int | None], ...] | None = None
 _CACHED_MATRIX: dict[str, Any] | None = None
+_CACHED_AT: str | None = None
 
 
 def _input_fingerprint() -> tuple[tuple[str, int | None, int | None], ...]:
@@ -111,10 +112,11 @@ def _input_fingerprint() -> tuple[tuple[str, int | None, int | None], ...]:
 
 
 def invalidate_product_action_matrix_cache() -> None:
-    global _CACHE_FINGERPRINT, _CACHED_MATRIX
+    global _CACHE_FINGERPRINT, _CACHED_MATRIX, _CACHED_AT
     with _CACHE_LOCK:
         _CACHE_FINGERPRINT = None
         _CACHED_MATRIX = None
+        _CACHED_AT = None
 
 
 def _split_values(value: Any) -> list[str]:
@@ -449,18 +451,20 @@ def _build_product_action_matrix() -> dict[str, Any]:
     }
 
 
-def build_product_action_matrix() -> dict[str, Any]:
-    global _CACHE_FINGERPRINT, _CACHED_MATRIX
+def build_product_action_matrix(readonly: bool = False) -> dict[str, Any]:
+    """Return the built matrix; readonly=True returns the shared cached object (do not mutate)."""
+    global _CACHE_FINGERPRINT, _CACHED_MATRIX, _CACHED_AT
     with _CACHE_LOCK:
         while True:
             fingerprint = _input_fingerprint()
             if fingerprint == _CACHE_FINGERPRINT and _CACHED_MATRIX is not None:
-                return copy.deepcopy(_CACHED_MATRIX)
+                return _CACHED_MATRIX if readonly else copy.deepcopy(_CACHED_MATRIX)
             built = _build_product_action_matrix()
             if fingerprint == _input_fingerprint():
                 _CACHE_FINGERPRINT = fingerprint
                 _CACHED_MATRIX = copy.deepcopy(built)
-                return built
+                _CACHED_AT = matrix_timestamp()
+                return _CACHED_MATRIX if readonly else built
 
 
 def _api_row(rows: list[dict[str, str]]) -> dict[str, Any]:
@@ -549,12 +553,171 @@ def get_product_action_matrix(
     return {"module_groups": groups, "actions": actions, "rows": rows}
 
 
+def get_product_action_matrix_row(
+    product_key: str,
+    module_group: str,
+    built: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Full row (all cells) plus the actions applicable to its group, or None if absent."""
+    built = built if built is not None else build_product_action_matrix(readonly=True)
+    group = canonical_module_group(module_group)
+    target_rows = [
+        row
+        for row in built["rows"]
+        if row["product_key"] == product_key and row["module_group"] == group
+    ]
+    if not target_rows:
+        return None
+    target_rows.sort(key=lambda row: safe_int(row.get("action_nbr", "")))
+    row = _api_row(target_rows)
+    row["review_status"] = review_status(row, built["actions"])
+    actions = [action for action in built["actions"] if group in action["modules"]]
+    return {"row": row, "actions": actions}
+
+
+ALL_MODULE_GROUPS_KEY = "__all__"
+REVIEW_STATUS_ORDER = ("needs_review", "draft", "reviewed")
+SUMMARY_COMMENT_MAX = 120
+SUMMARY_ROW_FIELDS = (
+    "product_key",
+    "product_name",
+    "prodgroup3",
+    "module_group",
+    "module_keys",
+    "operations",
+    "submission_status",
+    "package",
+    "bare_die_lid",
+    "segment",
+    "fab_technology",
+    "review_status",
+    "can_edit",
+)
+SUMMARY_CELL_FIELDS = ("status", "decision_state", "comment", "updated_by", "updated_at")
+
+
+def summarize_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Table-only projection of a page row; comments are cut and flagged via comment_truncated."""
+    summary = {field: row[field] for field in SUMMARY_ROW_FIELDS if field in row}
+    cells = {}
+    for nbr, cell in (row.get("cells") or {}).items():
+        slim = {field: cell.get(field, "") for field in SUMMARY_CELL_FIELDS}
+        if len(slim["comment"]) > SUMMARY_COMMENT_MAX:
+            slim["comment"] = slim["comment"][:SUMMARY_COMMENT_MAX]
+            slim["comment_truncated"] = True
+        cells[nbr] = slim
+    summary["cells"] = cells
+    return summary
+
+
+def review_status(row: dict[str, Any], actions: list[dict[str, Any]]) -> str:
+    """Port of reviewStatus() in QualityProductMatrixPage.jsx."""
+    group = str(row.get("module_group") or "").lower()
+    applicable = [
+        action
+        for action in actions
+        if any(str(module).lower() == group for module in action.get("modules") or [])
+    ]
+    cells = row.get("cells") or {}
+    if any(not (cells.get(str(action["nbr"])) or {}).get("status") for action in applicable):
+        return "needs_review"
+    if any(
+        (cells.get(str(action["nbr"])) or {}).get("decision_state") == "draft"
+        for action in applicable
+    ):
+        return "draft"
+    return "reviewed"
+
+
+def _natural_key(value: Any) -> list[tuple[int, Any]]:
+    parts = re.split(r"(\d+)", str(value if value is not None else "").casefold())
+    return [(0, int(part)) if part.isdigit() else (1, part) for part in parts if part != ""]
+
+
+def get_product_action_matrix_page(
+    module_group: str | None = None,
+    prodgroup3: str | None = None,
+    q: str | None = None,
+    needs_review: bool | None = None,
+    sort: str | None = None,
+    direction: str = "asc",
+    limit: int = 50,
+    offset: int = 0,
+    built: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Filtered/sorted/paged rows (without per-user flags) plus applicable actions."""
+    built = built if built is not None else build_product_action_matrix(readonly=True)
+    group_filter = None if module_group in (None, "", ALL_MODULE_GROUPS_KEY) else module_group
+    result = get_product_action_matrix(group_filter, built=built, prodgroup3=prodgroup3)
+    all_actions = built["actions"]
+    rows = result["rows"]
+    for row in rows:
+        row["review_status"] = review_status(row, all_actions)
+
+    term = (q or "").strip().casefold()
+    if term:
+        def matches(row: dict[str, Any]) -> bool:
+            prodgroup = value_to_str(row.get("prodgroup3", ""))
+            haystack = [
+                row.get("product_name", ""),
+                prodgroup,
+                ", ".join(_pipe_values(prodgroup)),
+                row.get("module_group", ""),
+                *(row.get("module_keys") or []),
+            ]
+            return any(term in str(value).casefold() for value in haystack if value)
+
+        rows = [row for row in rows if matches(row)]
+    if needs_review:
+        rows = [row for row in rows if row["review_status"] != "reviewed"]
+
+    reverse = direction == "desc"
+    if sort == "review_status":
+        rows = sorted(
+            rows, key=lambda row: REVIEW_STATUS_ORDER.index(row["review_status"]), reverse=reverse
+        )
+    elif sort in {"product_name", "prodgroup3"}:
+        rows = sorted(rows, key=lambda row: _natural_key(row.get(sort, "")), reverse=reverse)
+
+    canonical_group = canonical_module_group(group_filter) if group_filter is not None else None
+    return {
+        "module_group": canonical_group or ALL_MODULE_GROUPS_KEY,
+        "actions": result["actions"],
+        "items": rows[offset : offset + limit],
+        "total": len(rows),
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+def get_product_action_matrix_meta(built: dict[str, Any] | None = None) -> dict[str, Any]:
+    built = built if built is not None else build_product_action_matrix(readonly=True)
+    row_pairs = {(row["product_key"], row["module_group"]) for row in built["rows"]}
+    tabs = [{"key": ALL_MODULE_GROUPS_KEY, "label": "All", "count": len(row_pairs)}]
+    for group in built["module_groups"]:
+        tabs.append(
+            {
+                "key": group["key"],
+                "label": group["label"],
+                "count": group["product_count"],
+                "action_count": sum(
+                    1 for action in built["actions"] if group["key"] in action["modules"]
+                ),
+            }
+        )
+    return {
+        "tabs": tabs,
+        "total_products": len({product_key for product_key, _ in row_pairs}),
+        "generated_at": _CACHED_AT or matrix_timestamp(),
+    }
+
+
 def rebuild_product_action_matrix(
     decision_updates: dict[tuple[str, str, str], dict[str, str]] | None = None,
     built: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     """Regenerate current rows and preserve decisions, including orphaned ones."""
-    global _CACHE_FINGERPRINT, _CACHED_MATRIX
+    global _CACHE_FINGERPRINT, _CACHED_MATRIX, _CACHED_AT
     with locked_files(PRODUCT_ACTION_DECISIONS_FILE):
         with _CACHE_LOCK:
             built = built if built is not None else build_product_action_matrix()
@@ -589,6 +752,7 @@ def rebuild_product_action_matrix(
             invalidate_product_action_matrix_cache()
             _CACHE_FINGERPRINT = _input_fingerprint()
             _CACHED_MATRIX = copy.deepcopy(built)
+            _CACHED_AT = matrix_timestamp()
             return built["flat_rows"]
 
 

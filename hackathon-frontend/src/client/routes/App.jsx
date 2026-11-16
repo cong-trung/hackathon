@@ -14,7 +14,9 @@ function LegacyRedirect({ from, to }) {
     return <Navigate to={`${to}${pathname.slice(from.length)}${search}${hash}`} replace />;
 }
 
-import { Agentation } from 'agentation';
+const DevAgentation = import.meta.env.DEV
+    ? lazy(() => import('agentation').then(({ Agentation }) => ({ default: Agentation })))
+    : null;
 
 const buildRouteObjects = (routeList) =>
     routeList
@@ -86,13 +88,15 @@ function App() {
             <Suspense fallback={null}>
                 <RouterProvider router={router} />
             </Suspense>
-            {import.meta.env.DEV && (
-                <Agentation
-                    endpoint="http://10.240.12.105:4747"
-                    onSessionCreated={(sessionId) => {
-                        console.log('Session started:', sessionId);
-                    }}
-                />
+            {DevAgentation && (
+                <Suspense fallback={null}>
+                    <DevAgentation
+                        endpoint="http://10.240.12.105:4747"
+                        onSessionCreated={(sessionId) => {
+                            console.log('Session started:', sessionId);
+                        }}
+                    />
+                </Suspense>
             )}
         </>
     );

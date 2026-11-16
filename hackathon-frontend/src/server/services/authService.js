@@ -93,6 +93,10 @@ export function getUsers(req, res) {
     return forwardJson(req, res, '/auth/users');
 }
 
+export function getUsersMeta(req, res) {
+    return forwardJson(req, res, '/auth/users/meta');
+}
+
 export function approveUser(req, res) {
     const username = encodeURIComponent(req.params.username);
     return forwardJson(req, res, `/auth/users/${username}/approve`);

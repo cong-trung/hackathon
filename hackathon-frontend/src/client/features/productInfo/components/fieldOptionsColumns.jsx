@@ -8,7 +8,7 @@ function formatSeen(value) {
     return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
 }
 
-export function fieldOptionsColumns({ submissionsById, onAction, isAdmin }) {
+export function fieldOptionsColumns({ onAction, isAdmin }) {
     return [
         { accessorKey: 'question_label', header: 'Field', cell: ({ row }) => row.original.question_label || row.original.question_id },
         { accessorKey: 'module_key', header: 'Module', cell: ({ row }) => row.original.module_key || '—' },
@@ -20,15 +20,15 @@ export function fieldOptionsColumns({ submissionsById, onAction, isAdmin }) {
                 return (
                     <div className="min-w-32">
                         <span>{item.submission_count} submissions</span>
-                        <span className="block text-xs text-muted-foreground">{item.final_submission_count} final</span>
-                        {item.submission_ids?.length > 0 && (
+                        <span className="block text-xs text-muted-foreground">{item.submissions?.filter((submission) => submission.status === 'final').length ?? item.final_submission_count} final</span>
+                        {item.submissions?.length > 0 && (
                             <details className="mt-1">
                                 <summary className="cursor-pointer text-sm text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">View submissions</summary>
                                 <ul className="max-h-40 space-y-1 overflow-y-auto py-1">
-                                    {item.submission_ids.map((id) => (
-                                        <li key={id}>
-                                            <Link className="text-primary underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring" to={`/product-info?submission=${encodeURIComponent(id)}`}>
-                                                {submissionsById[id]?.product_name || id}
+                                    {item.submissions.map((submission) => (
+                                        <li key={submission.submission_id}>
+                                            <Link className="text-primary underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring" to={`/product-info?submission=${encodeURIComponent(submission.submission_id)}`}>
+                                                {submission.product_name || submission.submission_id}
                                             </Link>
                                         </li>
                                     ))}

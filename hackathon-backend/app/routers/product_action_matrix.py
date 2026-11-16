@@ -1,7 +1,7 @@
 """Endpoints for the merged PYPCS product/action matrix."""
 
 import re
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 
@@ -24,8 +24,12 @@ from app.services.product_action_matrix_service import (
     canonical_module_group,
     export_product_action_matrix,
     get_product_action_matrix,
+    get_product_action_matrix_meta,
+    get_product_action_matrix_page,
+    get_product_action_matrix_row,
     matrix_timestamp,
     rebuild_product_action_matrix,
+    summarize_row,
 )
 
 router = APIRouter()
@@ -38,19 +42,71 @@ def _field_error(status_code: int, field: str, message: str) -> HTTPException:
     )
 
 
+@router.get("/pypcs/product-action-matrix/meta")
+def get_pypcs_product_action_matrix_meta():
+    return get_product_action_matrix_meta()
+
+
 @router.get("/pypcs/product-action-matrix")
 def get_pypcs_product_action_matrix(
     module_group: str | None = Query(default=None),
     prodgroup3: str | None = Query(default=None),
+    view: Literal["page"] | None = Query(default=None),
+    fields: Literal["summary"] | None = Query(default=None),
+    q: str | None = Query(default=None, max_length=200),
+    needs_review: bool | None = Query(default=None),
+    sort: Literal["product_name", "review_status", "prodgroup3"] | None = Query(default=None),
+    dir: Literal["asc", "desc"] = Query(default="asc"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     user: dict | None = Depends(get_optional_user),
 ):
-    result = get_product_action_matrix(module_group, prodgroup3=prodgroup3)
     owner_index = build_owner_index() if user_role(user) == ROLE_ME else {}
     email = user_email(user)
-    for row in result["rows"]:
-        owned = owned_modules(owner_index, value_to_str(row.get("submission_id", "")), email)
-        row["can_edit"] = can_edit_matrix_row(user, row.get("module_keys", []), owned)
+
+    def apply_flags(rows):
+        for row in rows:
+            owned = owned_modules(owner_index, value_to_str(row.get("submission_id", "")), email)
+            row["can_edit"] = can_edit_matrix_row(user, row.get("module_keys", []), owned)
+
+    if view == "page":
+        page = get_product_action_matrix_page(
+            module_group,
+            prodgroup3=prodgroup3,
+            q=q,
+            needs_review=needs_review,
+            sort=sort,
+            direction=dir,
+            limit=limit,
+            offset=offset,
+        )
+        apply_flags(page["items"])
+        if fields == "summary":
+            page["items"] = [summarize_row(row) for row in page["items"]]
+        return page
+
+    result = get_product_action_matrix(module_group, prodgroup3=prodgroup3)
+    apply_flags(result["rows"])
     return result
+
+
+@router.get("/pypcs/product-action-matrix/row")
+def get_pypcs_product_action_matrix_row(
+    product_key: str = Query(min_length=1, max_length=500),
+    module_group: str = Query(min_length=1, max_length=200),
+    user: dict | None = Depends(get_optional_user),
+):
+    detail = get_product_action_matrix_row(product_key, module_group)
+    if detail is None:
+        raise _field_error(404, "product_key", "Product/module group not found.")
+    row = detail["row"]
+    owned = owned_modules(
+        build_owner_index() if user_role(user) == ROLE_ME else {},
+        value_to_str(row.get("submission_id", "")),
+        user_email(user),
+    )
+    row["can_edit"] = can_edit_matrix_row(user, row.get("module_keys", []), owned)
+    return detail
 
 
 @router.put("/pypcs/product-action-matrix/rows")

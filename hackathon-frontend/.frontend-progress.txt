@@ -1,0 +1,14 @@
+## Next
+- None.
+- [done] productActionMatrixApi.js: summary page and full row detail query.
+- [done] QualityProductMatrixPage.jsx: editor loads detail, refreshes on missing row, and marks truncated comments.
+- [done] npx eslint matrix slice: no errors; existing TanStack compiler warning.
+- [done] App.jsx and vite.config.js: lazy dev tool and vendor split groups.
+- [done] npm run build: entry 207.24 kB; largest chunk 469.84 kB, no warnings.
+- [done] legacy folders: six unreferenced files removed; unused full-list endpoints removed.
+- [partial] npx eslint changed files: config's existing __dirname triggered no-undef; replaced with ESM path.
+- [done] npx eslint changed files: 0 errors; pre-existing TanStack compiler warning only.
+- [done] npm run build: 8230 modules; entry 207.24 kB; largest Ant Design vendor 469.84 kB.
+- [done] source reference scan: 0 legacy references; all three old directories absent.
+- [done] production assets scan: no agentation or 4747 marker.
+- [done] git diff --check: no whitespace errors in changed frontend files.

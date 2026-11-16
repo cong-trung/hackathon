@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ArrowDownUp, ArrowDown, ArrowUp } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import store from '@/app/store';
 import { apiSlice } from '@/app/api/apiSlice';
+import { useGetSubmissionsMetaQuery, useGetSubmissionsPageQuery } from '@/app/api/pypcsSubmissionsApi';
 import { authErrorMessage, loginPath, useAuth } from '@/shared/hooks/useAuth';
-import ClientPagination from '@/shared/components/data-table/ClientPagination';
+import ServerPagination from '@/shared/components/data-table/ServerPagination';
+import LazyTabs from '@/shared/components/lazy-tabs/LazyTabs';
+import useServerTable from '@/shared/hooks/useServerTable';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import {
@@ -14,7 +17,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/shared/components/ui/sheet';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { mergeSubmissionTabs } from '../tabs.config';
 
 const API_BASE = '/api';
 
@@ -80,51 +83,37 @@ export default function PYPCSSubmissionsReview({
     onContinueEditing = () => {},
     modeSwitch,
 } = {}) {
-    const [submissions, setSubmissions] = useState([]);
     const [selectedDetail, setSelectedDetail] = useState(null);
     const detailTrigger = useRef(null);
     const refreshButton = useRef(null);
-    const [listError, setListError] = useState(false);
     const [loading, setLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState('');
     const [statusKind, setStatusKind] = useState('success');
     const [pendingDeleteId, setPendingDeleteId] = useState(null);
-    const { user, isAuthenticated, isAdmin, isME } = useAuth();
+    const { isAuthenticated, isAdmin, isME } = useAuth();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
     const [history, setHistory] = useState([]);
     const [historyError, setHistoryError] = useState('');
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
     const [assignedOnly, setAssignedOnly] = useState(false);
-    const [sort, setSort] = useState({ key: 'created_at', direction: 'descending' });
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(25);
-    const filtered = useMemo(() => {
-        const term = search.trim().toLowerCase();
-        return submissions.filter((item) =>
-            (statusFilter === 'all' || item.status === statusFilter) &&
-            (!assignedOnly || (item.pdo_owner_emails ?? []).some((email) => email.trim().toLowerCase() === user?.email?.trim().toLowerCase())) &&
-            (!term || [item.created_at, item.status, item.product_name,
-                displayAnswer('prodgroup3', item.prodgroup3), item.prodgroup3,
-                displayAnswer('operation', item.operation), (item.selected_modules || []).join(', '),
-                item.role, item.submitted_by].some((value) => String(value ?? '').toLowerCase().includes(term))));
-    }, [submissions, search, statusFilter, assignedOnly, user?.email]);
-    const sorted = useMemo(() => [...filtered].sort((first, second) => {
-        const left = sort.key === 'created_at' ? Date.parse(first.created_at) || 0 : String(first[sort.key] ?? '');
-        const right = sort.key === 'created_at' ? Date.parse(second.created_at) || 0 : String(second[sort.key] ?? '');
-        const comparison = typeof left === 'number' ? left - right : left.localeCompare(right, undefined, { numeric: true });
-        return sort.direction === 'ascending' ? comparison : -comparison;
-    }), [filtered, sort]);
-    const currentPage = Math.min(page, Math.max(1, Math.ceil(sorted.length / pageSize)));
-    const visibleSubmissions = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const tableState = useServerTable({ tabKey: searchParams.get('tab') });
+    const metaQuery = useGetSubmissionsMetaQuery();
+    const tabs = mergeSubmissionTabs(metaQuery.currentData);
+    const requestedTab = searchParams.get('tab') ?? 'all';
+    const activeTab = tabs.some((tab) => tab.key === requestedTab) ? requestedTab : 'all';
+    const listQuery = useGetSubmissionsPageQuery({
+        ...tableState.args, status: activeTab === 'all' ? undefined : activeTab,
+        assigned_to_me: isME && assignedOnly ? true : undefined,
+    }, { skip: !metaQuery.currentData || metaQuery.isError });
+    const submissions = listQuery.currentData?.items ?? [];
+    const visibleSubmissions = submissions;
 
     function changeSort(key) {
-        setSort((previous) => ({ key, direction: previous.key === key && previous.direction === 'ascending' ? 'descending' : 'ascending' }));
-        setPage(1);
+        tableState.changeSort(key);
     }
 
     function sortHeader(key, label) {
-        const direction = sort.key === key ? sort.direction : 'none';
+        const direction = tableState.sort === key ? (tableState.dir === 'asc' ? 'ascending' : 'descending') : 'none';
         const Icon = direction === 'ascending' ? ArrowUp : direction === 'descending' ? ArrowDown : ArrowDownUp;
         return (
             <th scope="col" aria-sort={direction} className="sticky top-0 z-10 border-b border-r border-white/20 bg-table-header p-3 text-table-header-foreground">
@@ -141,21 +130,15 @@ export default function PYPCSSubmissionsReview({
     }, [selectedDetail]);
 
     async function loadSubmissions() {
-        setLoading(true);
         setStatusMessage('');
 
         try {
-            const result = await requestJson('/pypcs/submissions');
-            setSubmissions(result.items || []);
-            setListError(false);
+            await Promise.all([metaQuery.refetch().unwrap(), listQuery.refetch().unwrap()]);
             return true;
         } catch (error) {
-            setListError(true);
             setStatusKind('error');
             setStatusMessage(`Failed to load submissions: ${error.message}`);
             return false;
-        } finally {
-            setLoading(false);
         }
     }
 
@@ -217,6 +200,8 @@ export default function PYPCSSubmissionsReview({
             await requestJson(`/pypcs/submissions/${submissionId}`, {
                 method: 'DELETE',
             });
+            store.dispatch(apiSlice.util.invalidateTags(['PYPCSSubmissions']));
+            tableState.resetOffset();
 
             if (selectedDetail?.submission?.submission_id === submissionId) {
                 setSelectedDetail(null);
@@ -250,10 +235,6 @@ export default function PYPCSSubmissionsReview({
             setLoading(false);
         }
     }
-
-    useEffect(() => {
-        loadSubmissions();
-    }, []);
 
     function renderDeleteControl(submissionId) {
         if (!(selectedDetail?.submission?.submission_id === submissionId
@@ -517,26 +498,13 @@ export default function PYPCSSubmissionsReview({
                         type="search"
                         placeholder="Search submissions"
                         className="w-44 sm:w-52"
-                        value={search}
-                        onChange={(event) => {
-                            setSearch(event.target.value);
-                            setPage(1);
-                        }}
+                        value={tableState.search}
+                        onChange={(event) => tableState.setSearch(event.target.value)}
                     />
-                    <label htmlFor="review-status" className="text-sm font-medium">
-                        Status
-                    </label>
-                    <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPage(1); }}>
-                        <SelectTrigger id="review-status" className="w-36"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All statuses</SelectItem>
-                            {['draft', 'waiting_me', 'final'].map((value) => <SelectItem key={value} value={value}>{statusLabels[value]}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
                     {isME && <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={assignedOnly}
-                        onChange={(event) => { setAssignedOnly(event.target.checked); setPage(1); }} />Assigned to me</label>}
+                        onChange={(event) => { setAssignedOnly(event.target.checked); tableState.resetOffset(); }} />Assigned to me ({metaQuery.currentData?.assigned_to_me_count ?? 0})</label>}
                     <span role="status" aria-live="polite" className="whitespace-nowrap text-sm text-muted-foreground">
-                        {filtered.length} submissions found
+                        {listQuery.currentData?.total ?? 0} submissions found
                     </span>
                     <Button
                         ref={refreshButton}
@@ -544,7 +512,7 @@ export default function PYPCSSubmissionsReview({
                         size="sm"
                         variant="outline"
                         onClick={loadSubmissions}
-                        disabled={loading}
+                        disabled={loading || listQuery.isFetching}
                     >
                         Refresh
                     </Button>
@@ -566,14 +534,18 @@ export default function PYPCSSubmissionsReview({
                 </div>
             ) : null}
 
+            {metaQuery.isError && <p role="alert" className="text-sm text-destructive">Could not load submission tabs. <Button type="button" variant="outline" onClick={metaQuery.refetch}>Retry</Button></p>}
+            <LazyTabs tabs={tabs} activeKey={requestedTab} loading={!metaQuery.currentData} onChange={() => tableState.resetOffset()} renderPanel={() => (
+            <>
             <div className="min-h-[320px] min-w-0 overflow-auto rounded-md border border-table-border bg-card md:min-h-0 md:flex-1">
                 {visibleSubmissions.length === 0 ? (
                     <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted-foreground">
-                        <p>{loading ? 'Loading submissions...' : listError
-                            ? 'Unable to load submissions.' : submissions.length === 0
+                        <p>{listQuery.isError ? 'Unable to load submissions.' : listQuery.isLoading || listQuery.isFetching || loading ? 'Loading submissions...'
+                            : (listQuery.currentData?.total ?? 0) === 0 && !tableState.search && !assignedOnly && activeTab === 'all'
                                 ? 'No submissions found.' : 'No matching submissions.'}</p>
-                        {!loading && submissions.length > 0 && !filtered.length ? (
-                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setAssignedOnly(false); setPage(1); }}>Clear filters</Button>
+                        {listQuery.isError ? <Button type="button" variant="outline" size="sm" onClick={listQuery.refetch}>Retry</Button> : null}
+                        {!listQuery.isFetching && (tableState.search || assignedOnly || activeTab !== 'all') && !listQuery.isError ? (
+                            <Button type="button" variant="outline" size="sm" onClick={() => { tableState.setSearch(''); setAssignedOnly(false); tableState.resetOffset(); }}>Clear filters</Button>
                         ) : null}
                     </div>
                 ) : (
@@ -663,8 +635,10 @@ export default function PYPCSSubmissionsReview({
                 )}
             </div>
 
-            <ClientPagination label="Submissions" total={sorted.length} page={currentPage} pageSize={pageSize}
-                onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
+            {!listQuery.isError && <ServerPagination label="Submissions" total={listQuery.currentData?.total ?? 0}
+                limit={tableState.limit} offset={tableState.offset} onOffsetChange={tableState.setOffset} onLimitChange={tableState.changeLimit} />}
+            </>
+            )} />
 
             <Sheet
                 open={Boolean(selectedDetail)}

@@ -6,6 +6,7 @@ import {
     disableUser,
     getMe,
     getUsers,
+    getUsersMeta,
     guest,
     login,
     logout,
@@ -32,6 +33,7 @@ router.post('/auth/logout', logout);
 router.post('/auth/request-account', requestAccount);
 router.post('/auth/change-password', changePassword);
 router.get('/auth/me', getMe);
+router.get('/auth/users/meta', getUsersMeta);
 router.get('/auth/users', getUsers);
 router.post('/auth/users/:username/approve', approveUser);
 router.post('/auth/users/:username/reject', rejectUser);

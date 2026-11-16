@@ -5,6 +5,7 @@ import hmac
 import ipaddress
 import threading
 import time
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -283,18 +284,56 @@ def auth_me(user: dict[str, str] = Depends(get_current_user)):
     }
 
 
+_USER_STATUSES = ("pending", "active", "rejected", "disabled")
+
+
+@router.get("/auth/users/meta")
+def users_meta(_admin: dict[str, str] = Depends(require_admin)):
+    with locked_files(USER_FILE):
+        rows = _read_csv(USER_FILE, USER_HEADERS)
+    counts = {key: 0 for key in _USER_STATUSES}
+    for row in rows:
+        if row.get("status") in counts:
+            counts[row["status"]] += 1
+    return {"tabs": [{"key": key, "count": counts[key]} for key in _USER_STATUSES]}
+
+
 @router.get("/auth/users")
 def list_users(
     status: str | None = Query(default=None),
+    view: Literal["page"] | None = Query(default=None),
+    q: str | None = Query(default=None, max_length=200),
+    limit: int | None = Query(default=None, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     _admin: dict[str, str] = Depends(require_admin),
 ):
-    if status and status not in {"pending", "active", "rejected", "disabled"}:
+    if status and status not in _USER_STATUSES:
         raise HTTPException(status_code=422, detail={"code": "invalid_status"})
     with locked_files(USER_FILE):
         rows = _read_csv(USER_FILE, USER_HEADERS)
-    return {"users": [
-        public_user(row) for row in rows if not status or row.get("status") == status
-    ]}
+    paged = view == "page" or limit is not None or q is not None
+    term = (q or "").strip().casefold()
+    users = [
+        public_user(row)
+        for row in rows
+        if (not status or row.get("status") == status)
+        and (
+            not term
+            or any(
+                term in value_to_str(row.get(field, "")).casefold()
+                for field in ("username", "display_name", "email")
+            )
+        )
+    ]
+    if not paged:
+        return {"users": users}
+    page_size = limit if limit is not None else 50
+    return {
+        "items": users[offset : offset + page_size],
+        "total": len(users),
+        "limit": page_size,
+        "offset": offset,
+    }
 
 
 @router.post("/auth/users/{username}/approve")
