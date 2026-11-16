@@ -1,6 +1,4 @@
 ﻿submission_id,created_at,updated_at,submitted_by,role,selected_modules,product_name,prodgroup3,operation,answer_count,status
-a0317059-302f-45dc-8706-43732d49a0d7,2026-08-19T01:49:29Z,"",current_user,TI,LCBI|HDMx_AHMT|HDMx_Class|STHI,Demo,DEMO123,6379,15,""
-98f0058f-0815-454c-adc2-9cb1e9da8bde,2026-08-25T10:14:55Z,2026-08-25T10:40:50Z,current_user,"",LCBI,Hello,aa,aa,14,final
 37269255-fb15-4f08-a1b0-dc16c8e71ab3,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,DG2-512,DG512,7460|7462|7463|7465,31,draft
 dc8b8bed-95ed-4b39-bda8-8756460bdc65,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,LCBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,DG2-128,DG128,7462|7463|7464,31,draft
 b9259206-598c-4fb4-877e-24b4f52fa1c0,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Class|HDMx_Cfuse|HDMx_EQA|STHI,Alder Lake P682,ADLP682,6248|6249,30,draft
@@ -113,4 +111,4 @@ f1649535-15e2-446b-8f58-7d873b9a6f9b,2026-10-16T09:19:43Z,"",quality_matrix_xlsx
 199a2644-24b7-4f1d-9825-6606ba7e8026,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_AHMT|HDMx_Class|HDMx_Cfuse|HDMx_EQA|OLB|STHI,NVL S8C,NVLS8C,7652|7655,95,draft
 3a6b1422-87ec-4b28-981a-b4a7d7f925f1,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDBI|HDMx_Class|HDMx_Cfuse|HDMx_EQA|OLB|STHI,Panther Lake U404 NEX,PTLUNEX,7652|7655,92,draft
 c5340a90-9889-49dc-bab3-e28e96d4fa9c,2026-10-16T09:19:43Z,"",quality_matrix_xlsx_import,TI,HDMx_Cfuse|HDMx_EQA|OLB|STHI,Wildcat Lake 8C,WCL8,6197,62,draft
-c082a5f1-9de0-4109-a989-85f4342fb944,2026-10-13T01:36:56Z,2026-11-01T15:35:12Z,admin,"",LCBI|HDMx_AHMT,hi,ADLP682,7460,34,final
+a0317059-302f-45dc-8706-43732d49a0d7,2026-08-19T01:49:29Z,2026-11-13T08:43:12Z,current_user,TI,LCBI|HDMx_AHMT|HDMx_Class|STHI,aaaa,DEMO123,6379,19,draft

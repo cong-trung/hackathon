@@ -22,7 +22,7 @@ import {
 } from '@/shared/components/ui/form';
 import { Input } from '@/shared/components/ui/input';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/shared/components/ui/sidebar';
-import { useAuth, authErrorMessage, loginPath } from '@/shared/hooks/useAuth';
+import { useAuth, authErrorMessage, loginPath, roleLabels } from '@/shared/hooks/useAuth';
 import { useTheme } from '@/shared/components/theme-provider/theme-provider';
 
 const appearanceOptions = [
@@ -153,7 +153,7 @@ export default function NavUser() {
                 </span>
                 <span className="min-w-0 flex-1 text-left text-sm">
                     <span className="block truncate font-semibold">{user.display_name}</span>
-                    <span className="block capitalize text-xs text-muted-foreground">{user.role}</span>
+                    <span className="block text-xs text-muted-foreground">{roleLabels[user.role] || user.role}</span>
                 </span>
                 <ChevronsUpDown className="size-4" />
             </SidebarMenuButton></DropdownMenuTrigger>

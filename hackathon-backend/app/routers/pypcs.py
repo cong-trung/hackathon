@@ -9,7 +9,25 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
-from app.auth import require_admin, require_writer, validate_email
+from app.auth import (
+    ROLE_ME,
+    get_optional_user,
+    require_admin,
+    require_product_info_editor,
+    require_ti_or_admin,
+    validate_email,
+)
+from app.config import is_allowed_email_domain
+from app.services.permissions import (
+    build_owner_index,
+    me_owned_folded,
+    out_of_scope_cell_fields,
+    owned_modules,
+    pdo_owner_emails,
+    submission_field_changes,
+    submission_permissions,
+    user_email,
+)
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
 from app.io.generic_csv import (
@@ -46,8 +64,27 @@ from app.services.pypcs_service import (
     normalize_pypcs_module,
     normalize_pypcs_question,
 )
-from app.services.notification_service import notify_final_submission
+from app.services.change_log import (
+    ACTION_ITEM_LOG_FIELDS,
+    field_changes,
+    has_status_entry,
+    new_request_id,
+    product_info_changes,
+    product_info_delete_changes,
+    record_changes,
+)
+from app.services.notification_service import (
+    notify_final_submission,
+    notify_waiting_me_submission,
+)
 from app.services.product_action_matrix_service import invalidate_product_action_matrix_cache
+from app.services.submission_history import (
+    PYPCS_SUBMISSION_HISTORY_FILE,
+    PYPCS_SUBMISSION_HISTORY_HEADERS,
+    action_item_timestamp,
+    append_submission_history as _append_submission_history,
+    normalize_status,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -65,21 +102,6 @@ PYPCS_SUBMISSION_CELL_HEADERS = [
     "updated_at",
     "updated_by",
 ]
-PYPCS_SUBMISSION_HISTORY_FILE = "QualityMatrix/History/PYPCS_SubmissionHistory.csv"
-PYPCS_SUBMISSION_HISTORY_HEADERS = [
-    "history_id",
-    "submission_id",
-    "action",
-    "changed_at",
-    "changed_by",
-    "reason",
-    "previous_submission_json",
-    "previous_cells_json",
-]
-def action_item_timestamp() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace(
-        "+00:00", "Z"
-    )
 
 
 def normalize_email_list(value: str, field: str) -> str:
@@ -100,6 +122,11 @@ def normalize_email_list(value: str, field: str) -> str:
                     "message": f"Invalid email: {html.escape(raw[:100])}",
                 },
             ) from None
+        if not is_allowed_email_domain(email):
+            raise HTTPException(
+                status_code=422,
+                detail={"field": field, "message": f"Email domain not allowed: {email}"},
+            )
         if email.casefold() in seen:
             continue
         seen.add(email.casefold())
@@ -113,46 +140,6 @@ def normalize_email_list(value: str, field: str) -> str:
                 },
             )
     return ", ".join(addresses)
-
-
-def _append_submission_history(
-    submission: dict[str, str],
-    cells: list[dict[str, str]],
-    action: str,
-    changed_by: str,
-    reason: str,
-) -> None:
-    history_rows = read_optional_csv(PYPCS_SUBMISSION_HISTORY_FILE)
-    headers = read_generic_csv_headers(PYPCS_SUBMISSION_HISTORY_FILE)
-    if not headers:
-        headers = PYPCS_SUBMISSION_HISTORY_HEADERS
-    canonical_submission = dict(submission)
-    if "selected_modules" in canonical_submission:
-        canonical_submission["selected_modules"] = "|".join(
-            canonical_module_key(module)
-            for module in split_pipe_value(canonical_submission["selected_modules"])
-        )
-    canonical_cells = [
-        {**cell, "module_key": canonical_module_key(cell.get("module_key", ""))}
-        for cell in cells
-    ]
-    history_rows.append(
-        {
-            "history_id": str(uuid.uuid4()),
-            "submission_id": value_to_str(submission.get("submission_id", "")),
-            "action": action,
-            "changed_at": action_item_timestamp(),
-            "changed_by": changed_by,
-            "reason": reason,
-            "previous_submission_json": json.dumps(
-                canonical_submission, ensure_ascii=False, separators=(",", ":")
-            ),
-            "previous_cells_json": json.dumps(
-                canonical_cells, ensure_ascii=False, separators=(",", ":")
-            ),
-        }
-    )
-    write_rows_to_csv(PYPCS_SUBMISSION_HISTORY_FILE, history_rows, headers)
 
 
 def validate_action_item(payload: PYPCSActionItemRequest) -> None:
@@ -293,7 +280,7 @@ def get_pypcs_action_item_options():
 
 @router.post("/pypcs/action-items", status_code=201)
 def create_pypcs_action_item(
-    payload: PYPCSActionItemRequest, user: dict = Depends(require_writer)
+    payload: PYPCSActionItemRequest, user: dict = Depends(require_ti_or_admin)
 ):
     payload.update_by = user["username"]
     validate_action_item(payload)
@@ -306,6 +293,7 @@ def create_pypcs_action_item(
         created = action_item_row(next_nbr, payload, action_item_timestamp())
         rows.append(created)
         write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+        _record_action_item_changes(user, next_nbr, {}, created, "create")
     invalidate_product_action_matrix_cache()
     return normalize_action_item(created)
 
@@ -314,7 +302,7 @@ def create_pypcs_action_item(
 def update_pypcs_action_item(
     nbr: int,
     payload: PYPCSActionItemRequest,
-    user: dict = Depends(require_writer),
+    user: dict = Depends(require_ti_or_admin),
 ):
     payload.update_by = user["username"]
     validate_action_item(payload)
@@ -344,8 +332,10 @@ def update_pypcs_action_item(
                 },
             )
         updated = action_item_row(nbr, payload, action_item_timestamp())
+        before = rows[target_index]
         rows[target_index] = updated
         write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+        _record_action_item_changes(user, nbr, before, updated, "update")
     invalidate_product_action_matrix_cache()
     return normalize_action_item(updated)
 
@@ -354,7 +344,7 @@ def update_pypcs_action_item(
 def delete_pypcs_action_item(
     nbr: int,
     expected_version: str | None = None,
-    _admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin),
 ):
     with locked_files(PYPCS_ACTION_ITEMS_FILE):
         rows = read_generic_csv(PYPCS_ACTION_ITEMS_FILE)
@@ -378,16 +368,61 @@ def delete_pypcs_action_item(
                     "current": current,
                 },
             )
+        deleted_row = rows[target_index]
         del rows[target_index]
         write_rows_to_csv(PYPCS_ACTION_ITEMS_FILE, rows, ACTION_ITEM_HEADERS)
+        _record_action_item_changes(admin, nbr, deleted_row, {}, "delete")
     invalidate_product_action_matrix_cache()
     return {"deleted": True, "nbr": nbr}
 
 
-def normalize_status(value: str) -> str:
-    # Older rows predate the status column; treat missing status as already-final.
-    status = value_to_str(value).lower()
-    return status if status in {"draft", "final"} else "final"
+def _record_action_item_changes(
+    user: dict,
+    nbr: int,
+    before: dict,
+    after: dict,
+    action: str,
+) -> None:
+    record_changes(
+        username=user["username"],
+        role=value_to_str(user.get("role", "")),
+        entity_type="action_item",
+        entity_id=str(nbr),
+        ticket_label=value_to_str((after or before).get("event_id", "")),
+        action=action,
+        request_id=new_request_id(),
+        changes=field_changes(before, after, ACTION_ITEM_LOG_FIELDS, action=action),
+    )
+
+
+def _required_roles_for(status: str, role: str | None) -> set[str]:
+    """Question roles whose required cells must be complete; ME saves are not checked."""
+    if value_to_str(role).strip().lower() == ROLE_ME:
+        return set()
+    if status == "final":
+        return {"TI", "ME"}
+    if status == "waiting_me":
+        return {"TI"}
+    return set()
+
+
+def _stored_answers_outside_scope(req: PYPCSMatrixSubmissionRequest) -> dict[tuple[str, str], str]:
+    """Stored module answers that this save keeps, keyed like submitted answers."""
+    submission_id = value_to_str(req.submission_id)
+    scope = value_to_str(req.role).strip().upper() or "ALL"
+    if not submission_id or scope == "ALL":
+        return {}
+    answers: dict[tuple[str, str], str] = {}
+    for row in read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE):
+        if value_to_str(row.get("submission_id", "")) != submission_id:
+            continue
+        module_key = canonical_module_key(row.get("module_key", ""))
+        if not module_key or value_to_str(row.get("role", "")).strip().upper() == scope:
+            continue
+        answers[(value_to_str(row.get("question_id", "")), module_key)] = value_to_str(
+            row.get("answer", "")
+        )
+    return answers
 
 
 def matrix_submission_versions(
@@ -477,6 +512,28 @@ def _persist_matrix_submission(
         ) == "final":
             if user_role != "admin":
                 raise HTTPException(status_code=403, detail={"code": "admin_required"})
+
+        is_me = user_role == ROLE_ME
+        owned_folded: set[str] = set()
+        if is_me:
+            if scope != ROLE_ME.upper():
+                raise HTTPException(
+                    status_code=403,
+                    detail={"code": "forbidden_fields", "message": "ME saves must use role ME.", "fields": ["role"]},
+                )
+            if not existing_submission:
+                raise HTTPException(status_code=403, detail={"code": "me_cannot_create"})
+            if normalize_status(req.status) != normalize_status(
+                existing_submission.get("status", "")
+            ):
+                raise HTTPException(status_code=403, detail={"code": "me_cannot_change_status"})
+            owned_folded = me_owned_folded(
+                build_owner_index(existing_cells),
+                value_to_str(req.submission_id),
+                submitter_email.strip().casefold(),
+            )
+            if not owned_folded:
+                raise HTTPException(status_code=403, detail={"code": "me_no_owned_modules"})
 
         if req.expected_version is not None:
             if not existing_submission:
@@ -577,7 +634,11 @@ def _persist_matrix_submission(
             "submission_id": submission_id,
             "created_at": created_at,
             "updated_at": updated_at,
-            "submitted_by": username,
+            "submitted_by": (
+                value_to_str(existing_submission.get("submitted_by", "")) or username
+                if existing_submission
+                else username
+            ),
             "role": value_to_str(req.role),
             "selected_modules": "|".join(selected_modules_ordered),
             "product_name": product_name,
@@ -618,6 +679,26 @@ def _persist_matrix_submission(
                 for row in merged_cells
             )
         )
+        if is_me:
+            # ME may only change ME-role cells in owned modules; the stored role is kept.
+            submission_row["role"] = value_to_str(existing_submission.get("role", ""))
+            forbidden_fields = sorted(
+                set(
+                    out_of_scope_cell_fields(
+                        existing_cells, merged_cells, submission_id, owned_folded
+                    )
+                    + submission_field_changes(existing_submission, submission_row)
+                )
+            )
+            if forbidden_fields:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "code": "forbidden_fields",
+                        "message": "ME users may only change ME-role answers for their owned modules.",
+                        "fields": forbidden_fields,
+                    },
+                )
         if existing_submission and normalize_status(
             existing_submission.get("status", "")
         ) == "final":
@@ -628,6 +709,9 @@ def _persist_matrix_submission(
                 username,
                 value_to_str(req.edit_reason),
             )
+        waiting_me_already_logged = req.status == "waiting_me" and has_status_entry(
+            submission_id, "waiting_me"
+        )
         submission_headers = [
             "submission_id", "created_at", "updated_at", "submitted_by", "role",
             "selected_modules", "product_name", "prodgroup3", "operation",
@@ -644,6 +728,28 @@ def _persist_matrix_submission(
             PYPCS_SUBMISSION_CELLS_FILE,
             merged_cells,
             PYPCS_SUBMISSION_CELL_HEADERS,
+        )
+        after_cells = [
+            row
+            for row in merged_cells
+            if value_to_str(row.get("submission_id", "")) == submission_id
+            and value_to_str(row.get("module_key", "")).strip()
+        ]
+        record_changes(
+            username=username,
+            role=user_role,
+            entity_type="product_info",
+            entity_id=submission_id,
+            ticket_label=f"{product_name} ({prodgroup3})",
+            action="update",
+            request_id=new_request_id(),
+            changes=product_info_changes(
+                existing_submission or {},
+                submission_row,
+                scoped_existing_cells,
+                after_cells,
+                creating=existing_submission is None,
+            ),
         )
         invalidate_product_action_matrix_cache()
 
@@ -677,6 +783,23 @@ def _persist_matrix_submission(
                 prodgroup3=prodgroup3,
                 submitter_username=username,
                 submitter_display_name=submitter_display_name,
+                submitter_email=submitter_email,
+            )
+        became_waiting_me = req.status == "waiting_me" and (
+            not existing_submission
+            or normalize_status(existing_submission.get("status", "")) == "draft"
+        )
+        if became_waiting_me and waiting_me_already_logged:
+            logger.info("Waiting-for-ME notification skipped for %s: already sent once.", submission_id)
+            became_waiting_me = False
+        if became_waiting_me:
+            background_tasks.add_task(
+                notify_waiting_me_submission,
+                submission_id=submission_id,
+                cells=saved_cells,
+                product_name=product_name,
+                prodgroup3=prodgroup3,
+                submitter_username=username,
                 submitter_email=submitter_email,
             )
         return {
@@ -774,7 +897,7 @@ def get_pypcs_questions(role: str | None = None):
 def update_pypcs_question_description(
     question_id: str,
     payload: PYPCSQuestionDescriptionUpdate,
-    _user: dict = Depends(require_writer),
+    _user: dict = Depends(require_ti_or_admin),
 ):
     target = value_to_str(question_id)
     with locked_files(PYPCS_QUESTIONS_FILE):
@@ -816,6 +939,7 @@ def list_pypcs_submissions(
     submitted_by: str | None = None,
     limit: int = Query(200, ge=1, le=5000),
     offset: int = Query(0, ge=0),
+    user: dict | None = Depends(get_optional_user),
 ):
     rows = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
 
@@ -887,6 +1011,23 @@ def list_pypcs_submissions(
             }
         )
 
+    owner_index = build_owner_index()
+    email = user_email(user)
+    for item in items:
+        permissions = submission_permissions(
+            user,
+            item["status"],
+            owned_modules(owner_index, item["submission_id"], email),
+        )
+        item.update(
+            can_edit=permissions["can_edit"],
+            can_final=permissions["can_final"],
+            can_submit_ti=permissions["can_submit_ti"],
+            can_delete=permissions["can_delete"],
+        )
+        if user:
+            item["pdo_owner_emails"] = pdo_owner_emails(owner_index, item["submission_id"])
+
     return {
         "count": len(items),
         "total": len(rows),
@@ -897,7 +1038,10 @@ def list_pypcs_submissions(
 
 
 @router.get("/pypcs/submissions/{submission_id}")
-def get_pypcs_submission_detail(submission_id: str):
+def get_pypcs_submission_detail(
+    submission_id: str,
+    user: dict | None = Depends(get_optional_user),
+):
     target_id = value_to_str(submission_id)
 
     submissions = read_optional_csv(PYPCS_SUBMISSIONS_FILE)
@@ -1042,6 +1186,15 @@ def get_pypcs_submission_detail(submission_id: str):
         "answers": answers,
         "cell_count": len(cells),
         "cells": cells,
+        "permissions": submission_permissions(
+            user,
+            normalize_status(submission.get("status", "")),
+            owned_modules(
+                build_owner_index(submission_cells),
+                target_id,
+                user_email(user),
+            ),
+        ),
     }
 
 
@@ -1070,7 +1223,7 @@ def get_pypcs_submission_history(submission_id: str):
 def delete_pypcs_submission(
     submission_id: str,
     edit_reason: str | None = None,
-    user: dict = Depends(require_writer),
+    user: dict = Depends(require_ti_or_admin),
 ):
     target_id = value_to_str(submission_id)
     with locked_files(
@@ -1114,6 +1267,19 @@ def delete_pypcs_submission(
                 detail="PYPCS submission not found.",
             )
         delete_rows_from_csv(PYPCS_SUBMISSION_CELLS_FILE, "submission_id", target_id)
+        record_changes(
+            username=user["username"],
+            role=value_to_str(user.get("role", "")),
+            entity_type="product_info",
+            entity_id=target_id,
+            ticket_label=(
+                f"{value_to_str(previous_submission.get('product_name', ''))} "
+                f"({value_to_str(previous_submission.get('prodgroup3', ''))})"
+            ),
+            action="delete",
+            request_id=new_request_id(),
+            changes=product_info_delete_changes(previous_submission, previous_cells),
+        )
         invalidate_product_action_matrix_cache()
 
     return {"message": "deleted", "submission_id": target_id}
@@ -1123,12 +1289,18 @@ def delete_pypcs_submission(
 def create_pypcs_matrix_submission(
     req: PYPCSMatrixSubmissionRequest,
     background_tasks: BackgroundTasks,
-    user: dict = Depends(require_writer),
+    user: dict = Depends(require_product_info_editor),
 ):
     if not req.selected_modules:
         raise HTTPException(
             status_code=400,
             detail="selected_modules is required.",
+        )
+
+    if user.get("role") == ROLE_ME and req.status not in {"draft", "waiting_me"}:
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "me_cannot_change_status"},
         )
 
     # Preserve the caller's original module order (not sorted) for column ordering.
@@ -1293,8 +1465,13 @@ def create_pypcs_matrix_submission(
         )
 
     missing_required = []
+    required_roles = _required_roles_for(req.status, user.get("role"))
+    answers_to_check = {
+        **_stored_answers_outside_scope(req),
+        **submitted_pair_to_answer,
+    }
 
-    if req.status == "final":
+    if required_roles:
         for question_id, module_key in required_pairs:
             if module_key.casefold() not in selected_modules:
                 continue
@@ -1304,14 +1481,10 @@ def create_pypcs_matrix_submission(
             if not question:
                 continue
 
-            if (
-                req.role
-                and question.get("role", "").upper()
-                != value_to_str(req.role).upper()
-            ):
+            if question.get("role", "").upper() not in required_roles:
                 continue
 
-            answer = submitted_pair_to_answer.get((question_id, module_key), "")
+            answer = answers_to_check.get((question_id, module_key), "")
 
             if not value_to_str(answer):
                 missing_required.append(
@@ -1328,25 +1501,22 @@ def create_pypcs_matrix_submission(
 
         nsb_question = questions_by_id.get("nsb")
         nsb_comment_question = questions_by_id.get("nsb_comment")
-        if nsb_question and nsb_comment_question:
+        if nsb_question and nsb_comment_question and required_roles:
             for module_key in selected_modules_ordered:
                 if ("nsb_comment", module_key) not in applicable_pairs:
                     continue
 
-                if req.role:
-                    role_filter = value_to_str(req.role).upper()
-                    if (
-                        nsb_question.get("role", "").upper() != role_filter
-                        or nsb_comment_question.get("role", "").upper()
-                        != role_filter
-                    ):
-                        continue
+                if (
+                    nsb_question.get("role", "").upper() not in required_roles
+                    or nsb_comment_question.get("role", "").upper() not in required_roles
+                ):
+                    continue
 
                 nsb_answer = value_to_str(
-                    submitted_pair_to_answer.get(("nsb", module_key), "")
+                    answers_to_check.get(("nsb", module_key), "")
                 ).strip().upper()
                 comment_answer = value_to_str(
-                    submitted_pair_to_answer.get(("nsb_comment", module_key), "")
+                    answers_to_check.get(("nsb_comment", module_key), "")
                 ).strip()
 
                 if nsb_answer == "Y" and not comment_answer:
@@ -1367,7 +1537,7 @@ def create_pypcs_matrix_submission(
             status_code=422,
             detail={
                 "field": "product_group_email",
-                "message": "Product group email is required for final submission.",
+                "message": f"Product group email is required for {req.status} submission.",
             },
         )
 

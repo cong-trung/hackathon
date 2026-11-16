@@ -152,7 +152,7 @@ function DefaultCell({ getValue }) {
     return getValue();
 }
 
-function columnsFor() {
+function columnsFor(showHdmxApPan) {
     const text = (key, title, size = 210) => ({
         accessorKey: key,
         header: title,
@@ -173,7 +173,7 @@ function columnsFor() {
         { accessorKey: 'module', header: 'Module', size: 175, cell: ApplicabilityValueCell },
         text('reference', 'Reference', 240),
         text('description', 'Description', 240),
-        ...applicability.map(([key, title]) => ({
+        ...applicability.filter(([key]) => key !== 'hdmx_ap_pan' || showHdmxApPan).map(([key, title]) => ({
             accessorKey: key,
             header: title,
             size: 175,
@@ -191,11 +191,11 @@ function columnsFor() {
     ];
 }
 
-const columns = columnsFor();
 const sortableColumns = new Set(['nbr', 'event_id', 'actionable_item', 'owner', 'updated_at']);
 
 export default function ActionableItemsPage() {
-    const { isAuthenticated, isGuest, isAdmin } = useAuth();
+    const { isAuthenticated, permissions, isAdmin } = useAuth();
+    const canEdit = Boolean(permissions.can_edit_action_items);
     const location = useLocation();
     const { data, isLoading, isError, refetch } = useGetActionItemsQuery();
     const { data: options } = useGetActionItemOptionsQuery();
@@ -220,6 +220,7 @@ export default function ActionableItemsPage() {
     const selectedModule = modules.includes(moduleGroup)
         ? moduleGroup
         : modules.find((module) => moduleCounts.get(module) > 0) ?? modules[0] ?? '';
+    const columns = useMemo(() => columnsFor(selectedModule.toLowerCase() === 'hdmx'), [selectedModule]);
     const deferredSearch = useDeferredValue(search);
     const term = deferredSearch.trim().toLowerCase();
     const searchIndex = useMemo(
@@ -252,8 +253,8 @@ export default function ActionableItemsPage() {
         data: visibleItems,
         columns,
         meta: {
-            onEdit: (item) => { if (isAuthenticated && !isGuest) setActiveItem(item); },
-            canEdit: isAuthenticated && !isGuest,
+            onEdit: (item) => { if (canEdit) setActiveItem(item); },
+            canEdit,
             onDelete: (item) => { deletedRef.current = false; setDeleteError(''); setPendingDelete(item); },
             canDelete: isAdmin,
         },
@@ -263,7 +264,7 @@ export default function ActionableItemsPage() {
     const rowModel = table.getRowModel();
     const leafColumns = table.getAllLeafColumns();
     const applicabilityStart = leafColumns.findIndex((column) => column.id === applicability[0][0]);
-    const applicabilityEnd = applicabilityStart + applicability.length;
+    const applicabilityEnd = leafColumns.findIndex((column) => column.id === 'owner');
 
     async function confirmDelete() {
         if (!pendingDelete || isDeleting) return;
@@ -327,7 +328,7 @@ export default function ActionableItemsPage() {
                 </div>
                 <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{filtered.length} action items found</span>
                 {!isAuthenticated && <Link className="ml-auto text-sm underline" to={loginPath(location.pathname + location.search)}>Log in to edit</Link>}
-                {isAuthenticated && <Button size="sm" className="ml-auto" onClick={() => setActiveItem(null)}>
+                {canEdit && <Button size="sm" className="ml-auto" onClick={() => setActiveItem(null)}>
                     <PlusIcon className="mr-2 size-4" /> Add new item
                 </Button>}
             </div>
@@ -367,7 +368,7 @@ export default function ActionableItemsPage() {
                                         {renderHeader(column)}
                                     </TableHead>
                                 ))}
-                                <TableHead colSpan={applicability.length} className="border-b border-r border-table-border bg-table-subheader text-center font-semibold text-table-subheader-foreground">
+                                <TableHead colSpan={applicabilityEnd - applicabilityStart} className="border-b border-r border-table-border bg-table-subheader text-center font-semibold text-table-subheader-foreground">
                                     Applicability (Product Info questions)
                                 </TableHead>
                                 {leafColumns.slice(applicabilityEnd).map((column) => (
@@ -416,7 +417,7 @@ export default function ActionableItemsPage() {
             {!isLoading && !isError && <ClientPagination label="Action items" total={sorted.length} page={currentPage}
                 pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
 
-            {isAuthenticated && activeItem !== undefined && (
+            {canEdit && activeItem !== undefined && (
                 <ActionItemForm
                     key={activeItem?.nbr ?? 'new'}
                     item={activeItem}

@@ -74,9 +74,11 @@ if legacy_files:
     )
 
 from app.routers import (
+    admin,
     auth,
     chat,
     health,
+    option_review,
     pdsolutions,
     product_action_matrix,
     product_basis,
@@ -122,5 +124,7 @@ app.include_router(product_basis.router)
 app.include_router(solutions.router)
 app.include_router(pdsolutions.router)
 app.include_router(pypcs.router)
+app.include_router(option_review.router)
 app.include_router(product_action_matrix.router)
 app.include_router(chat.router)
+app.include_router(admin.router)

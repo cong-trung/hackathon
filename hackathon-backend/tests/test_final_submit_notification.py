@@ -112,7 +112,7 @@ def matrix(tmp_path, monkeypatch, mail):
     import app.io.generic_csv as generic_csv
     import app.services.product_action_matrix_service as matrix_service
     import app.services.pypcs_service as pypcs_service
-    from app.auth import require_writer
+    from app.auth import get_current_user
     from app.main import app
 
     monkeypatch.setattr(config, "DATA_DIR", data_dir)
@@ -127,11 +127,11 @@ def matrix(tmp_path, monkeypatch, mail):
         "email": "submitter@example.com",
         "display_name": "Submitter Name",
     }
-    app.dependency_overrides[require_writer] = lambda: dict(user)
+    app.dependency_overrides[get_current_user] = lambda: dict(user)
     client = TestClient(app)
     yield client, user
     client.close()
-    app.dependency_overrides.pop(require_writer, None)
+    app.dependency_overrides.pop(get_current_user, None)
     pypcs_service._canonical_module_keys.cache_clear()
 
 
@@ -177,7 +177,9 @@ def test_new_final_submit_emails_each_unique_owner_once(matrix, mail):
     assert owner_a["Subject"] == (
         f"[Quality Matrix] notify-test submitted Notify Product ({PRODGROUP3}) for review"
     )
-    assert owner_a["From"] == "submitter@example.com"
+    from app.services.notification_service import QUALITY_MATRIX_MAIL_FROM
+
+    assert owner_a["From"] == QUALITY_MATRIX_MAIL_FROM
     assert owner_a["Reply-To"] == "submitter@example.com"
     plain = owner_a.get_body(preferencelist=("plain",)).get_content()
     assert "notify-test has submitted Product Info for product Notify Product" in plain
@@ -194,13 +196,11 @@ def test_smtp_sends_to_recipient_explicitly(matrix, mail):
     assert mail.recipients == [[OWNER_B]]
 
 
-def test_sender_refused_retries_once_with_configured_from(matrix, mail, monkeypatch, caplog):
+def test_from_is_configured_sender_and_submitter_is_reply_to(matrix, mail, monkeypatch):
     import app.services.notification_service as notification_service
 
     default_from = "ba-chu-YP@intel.com"
     monkeypatch.setattr(notification_service, "QUALITY_MATRIX_MAIL_FROM", default_from)
-    mail.reject_senders = {"submitter@example.com"}
-    caplog.set_level(logging.WARNING, logger="app.services.notification_service")
     client, _ = matrix
     response = client.post("/pypcs/matrix-submission", json=_payload("final", {"STHI": OWNER_B}))
     assert response.status_code == 200
@@ -208,10 +208,6 @@ def test_sender_refused_retries_once_with_configured_from(matrix, mail, monkeypa
     assert mail.sent[0]["From"] == default_from
     assert mail.sent[0]["Reply-To"] == "submitter@example.com"
     assert mail.recipients == [[OWNER_B]]
-    assert any(
-        record.levelno == logging.WARNING and "retrying with" in record.getMessage()
-        for record in caplog.records
-    )
 
 
 def test_draft_save_sends_no_email(matrix, mail):
@@ -572,20 +568,20 @@ def _normalize(value):
 
 
 def test_normalize_email_list_accepts_comma_semicolon_and_newlines():
-    expected = "a@x.com, b@y.com"
-    assert _normalize("a@x.com,b@y.com") == expected
-    assert _normalize("a@x.com;b@y.com") == expected
-    assert _normalize(" a@x.com \n\n b@y.com ;; ") == expected
+    expected = "a@example.com, b@example.com"
+    assert _normalize("a@example.com,b@example.com") == expected
+    assert _normalize("a@example.com;b@example.com") == expected
+    assert _normalize(" a@example.com \n\n b@example.com ;; ") == expected
     assert _normalize("  ") == ""
 
 
 def test_normalize_email_list_dedupes_case_insensitively_keeping_order():
-    assert _normalize("b@y.com, A@x.com, B@Y.com") == "b@y.com, A@x.com"
+    assert _normalize("b@example.com, A@example.com, B@EXAMPLE.COM") == "b@example.com, A@example.com"
 
 
 def test_normalize_email_list_reports_first_invalid_address():
     with pytest.raises(HTTPException) as info:
-        _normalize("a@x.com; bad-address")
+        _normalize("a@example.com; bad-address")
     assert info.value.status_code == 422
     assert info.value.detail == {
         "field": "pdo_owner",
@@ -609,3 +605,33 @@ def test_normalize_email_list_limits_to_ten_unique_addresses():
         "field": "pdo_owner",
         "message": "Too many email addresses (max 10).",
     }
+
+
+def test_subdomain_address_is_accepted_and_notified(matrix, mail):
+    client, _ = matrix
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("final", {"STHI": "Owner@AMR.Intel.COM"}),
+    )
+    assert response.status_code == 200
+    assert [message["To"] for message in mail.sent] == ["Owner@AMR.Intel.COM"]
+    assert mail.recipients == [["Owner@AMR.Intel.COM"]]
+
+
+def test_lookalike_domain_is_rejected_by_validation_and_notification(matrix, mail):
+    from app.services.notification_service import _recipient_address
+
+    with pytest.raises(HTTPException) as info:
+        _normalize("owner@evil-intel.com")
+    assert info.value.status_code == 422
+    assert info.value.detail["message"] == "Email domain not allowed: owner@evil-intel.com"
+    assert _recipient_address("owner@evil-intel.com") is None
+    assert _recipient_address("owner@amr.intel.com") == "owner@amr.intel.com"
+
+    client, _ = matrix
+    response = client.post(
+        "/pypcs/matrix-submission",
+        json=_payload("final", {"STHI": "owner@evil-intel.com"}),
+    )
+    assert response.status_code == 422
+    assert mail.sent == []

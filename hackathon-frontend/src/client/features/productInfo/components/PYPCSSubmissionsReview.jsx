@@ -39,6 +39,15 @@ async function requestJson(path, options = {}) {
     return JSON.parse(text);
 }
 
+function detailMessage(error) {
+    if (typeof error.detail === 'string') return error.detail;
+    if (typeof error.detail?.message === 'string') return error.detail.message;
+    if (Array.isArray(error.detail)) {
+        return error.detail.map((entry) => entry.msg || entry.message).filter(Boolean).join('; ') || 'Please try again.';
+    }
+    return 'Please try again.';
+}
+
 function buildMatrixRows(detail) {
     const cells = detail?.cells || [];
     const rowsByQuestion = {};
@@ -65,6 +74,8 @@ function displayAnswer(questionId, answer, fieldType) {
         ? (answer || '').split('|').join(', ') : answer;
 }
 
+const statusLabels = { draft: 'Draft', waiting_me: 'Waiting for ME', final: 'Final' };
+
 export default function PYPCSSubmissionsReview({
     onContinueEditing = () => {},
     modeSwitch,
@@ -78,25 +89,26 @@ export default function PYPCSSubmissionsReview({
     const [statusMessage, setStatusMessage] = useState('');
     const [statusKind, setStatusKind] = useState('success');
     const [pendingDeleteId, setPendingDeleteId] = useState(null);
-    const { isAuthenticated, isAdmin, isGuest } = useAuth();
+    const { user, isAuthenticated, isAdmin, isME } = useAuth();
     const location = useLocation();
     const [history, setHistory] = useState([]);
     const [historyError, setHistoryError] = useState('');
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [assignedOnly, setAssignedOnly] = useState(false);
     const [sort, setSort] = useState({ key: 'created_at', direction: 'descending' });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
-    const statuses = useMemo(() => [...new Set(submissions.map((item) => item.status).filter(Boolean))], [submissions]);
     const filtered = useMemo(() => {
         const term = search.trim().toLowerCase();
         return submissions.filter((item) =>
             (statusFilter === 'all' || item.status === statusFilter) &&
+            (!assignedOnly || (item.pdo_owner_emails ?? []).some((email) => email.trim().toLowerCase() === user?.email?.trim().toLowerCase())) &&
             (!term || [item.created_at, item.status, item.product_name,
                 displayAnswer('prodgroup3', item.prodgroup3), item.prodgroup3,
                 displayAnswer('operation', item.operation), (item.selected_modules || []).join(', '),
                 item.role, item.submitted_by].some((value) => String(value ?? '').toLowerCase().includes(term))));
-    }, [submissions, search, statusFilter]);
+    }, [submissions, search, statusFilter, assignedOnly, user?.email]);
     const sorted = useMemo(() => [...filtered].sort((first, second) => {
         const left = sort.key === 'created_at' ? Date.parse(first.created_at) || 0 : String(first[sort.key] ?? '');
         const right = sort.key === 'created_at' ? Date.parse(second.created_at) || 0 : String(second[sort.key] ?? '');
@@ -153,23 +165,33 @@ export default function PYPCSSubmissionsReview({
 
         try {
             const result = await requestJson(
-                `/pypcs/submissions/${submissionId}`,
+                `/pypcs/submissions/${encodeURIComponent(submissionId)}`,
             );
 
             setSelectedDetail(result);
             setHistory([]);
             setHistoryError('');
             try {
-                const entries = await requestJson(`/pypcs/submissions/${submissionId}/history`);
+                const entries = await requestJson(`/pypcs/submissions/${encodeURIComponent(submissionId)}/history`);
                 setHistory(Array.isArray(entries) ? entries : entries.items || []);
             } catch {
                 setHistoryError('Unable to load edit history.');
             }
         } catch (error) {
             detailTrigger.current = null;
+            setSelectedDetail(null);
+            setHistory([]);
+            setHistoryError('');
+            if (error.status === 404) {
+                if (await loadSubmissions()) {
+                    setStatusKind('error');
+                    setStatusMessage('This submission no longer exists. The list has been refreshed.');
+                }
+                return;
+            }
             setStatusKind('error');
             setStatusMessage(
-                `Failed to load submission detail: ${error.message}`,
+                `Failed to load submission detail: ${detailMessage(error)}`,
             );
         } finally {
             setLoading(false);
@@ -178,7 +200,8 @@ export default function PYPCSSubmissionsReview({
 
     function requestDeleteSubmission(submissionId) {
         const submission = submissions.find((item) => item.submission_id === submissionId);
-        if (!isAuthenticated || (submission?.status === 'final' && !isAdmin)) return;
+        if (!(selectedDetail?.submission?.submission_id === submissionId
+            ? selectedDetail.permissions?.can_delete : submission?.can_delete)) return;
         setPendingDeleteId(submissionId);
     }
 
@@ -233,7 +256,9 @@ export default function PYPCSSubmissionsReview({
     }, []);
 
     function renderDeleteControl(submissionId) {
-        if (isGuest || !isAuthenticated || (!isAdmin && submissions.find((item) => item.submission_id === submissionId)?.status === 'final')) return null;
+        if (!(selectedDetail?.submission?.submission_id === submissionId
+            ? selectedDetail.permissions?.can_delete
+            : submissions.find((item) => item.submission_id === submissionId)?.can_delete)) return null;
         if (pendingDeleteId === submissionId) {
             return (
                 <div className="flex items-center gap-1">
@@ -402,14 +427,14 @@ export default function PYPCSSubmissionsReview({
             <div>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                     <div className="flex flex-wrap items-center gap-2">
-                        {selectedDetail.submission?.status === 'draft' && isAuthenticated && !isGuest ? (
+                        {selectedDetail.permissions?.can_edit && (selectedDetail.submission?.status !== 'final' || isAdmin) ? (
                             <Button
                                 type="button"
                                 size="sm"
                                 variant="outline"
                                 onClick={() => onContinueEditing(selectedDetail.submission.submission_id)}
                             >
-                                Continue Editing
+                                {selectedDetail.submission?.status === 'final' ? 'Edit (admin)' : 'Continue Editing'}
                             </Button>
                         ) : null}
                         {renderDeleteControl(
@@ -424,9 +449,9 @@ export default function PYPCSSubmissionsReview({
                 <div className="mb-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     <div>
                         <span className="font-medium">Status:</span>{' '}
-                        {selectedDetail.submission?.status === 'draft'
-                            ? 'Draft'
-                            : 'Final'}
+                        <span className={selectedDetail.submission?.status === 'waiting_me' ? 'rounded-full bg-status-info px-2 py-0.5 text-status-info-foreground' : ''}>
+                            {statusLabels[selectedDetail.submission?.status] || selectedDetail.submission?.status}
+                        </span>
                     </div>
 
                     <div>
@@ -505,9 +530,11 @@ export default function PYPCSSubmissionsReview({
                         <SelectTrigger id="review-status" className="w-36"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
-                            {statuses.map((status) => <SelectItem key={status} value={status}>{status === 'draft' ? 'Draft' : status === 'final' ? 'Final' : status}</SelectItem>)}
+                            {['draft', 'waiting_me', 'final'].map((value) => <SelectItem key={value} value={value}>{statusLabels[value]}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                    {isME && <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={assignedOnly}
+                        onChange={(event) => { setAssignedOnly(event.target.checked); setPage(1); }} />Assigned to me</label>}
                     <span role="status" aria-live="polite" className="whitespace-nowrap text-sm text-muted-foreground">
                         {filtered.length} submissions found
                     </span>
@@ -546,7 +573,7 @@ export default function PYPCSSubmissionsReview({
                             ? 'Unable to load submissions.' : submissions.length === 0
                                 ? 'No submissions found.' : 'No matching submissions.'}</p>
                         {!loading && submissions.length > 0 && !filtered.length ? (
-                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setPage(1); }}>Clear filters</Button>
+                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setAssignedOnly(false); setPage(1); }}>Clear filters</Button>
                         ) : null}
                     </div>
                 ) : (
@@ -576,12 +603,12 @@ export default function PYPCSSubmissionsReview({
                                     <td className="border-b border-r border-table-border p-3">
                                         <span
                                             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                isDraft
-                                                    ? 'bg-status-warning text-status-warning-foreground'
-                                                    : 'bg-status-success text-status-success-foreground'
+                                                isDraft ? 'bg-status-warning text-status-warning-foreground'
+                                                    : item.status === 'waiting_me' ? 'bg-status-info text-status-info-foreground'
+                                                        : 'bg-status-success text-status-success-foreground'
                                             }`}
                                         >
-                                            {isDraft ? 'Draft' : 'Final'}
+                                            {statusLabels[item.status] || item.status}
                                         </span>
                                     </td>
                                     <td className="border-b border-r border-table-border p-3">{item.product_name}</td>
@@ -609,7 +636,7 @@ export default function PYPCSSubmissionsReview({
                                                 View
                                             </button>
 
-                                            {isDraft && isAuthenticated && !isGuest ? (
+                                            {item.can_edit && (item.status !== 'final' || isAdmin) ? (
                                                 <button
                                                     type="button"
                                                     className="rounded-md border border-status-warning-foreground px-3 py-1 text-status-warning-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
@@ -619,7 +646,7 @@ export default function PYPCSSubmissionsReview({
                                                         )
                                                     }
                                                 >
-                                                    Continue Editing
+                                                    {item.status === 'final' ? 'Edit (admin)' : 'Continue Editing'}
                                                 </button>
                                             ) : null}
 

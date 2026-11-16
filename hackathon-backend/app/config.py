@@ -57,6 +57,23 @@ QUALITY_MATRIX_PUBLIC_URL = os.getenv(
 ).strip().rstrip("/")
 QUALITY_MATRIX_MAIL_ENABLED = os.getenv("QUALITY_MATRIX_MAIL_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
 QUALITY_MATRIX_MAIL_FROM = os.getenv("QUALITY_MATRIX_MAIL_FROM", "ba-chu-YP@intel.com").strip()
+# Only recipients in these domains receive notifications (comma-separated, case-insensitive).
+QUALITY_MATRIX_MAIL_ALLOWED_DOMAINS = frozenset(
+    domain.strip().lower().lstrip("@")
+    for domain in os.getenv("QUALITY_MATRIX_MAIL_ALLOWED_DOMAINS", "intel.com").split(",")
+    if domain.strip()
+)
+
+
+def is_allowed_email_domain(address: str) -> bool:
+    """True when the address domain equals or is a subdomain of an allowed mail domain."""
+    domain = address.rsplit("@", 1)[-1].casefold()
+    return any(
+        domain == allowed or domain.endswith(f".{allowed}")
+        for allowed in QUALITY_MATRIX_MAIL_ALLOWED_DOMAINS
+    )
+
+
 QUALITY_MATRIX_SMTP_HOST = os.getenv("QUALITY_MATRIX_SMTP_HOST", "").strip()
 try:
     QUALITY_MATRIX_SMTP_PORT = int(os.getenv("QUALITY_MATRIX_SMTP_PORT", "25"))

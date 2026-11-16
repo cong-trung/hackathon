@@ -172,13 +172,14 @@ def test_per_ip_and_user_login_throttles_are_independent(monkeypatch):
 def test_last_active_admin_cannot_be_demoted():
     shutil.rmtree(TEST_DATA_DIR, ignore_errors=True)
     with TestClient(app) as client:
+        # The only active admin is the caller, so the self-check fires before the last-admin check.
         response = client.post(
             "/auth/users/rootadmin/approve",
             json={"role": "editor"},
             headers=admin_headers(client),
         )
         assert response.status_code == 409
-        assert response.json()["detail"]["code"] == "last_admin"
+        assert response.json()["detail"]["code"] in {"cannot_change_own_role", "last_admin"}
 
 
 def test_last_active_admin_cannot_be_rejected():

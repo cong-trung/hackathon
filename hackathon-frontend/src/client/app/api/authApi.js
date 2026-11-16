@@ -36,6 +36,14 @@ export const authApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['Users', 'Auth'],
         }),
+        changeUserRole: builder.mutation({
+            query: ({ username, role }) => ({
+                url: `/auth/users/${encodeURIComponent(username)}/role`,
+                method: 'PATCH',
+                body: { role },
+            }),
+            invalidatesTags: ['Users', 'Auth', 'Changes'],
+        }),
         rejectUser: builder.mutation({
             query: (username) => ({
                 url: `/auth/users/${encodeURIComponent(username)}/reject`,
@@ -64,6 +72,7 @@ export const {
     useRequestAccountMutation,
     useListUsersQuery,
     useApproveUserMutation,
+    useChangeUserRoleMutation,
     useRejectUserMutation,
     useDisableUserMutation,
 } = authApi;

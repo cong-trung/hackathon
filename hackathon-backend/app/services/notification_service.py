@@ -15,6 +15,7 @@ from fastapi import HTTPException
 
 from app.auth import validate_email
 from app.config import (
+    is_allowed_email_domain,
     QUALITY_MATRIX_MAIL_FROM,
     QUALITY_MATRIX_MAIL_TRANSPORT,
     QUALITY_MATRIX_PUBLIC_URL,
@@ -25,6 +26,7 @@ from app.config import (
     QUALITY_MATRIX_SMTP_USERNAME,
 )
 from app.io.csv_excel import value_to_str
+from app.services.pypcs_service import canonical_module_key
 from app.services.product_action_matrix_service import _group_for_module, _module_catalog
 
 logger = logging.getLogger(__name__)
@@ -40,6 +42,15 @@ def _valid_address(value: str) -> str | None:
     except HTTPException:
         return None
     if not email or "\r" in email or "\n" in email:
+        return None
+    return email
+
+
+def _recipient_address(value: str) -> str | None:
+    """Valid, allowed recipient address, or None (disallowed addresses are logged and dropped)."""
+    email = _valid_address(value)
+    if email and not is_allowed_email_domain(email):
+        logger.warning("Skipping recipient %s: domain is not in QUALITY_MATRIX_MAIL_ALLOWED_DOMAINS.", email)
         return None
     return email
 
@@ -61,7 +72,7 @@ def collect_pdo_owner_groups(
             raw = raw.strip()
             if not raw:
                 continue
-            email = _valid_address(raw)
+            email = _recipient_address(raw)
             if not email:
                 logger.warning("Skipping invalid PdO owner email for module group %s.", group)
                 continue
@@ -83,7 +94,7 @@ def collect_notification_recipients(
         if value_to_str(cell.get("question_id", "")) != PRODUCT_GROUP_EMAIL_QUESTION_ID:
             continue
         for raw in re.split(r"[;,|\s]+", value_to_str(cell.get("answer", ""))):
-            email = _valid_address(raw.strip())
+            email = _recipient_address(raw.strip())
             if not email:
                 continue
             display, groups = recipients.setdefault(email.casefold(), (email, []))
@@ -97,6 +108,16 @@ def _review_url(group: str) -> str:
     return f"{QUALITY_MATRIX_PUBLIC_URL}/quality-product-matrix?module={quote(group, safe='')}"
 
 
+def _resolve_sender(submitter_email: str) -> tuple[str, str]:
+    """Return (From, Reply-To). From is always the configured sender; the submitter is only Reply-To."""
+    if submitter_email and ("\r" in submitter_email or "\n" in submitter_email):
+        raise ValueError("Sender address must not contain line breaks.")
+    valid = _valid_address(submitter_email) or ""
+    if not valid:
+        logger.info("No submitter email; Reply-To omitted.")
+    return QUALITY_MATRIX_MAIL_FROM, valid
+
+
 def build_final_submission_messages(
     *,
     recipients: dict[str, tuple[str, list[str]]],
@@ -106,12 +127,7 @@ def build_final_submission_messages(
     submitter_display_name: str,
     submitter_email: str,
 ) -> list[tuple[str, EmailMessage]]:
-    if submitter_email and ("\r" in submitter_email or "\n" in submitter_email):
-        raise ValueError("Sender address must not contain line breaks.")
-    submitter_email = _valid_address(submitter_email) or ""
-    sender = submitter_email or QUALITY_MATRIX_MAIL_FROM
-    if not submitter_email:
-        logger.info("No submitter email; using default sender %s.", sender)
+    sender, submitter_email = _resolve_sender(submitter_email)
     submitter = submitter_username.strip() or submitter_display_name.strip() or "A user"
     subject = " ".join(
         f"[Quality Matrix] {submitter} submitted {product_name} ({prodgroup3}) for review".split()
@@ -232,23 +248,6 @@ def _deliver(recipient: str, message: EmailMessage) -> str:
     return _log_mail(recipient, message)
 
 
-def _deliver_with_sender_fallback(recipient: str, message: EmailMessage) -> str:
-    """Retry once with the configured sender when the relay refuses the submitter's From."""
-    try:
-        return _deliver(recipient, message)
-    except smtplib.SMTPSenderRefused as exc:
-        if message["From"] == QUALITY_MATRIX_MAIL_FROM:
-            raise
-        logger.warning(
-            "SMTP relay refused sender %s (%s); retrying with %s as From (Reply-To unchanged).",
-            message["From"],
-            exc.smtp_code,
-            QUALITY_MATRIX_MAIL_FROM,
-        )
-        message.replace_header("From", QUALITY_MATRIX_MAIL_FROM)
-        return _deliver(recipient, message)
-
-
 def notify_final_submission(
     *,
     submission_id: str,
@@ -285,12 +284,153 @@ def notify_final_submission(
         return
     for recipient, message in messages:
         try:
-            transport = _deliver_with_sender_fallback(recipient, message)
+            transport = _deliver(recipient, message)
         except Exception:
             logger.exception("Failed to send final-submission notification for %s.", submission_id)
             continue
         if transport != "log":
             logger.info("Sent final-submission notification for %s to %s via %s.", submission_id, recipient, transport)
+
+
+def collect_pdo_owner_modules(
+    cells: Iterable[dict[str, str]],
+) -> dict[str, tuple[str, list[str]]]:
+    """Map each PdO owner email (casefolded) to its display address and canonical module keys."""
+    recipients: dict[str, tuple[str, list[str]]] = {}
+    for cell in cells:
+        if value_to_str(cell.get("question_id", "")) != PDO_OWNER_QUESTION_ID:
+            continue
+        module_key = canonical_module_key(cell.get("module_key", ""))
+        if not module_key:
+            continue
+        for raw in re.split(r"[;,|\s]+", value_to_str(cell.get("answer", ""))):
+            email = _recipient_address(raw.strip())
+            if not email:
+                continue
+            display, modules = recipients.setdefault(email.casefold(), (email, []))
+            if module_key not in modules:
+                modules.append(module_key)
+    return recipients
+
+
+def _product_info_url(submission_id: str, module_key: str) -> str:
+    return (
+        f"{QUALITY_MATRIX_PUBLIC_URL}/product-info"
+        f"?submission={quote(submission_id, safe='')}&module={quote(module_key, safe='')}"
+    )
+
+
+def build_waiting_me_messages(
+    *,
+    recipients: dict[str, tuple[str, list[str]]],
+    submission_id: str,
+    product_name: str,
+    prodgroup3: str,
+    submitter_username: str,
+    submitter_email: str,
+) -> list[tuple[str, EmailMessage]]:
+    sender, reply_to = _resolve_sender(submitter_email)
+    submitter = submitter_username.strip() or "A user"
+    subject = " ".join(
+        f"[Quality Matrix] {submitter} needs ME input for {product_name} ({prodgroup3})".split()
+    )
+    general_url = f"{QUALITY_MATRIX_PUBLIC_URL}/product-info"
+    intro = (
+        f"{submitter} has submitted the TI part of Product Info for product {product_name} "
+        f"(ProdGroup3: {prodgroup3}). Please complete the ME fields for your module(s):"
+    )
+    footer = "This is an automated message from Quality Matrix."
+    if reply_to:
+        footer += f" Reply to contact {submitter}."
+
+    messages = []
+    for email_address, modules in recipients.values():
+        links = [(module, _product_info_url(submission_id, module)) for module in modules]
+        text_body = "\n".join(
+            [
+                "Hello,",
+                "",
+                intro,
+                *(f"- {module}: {url}" for module, url in links),
+                "",
+                f"Open Product Info: {general_url}",
+                "",
+                footer,
+            ]
+        ) + "\n"
+        html_items = "".join(
+            f'<li><a href="{html.escape(url, quote=True)}">'
+            f"Product Info \u2013 {html.escape(module)}</a></li>"
+            for module, url in links
+        )
+        html_footer = "This is an automated message from Quality Matrix."
+        if reply_to:
+            html_footer += f" Reply to contact <strong>{html.escape(submitter)}</strong>."
+        html_body = (
+            "<p>Hello,</p>"
+            f"<p><strong>{html.escape(submitter)}</strong> has submitted the TI part of "
+            f"Product Info for product {html.escape(product_name)} "
+            f"(ProdGroup3: {html.escape(prodgroup3)}). Please complete the ME fields "
+            "for your module(s):</p>"
+            f"<ul>{html_items}</ul>"
+            f'<p><a href="{html.escape(general_url, quote=True)}">Open Product Info</a></p>'
+            f"<p>{html_footer}</p>"
+        )
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = sender
+        message["To"] = email_address
+        if reply_to:
+            message["Reply-To"] = reply_to
+        message.set_content(text_body)
+        message.add_alternative(html_body, subtype="html")
+        messages.append((email_address, message))
+    return messages
+
+
+def notify_waiting_me_submission(
+    *,
+    submission_id: str,
+    cells: list[dict[str, str]],
+    product_name: str,
+    prodgroup3: str,
+    submitter_username: str,
+    submitter_email: str,
+) -> None:
+    """Background-task entry point: emails each PdO owner their ME modules. Never raises."""
+    try:
+        recipients = collect_pdo_owner_modules(cells)
+        if not recipients:
+            logger.warning(
+                "Waiting-for-ME notification for %s: no valid PdO owner emails; nobody was notified.",
+                submission_id,
+            )
+            return
+        messages = build_waiting_me_messages(
+            recipients=recipients,
+            submission_id=submission_id,
+            product_name=product_name,
+            prodgroup3=prodgroup3,
+            submitter_username=submitter_username,
+            submitter_email=submitter_email,
+        )
+    except Exception:
+        logger.exception("Could not build waiting-for-ME notifications for %s.", submission_id)
+        return
+    logger.info(
+        "Waiting-for-ME notification for %s: %d recipient(s) via %s",
+        submission_id,
+        len(messages),
+        QUALITY_MATRIX_MAIL_TRANSPORT,
+    )
+    for recipient, message in messages:
+        try:
+            transport = _deliver(recipient, message)
+        except Exception:
+            logger.exception("Failed to send waiting-for-ME notification for %s.", submission_id)
+            continue
+        if transport != "log":
+            logger.info("Sent waiting-for-ME notification for %s to %s via %s.", submission_id, recipient, transport)
 
 
 def _send_test(recipient: str) -> int:

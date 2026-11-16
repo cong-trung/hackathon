@@ -8,6 +8,7 @@ import pdSolutionsRouter from './api/pdSolutions.js';
 import glMqrRouter from './api/glMqr.js';
 import chatRouter from './api/chat.js';
 import authRouter from './api/auth.js';
+import adminRouter from './api/admin.js';
 import {
     getPypcsModules,
     getPypcsQuestions,
@@ -26,6 +27,8 @@ import {
     getPypcsProductActionMatrix,
     updatePypcsProductActionMatrixRow,
     exportPypcsProductActionMatrix,
+    getPypcsOptionReview,
+    postPypcsOptionReviewDecision,
 } from '../services/pypcsService.js';
 
 const router = express.Router();
@@ -42,6 +45,7 @@ router.use(pdSolutionsRouter);
 router.use(glMqrRouter);
 router.use(chatRouter);
 router.use(authRouter);
+router.use(adminRouter);
 router.get('/pypcs/modules', getPypcsModules);
 router.get('/pypcs/questions', getPypcsQuestions);
 router.patch('/pypcs/questions/:questionId', updatePypcsQuestionDescription);
@@ -51,6 +55,8 @@ router.get('/pypcs/submissions/:submissionId/history', getPypcsSubmissionHistory
 router.get('/pypcs/submissions/:submissionId', getPypcsSubmissionDetail);
 router.delete('/pypcs/submissions/:submissionId', deletePypcsSubmission);
 router.post('/pypcs/matrix-submission', submitPypcsMatrixSubmission);
+router.get('/pypcs/option-review', getPypcsOptionReview);
+router.post('/pypcs/option-review/decision', postPypcsOptionReviewDecision);
 router.get('/pypcs/action-items/options', getPypcsActionItemOptions);
 router.get('/pypcs/action-items', getPypcsActionItems);
 router.post('/pypcs/action-items', createPypcsActionItem);

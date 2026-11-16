@@ -105,12 +105,16 @@ export async function getPypcsVisibleQuestions(req, res) {
 export async function getPypcsSubmissions(req, res) {
     const queryString = new URLSearchParams(req.query).toString();
     const suffix = queryString ? `?${queryString}` : '';
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/submissions${suffix}`);
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/submissions${suffix}`, {
+        headers: requestHeaders(req),
+    });
 }
 
 export async function getPypcsSubmissionDetail(req, res) {
     const submissionId = encodeURIComponent(String(req.params.submissionId));
-    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}`);
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}`, {
+        headers: requestHeaders(req),
+    });
 }
 
 export async function getPypcsSubmissionHistory(req, res) {
@@ -142,6 +146,22 @@ export async function submitPypcsMatrixSubmission(req, res) {
 
 export async function getPypcsActionItems(req, res) {
     return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/action-items`);
+}
+
+export async function getPypcsOptionReview(req, res) {
+    const queryString = new URLSearchParams(req.query).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/option-review${suffix}`, {
+        headers: requestHeaders(req),
+    });
+}
+
+export async function postPypcsOptionReviewDecision(req, res) {
+    return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/option-review/decision`, {
+        method: 'POST',
+        headers: requestHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(req.body),
+    });
 }
 
 export async function getPypcsActionItemOptions(req, res) {
@@ -182,6 +202,7 @@ export async function getPypcsProductActionMatrix(req, res) {
     return proxyRawRequest(
         res,
         `${BACKEND_BASE_URL}/pypcs/product-action-matrix${suffix}`,
+        { headers: requestHeaders(req) },
     );
 }
 

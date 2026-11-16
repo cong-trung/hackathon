@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 
-from app.auth import require_writer
+from app.auth import require_ti_or_admin
 from app.io.csv_excel import find_by_key, get_path, read_data, value_to_str, write_data
 from app.io.concurrency import locked_files
 from app.models.common import FlexiblePayload, SolutionPayload
@@ -38,7 +38,7 @@ def list_solutions(
 
 @router.post("/solutions")
 def create_solution(
-    payload: SolutionPayload, _user: dict = Depends(require_writer)
+    payload: SolutionPayload, _user: dict = Depends(require_ti_or_admin)
 ):
     with locked_files(get_path(SOLUTION_CONFIG)):
         headers, rows = read_data(SOLUTION_CONFIG)
@@ -56,7 +56,7 @@ def create_solution(
 def patch_solution(
     solution_id: str,
     payload: FlexiblePayload,
-    _user: dict = Depends(require_writer),
+    _user: dict = Depends(require_ti_or_admin),
 ):
     with locked_files(get_path(SOLUTION_CONFIG)):
         headers, rows = read_data(SOLUTION_CONFIG)
@@ -71,7 +71,7 @@ def patch_solution(
 
 @router.delete("/solutions/{solution_id}")
 def delete_solution(
-    solution_id: str, _user: dict = Depends(require_writer)
+    solution_id: str, _user: dict = Depends(require_ti_or_admin)
 ):
     with locked_files(get_path(SOLUTION_CONFIG)):
         headers, rows = read_data(SOLUTION_CONFIG)

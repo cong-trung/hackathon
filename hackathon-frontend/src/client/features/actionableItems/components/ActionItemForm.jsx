@@ -290,6 +290,7 @@ export default function ActionItemForm({ item, onClose, onReload }) {
         }
     }, [options, loadedItem, reset, isDirty]);
     const selectedTools = useWatch({ control: form.control, name: 'xvi_tool_type' });
+    const selectedModules = useWatch({ control: form.control, name: 'module' });
     const selectedOwner = useWatch({ control: form.control, name: 'owner' });
     const [createItem, { isLoading: isCreating }] = useCreateActionItemMutation();
     const [updateItem, { isLoading: isUpdating }] = useUpdateActionItemMutation();
@@ -323,9 +324,11 @@ export default function ActionItemForm({ item, onClose, onReload }) {
             ...Object.fromEntries(
                 applicabilityFields.map(({ name }) => [
                     name,
-                    values[name].includes('All')
-                        ? ['All']
-                        : [...values[name].filter((value) => value !== 'Other'), ...(values[name].includes('Other') ? [values[`${name}_other`].trim()] : [])],
+                    name === 'hdmx_ap_pan' && !values.module.some((module) => module.toLowerCase() === 'hdmx')
+                        ? loadedItem?.hdmx_ap_pan ?? []
+                        : values[name].includes('All')
+                            ? ['All']
+                            : [...values[name].filter((value) => value !== 'Other'), ...(values[name].includes('Other') ? [values[`${name}_other`].trim()] : [])],
                 ]),
             ),
         };
@@ -422,7 +425,8 @@ export default function ActionItemForm({ item, onClose, onReload }) {
                                 <div className="sm:col-span-2 border-t pt-4 text-sm font-medium">
                                     Applicability (Product Info questions)
                                 </div>
-                                {applicabilityFields.map(({ name, label }) => (
+                                {applicabilityFields.filter(({ name }) => name !== 'hdmx_ap_pan'
+                                    || selectedModules?.some((module) => module.toLowerCase() === 'hdmx')).map(({ name, label }) => (
                                     <ApplicabilityField
                                         key={name}
                                         control={form.control}

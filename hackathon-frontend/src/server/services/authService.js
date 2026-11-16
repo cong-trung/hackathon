@@ -107,3 +107,8 @@ export function disableUser(req, res) {
     const username = encodeURIComponent(req.params.username);
     return forwardJson(req, res, `/auth/users/${username}/disable`);
 }
+
+export function changeUserRole(req, res) {
+    const username = encodeURIComponent(req.params.username);
+    return forwardJson(req, res, `/auth/users/${username}/role`);
+}

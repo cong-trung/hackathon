@@ -35,6 +35,14 @@ TOKEN_SECRET = QUALITY_MATRIX_AUTH_SECRET.encode("utf-8")
 
 # Reserved username used by the one-click guest (view-only) login.
 GUEST_USERNAME = "guest"
+
+ROLE_ADMIN = "admin"
+ROLE_TI = "ti"
+ROLE_ME = "me"
+ROLE_VIEWER = "viewer"
+ROLES = frozenset({ROLE_ADMIN, ROLE_TI, ROLE_ME, ROLE_VIEWER})
+# Legacy role names still present in Users.csv or accepted on approval.
+_ROLE_ALIASES = {"editor": ROLE_TI, "guest": ROLE_VIEWER}
 _DUMMY_SALT = secrets.token_bytes(16)
 _DUMMY_HASH = hashlib.scrypt(
     b"unknown-user-password", salt=_DUMMY_SALT, n=2**14, r=8, p=1, dklen=32
@@ -69,8 +77,17 @@ def _write_users(rows: list[dict[str, str]]) -> None:
     atomic_write_bytes(USER_FILE, _csv_bytes(USER_HEADERS, rows))
 
 
+def normalize_role(value: object) -> str:
+    """Map a stored or legacy role onto admin|ti|me|viewer. Unknown roles become viewer."""
+    role = str(value or "").strip().lower()
+    role = _ROLE_ALIASES.get(role, role)
+    return role if role in ROLES else ROLE_VIEWER
+
+
 def public_user(row: dict[str, str]) -> dict[str, str]:
-    return {key: row.get(key, "") for key in USER_HEADERS if key != "password_hash"}
+    user = {key: row.get(key, "") for key in USER_HEADERS if key != "password_hash"}
+    user["role"] = normalize_role(row.get("role"))
+    return user
 
 
 def normalize_username(value: str) -> str:
@@ -220,6 +237,9 @@ async def get_current_user(request: Request) -> dict[str, str]:
     if not row or row.get("status") != "active":
         raise HTTPException(status_code=401, detail={"code": "unauthenticated"})
     user = public_user(row)
+    if username == GUEST_USERNAME:
+        # The shared guest account is always view-only, whatever its stored role.
+        user["role"] = ROLE_VIEWER
     request.state.auth_user = user
     return user
 
@@ -230,18 +250,37 @@ async def require_admin(user: dict[str, str] = Depends(get_current_user)) -> dic
     return user
 
 
-async def require_writer(user: dict[str, str] = Depends(get_current_user)) -> dict[str, str]:
-    """Allow any authenticated user except the read-only guest."""
-    if user.get("role") == "guest":
-        raise HTTPException(status_code=403, detail={"code": "guest_read_only"})
-    return user
+def require_roles(*roles: str):
+    """Build a dependency that allows only the given normalized roles."""
+    allowed = frozenset(roles)
+
+    async def dependency(user: dict[str, str] = Depends(get_current_user)) -> dict[str, str]:
+        if user.get("role") not in allowed:
+            raise HTTPException(status_code=403, detail={"code": "role_forbidden"})
+        return user
+
+    return dependency
+
+
+# Data edits (product basis, solutions, PDSolutions, action items, questions).
+require_ti_or_admin = require_roles(ROLE_ADMIN, ROLE_TI)
+# Product Info matrix submission: ME is allowed here but restricted by scope rules.
+require_product_info_editor = require_roles(ROLE_ADMIN, ROLE_TI, ROLE_ME)
+
+
+async def get_optional_user(request: Request) -> dict[str, str] | None:
+    """Return the signed-in user, or None for anonymous GET requests."""
+    try:
+        return await get_current_user(request)
+    except HTTPException:
+        return None
 
 
 def ensure_guest_user() -> dict[str, str]:
     """Create (or refresh) the shared guest account used by one-click guest login.
 
-    The guest has no password and stays active; the require_writer guard keeps
-    guest sessions strictly view-only.
+    The guest has no password and stays active; the viewer role keeps guest
+    sessions strictly view-only.
     """
     with locked_files(USER_FILE):
         rows = _read_csv(USER_FILE, USER_HEADERS)
@@ -255,7 +294,7 @@ def ensure_guest_user() -> dict[str, str]:
                 "display_name": "Guest",
                 "email": "",
                 "password_hash": "",
-                "role": "guest",
+                "role": ROLE_VIEWER,
                 "status": "active",
                 "created_at": timestamp_now(),
                 "decided_by": "system",
@@ -263,7 +302,7 @@ def ensure_guest_user() -> dict[str, str]:
             }
             rows.append(row)
         else:
-            row.update(password_hash="", role="guest", status="active", decided_by="system")
+            row.update(password_hash="", role=ROLE_VIEWER, status="active", decided_by="system")
         _write_users(rows)
         return public_user(row)
 

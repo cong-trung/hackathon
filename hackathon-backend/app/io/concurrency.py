@@ -8,7 +8,7 @@ import threading
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 from fastapi import HTTPException
 
@@ -44,6 +44,45 @@ def locked_files(*targets: str | Path) -> Iterator[None]:
             lock.release()
 
 
+_FILE_IN_USE_ATTEMPTS = 10
+_FILE_IN_USE_DELAY_SECONDS = 0.3
+
+
+def retry_file_in_use(operation: Callable[[], None]) -> None:
+    """Run a file operation, retrying while Windows reports the file as in use (e.g. open in Excel).
+
+    Raises a 503 `busy` HTTPException once all attempts are exhausted.
+    """
+    for attempt in range(_FILE_IN_USE_ATTEMPTS):
+        try:
+            operation()
+            return
+        except PermissionError:
+            if attempt == _FILE_IN_USE_ATTEMPTS - 1:
+                break
+            time.sleep(_FILE_IN_USE_DELAY_SECONDS)
+    raise HTTPException(
+        status_code=503,
+        detail={
+            "code": "busy",
+            "message": "Data file is in use (it may be open in Excel). Please retry.",
+        },
+    )
+
+
+def append_bytes(path: Path, data: bytes) -> None:
+    """Append to a file, retrying while it is locked by another program."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    def _append() -> None:
+        with path.open("ab") as target:
+            target.write(data)
+            target.flush()
+            os.fsync(target.fileno())
+
+    retry_file_in_use(_append)
+
+
 def atomic_write_bytes(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temp_name = tempfile.mkstemp(
@@ -56,20 +95,7 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
             temp_file.flush()
             os.fsync(temp_file.fileno())
 
-        for attempt in range(10):
-            try:
-                os.replace(temp_path, path)
-                return
-            except PermissionError:
-                if attempt == 9:
-                    raise HTTPException(
-                        status_code=503,
-                        detail={
-                            "code": "busy",
-                            "message": "Data file is in use (it may be open in Excel). Please retry.",
-                        },
-                    )
-                time.sleep(0.3)
+        retry_file_in_use(lambda: os.replace(temp_path, path))
     finally:
         temp_path.unlink(missing_ok=True)
 

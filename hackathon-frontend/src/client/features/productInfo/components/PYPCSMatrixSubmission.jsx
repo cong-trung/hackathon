@@ -154,7 +154,7 @@ function canonicalMultiselect(value, options) {
     return [...known, ...custom].join('|');
 }
 
-function OperationInput({ options, value, onChange, label, errorId, invalid, disabled, multiselect = false, inputId }) {
+function OperationInput({ options, value, onChange, label, errorId, invalid, disabled, multiselect = false, operation = false, inputId }) {
     const values = value ? value.split('|') : [];
     const known = values.filter((item) => item !== 'Other' && options.includes(item));
     const unknown = values.filter((item) => item !== 'Other' && !options.includes(item));
@@ -266,7 +266,10 @@ function OperationInput({ options, value, onChange, label, errorId, invalid, dis
                         onChange={(event) => {
                             setOtherText(event.target.value);
                             setCustomError(event.target.value.includes('|') ? 'Other value cannot contain |.'
-                                : event.target.value.length > 100 ? 'Other value must be 100 characters or fewer.' : '');
+                                : event.target.value.length > 100 ? 'Other value must be 100 characters or fewer.'
+                                    : operation && ['all', 'na', 'multiple', 'other'].includes(event.target.value.trim().toLowerCase())
+                                        && !options.some((option) => option !== 'Other' && option.toLowerCase() === event.target.value.trim().toLowerCase())
+                                        ? 'This operation value is reserved.' : '');
                         }}
                         onKeyDown={(event) => {
                             if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.nextElementSibling?.click(); }
@@ -340,6 +343,8 @@ export default function PYPCSMatrixSubmission({
     const instanceId = useId();
     const [submissionId, setSubmissionId] = useState(null);
     const [submissionStatus, setSubmissionStatus] = useState(null);
+    const [submissionPermissions, setSubmissionPermissions] = useState(null);
+    const [targetModule, setTargetModule] = useState(null);
     const [versions, setVersions] = useState({});
     const [conflict, setConflict] = useState(null);
     const [editingDescriptionId, setEditingDescriptionId] = useState(null);
@@ -352,6 +357,7 @@ export default function PYPCSMatrixSubmission({
     const [missingIndex, setMissingIndex] = useState(-1);
     const [pulseKey, setPulseKey] = useState(null);
     const baseline = useRef(formSnapshot([], 'TI', {}));
+    const originalMECells = useRef([]);
     const tableRef = useRef(null);
     const fieldRefs = useRef(new Map());
 
@@ -363,9 +369,13 @@ export default function PYPCSMatrixSubmission({
     const selectedModuleDetails = sortedModules.filter((module) =>
         visibleModules.includes(module.module_key),
     );
-    const { isAuthenticated, isAdmin } = useAuth();
+    const { isAuthenticated, isAdmin, isME, permissions } = useAuth();
     const location = useLocation();
-    const locked = !isAuthenticated || (submissionStatus === 'final' && !isAdmin);
+    const locked = !isAuthenticated || (submissionId
+        ? !submissionPermissions?.can_edit : !permissions.can_create_product);
+    const canEditCell = (question, moduleKey) => !locked && (!isME || (
+        question.role === 'ME' && (submissionPermissions?.editable_modules === 'all'
+            || submissionPermissions?.editable_modules?.some((key) => key.toLowerCase() === moduleKey.toLowerCase()))));
     const nsbQuestion = questions.find((question) => question.question_id === 'nsb');
     const showNsbReason = nsbQuestion && String(getFirstAnswerForQuestion(
         nsbQuestion, selectedModules, cells,
@@ -396,6 +406,10 @@ export default function PYPCSMatrixSubmission({
             .map((module) => getCellKey(question.question_id, module.module_key))),
     ];
     const hiddenApplicable = selectedModules.filter((key) => !visibleModules.includes(key));
+    const meMissingByModule = Object.fromEntries(selectedModules.map((moduleKey) => [moduleKey,
+        questions.filter((question) => question.role === 'ME' && question.required
+            && isQuestionApplicableToModule(question, moduleKey)
+            && !String(expanded[getCellKey(question.question_id, moduleKey)] || '').trim()).length]));
     const currentSnapshot = formSnapshot(selectedModules, role, cells);
 
     useEffect(() => {
@@ -405,6 +419,18 @@ export default function PYPCSMatrixSubmission({
     }, [currentSnapshot, onDirtyChange]);
 
     useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
+
+    useEffect(() => {
+        if (!targetModule || !questions.length || !visibleModules.some((key) => key.toLowerCase() === targetModule.toLowerCase())) return;
+        const frame = requestAnimationFrame(() => {
+            const heading = [...(tableRef.current?.querySelectorAll('[data-module-key]') || [])]
+                .find((element) => element.dataset.moduleKey.toLowerCase() === targetModule.toLowerCase());
+            heading?.scrollIntoView({ block: 'nearest', inline: 'center' });
+            heading?.focus({ preventScroll: true });
+            setTargetModule(null);
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [targetModule, questions.length, visibleModules]);
 
     function nextMissing() {
         if (!missingKeys.length) return;
@@ -448,6 +474,9 @@ export default function PYPCSMatrixSubmission({
         setSelectedModules([]);
         setVisibleModules([]);
         setRole('TI');
+        originalMECells.current = [];
+        setSubmissionPermissions(null);
+        setTargetModule(null);
         setQuestions([]);
         setCells({});
         setErrors({});
@@ -495,7 +524,7 @@ export default function PYPCSMatrixSubmission({
         loadModules();
     }, [loadModules]);
 
-    async function refreshQuestions(nextSelectedModules, nextRole = role) {
+    async function refreshQuestions(nextSelectedModules) {
         if (nextSelectedModules.length === 0) {
             setCells({});
             setErrors({});
@@ -516,7 +545,7 @@ export default function PYPCSMatrixSubmission({
                         ? nextSelectedModules
                         : modules.filter((module) => module.enabled_default)
                             .map((module) => module.module_key),
-                    role: backendRole(nextRole),
+                    role: null,
                 }),
             });
 
@@ -542,13 +571,14 @@ export default function PYPCSMatrixSubmission({
 
         const sub = resumeSubmission.submission || {};
         const nextModules = sub.selected_modules || [];
-        const nextRole = sub.role ? sub.role.toUpperCase() : 'ALL';
+        const nextRole = isME ? 'ME' : sub.role ? sub.role.toUpperCase() : 'ALL';
 
         const nextCells = {};
         (resumeSubmission.cells || []).forEach((cell) => {
             nextCells[getCellKey(cell.question_id, cell.module_key)] =
                 cell.answer || '';
         });
+        originalMECells.current = (resumeSubmission.cells || []).filter((cell) => cell.role === 'ME');
 
         setSelectedModules(nextModules);
         setVisibleModules(nextModules);
@@ -559,6 +589,8 @@ export default function PYPCSMatrixSubmission({
         setErrors({});
         setSubmissionId(sub.submission_id || null);
         setSubmissionStatus(sub.status || 'final');
+        setSubmissionPermissions(resumeSubmission.permissions || null);
+        setTargetModule(new URLSearchParams(location.search).get('module'));
         setVersions(sub.versions || {});
         setConflict(null);
         setStatusMessage('');
@@ -799,7 +831,8 @@ export default function PYPCSMatrixSubmission({
                 const trimmed = part.trim();
                 return !trimmed || trimmed === 'Other' || (trimmed !== part)
                     || (!options.includes(trimmed)
-                        && (!options.includes('Other') || trimmed.length > 100));
+                        && (!options.includes('Other') || trimmed.length > 100
+                            || ['all', 'na', 'multiple', 'other'].includes(trimmed.toLowerCase())));
             })) {
                 nextErrors[cellKey] = 'Select valid operations or specify Other (max 100 characters, no |).';
             }
@@ -861,7 +894,7 @@ export default function PYPCSMatrixSubmission({
                     return;
                 }
 
-                if (role !== 'ALL' && question.role !== role) {
+                if ((role !== 'ALL' && question.role !== role) || (isME && !canEditCell(question, moduleKey))) {
                     return;
                 }
 
@@ -879,6 +912,12 @@ export default function PYPCSMatrixSubmission({
                 });
             });
         });
+
+        if (isME) {
+            originalMECells.current.filter((cell) => !canEditCell({ role: 'ME' }, cell.module_key))
+                .forEach((cell) => submittedCells.push({ question_id: cell.question_id,
+                    module_key: cell.module_key, answer: cell.answer }));
+        }
 
         return submittedCells;
     }
@@ -923,6 +962,10 @@ export default function PYPCSMatrixSubmission({
             }
         }
 
+        if (detail?.code === 'forbidden_fields') {
+            setStatusMessage(`${authErrorMessage(error)}${detail.fields?.length ? ` Fields: ${detail.fields.join(', ')}` : ''}`);
+            return;
+        }
         const missing = Array.isArray(detail?.missing_required)
             ? detail.missing_required : [];
         const invalid = Array.isArray(detail?.invalid_cells)
@@ -950,7 +993,7 @@ export default function PYPCSMatrixSubmission({
                     ? `${label} is required`
                     : typeof detail.message === 'string'
                         ? detail.message : `${label} is invalid`;
-                grouped.set(moduleLabel, [...(grouped.get(moduleLabel) || []), label]);
+                grouped.set(moduleLabel, [...(grouped.get(moduleLabel) || []), `${item.role || question?.role || 'Unknown'}: ${label}`]);
             });
 
             setErrors(cellErrors);
@@ -1005,7 +1048,7 @@ export default function PYPCSMatrixSubmission({
         }
 
         const expandedCells = expandMatrixCells(questions, selectedModules, cells);
-        const hasProductName = selectedModules.some((moduleKey) => {
+        const hasProductName = isME || selectedModules.some((moduleKey) => {
             const value = expandedCells[getCellKey('product_name', moduleKey)];
             return value && String(value).trim() !== '';
         });
@@ -1031,16 +1074,16 @@ export default function PYPCSMatrixSubmission({
 
         const payload = {
             selected_modules: selectedModules,
-            role: backendRole(role),
-            product_name: findAnswer('product_name'),
-            prodgroup3: findAnswer('prodgroup3'),
-            operation: findAnswer('operation'),
+            role: isME ? 'ME' : backendRole(role),
+            product_name: isME ? '' : findAnswer('product_name'),
+            prodgroup3: isME ? '' : findAnswer('prodgroup3'),
+            operation: isME ? '' : findAnswer('operation'),
             cells: submittedCells,
             submission_id: submissionId,
             status: nextStatus,
             ...(submissionStatus === 'final' ? { edit_reason: editReason } : {}),
-            ...(submissionId && versions[role]
-                ? { expected_version: versions[role] } : {}),
+            ...(submissionId && versions[isME ? 'ME' : role]
+                ? { expected_version: versions[isME ? 'ME' : role] } : {}),
         };
 
         setLoading(true);
@@ -1060,14 +1103,15 @@ export default function PYPCSMatrixSubmission({
             setEditReason('');
             setStatusKind('success');
             setStatusMessage(
-                nextStatus === 'draft'
-                    ? `Saved as draft. ID: ${result.submission_id || 'N/A'}`
-                    : `Matrix submitted successfully. ID: ${result.submission_id || 'N/A'}`,
+                isME ? `Saved. ID: ${result.submission_id || 'N/A'}`
+                    : nextStatus === 'draft' ? `Saved as draft. ID: ${result.submission_id || 'N/A'}`
+                        : `Matrix submitted successfully. ID: ${result.submission_id || 'N/A'}`,
             );
         } catch (error) {
             setStatusKind('error');
             if (error.status === 401 || error.status === 403) {
-                setStatusMessage(authErrorMessage(error));
+                if (error.detail?.code === 'forbidden_fields') showSaveError(error);
+                else setStatusMessage(authErrorMessage(error));
             } else if (error.status === 409 && error.detail?.code === 'conflict') {
                 setConflict(error.detail);
             } else {
@@ -1084,7 +1128,7 @@ export default function PYPCSMatrixSubmission({
             const detail = await requestJson(`/pypcs/submissions/${submissionId}`);
             const sub = detail.submission;
             const nextModules = sub.selected_modules || [];
-            const nextRole = sub.role ? sub.role.toUpperCase() : 'ALL';
+            const nextRole = isME ? 'ME' : sub.role ? sub.role.toUpperCase() : 'ALL';
             const nextCells = {};
             (detail.cells || []).forEach((cell) => {
                 nextCells[getCellKey(cell.question_id, cell.module_key)] = cell.answer || '';
@@ -1094,6 +1138,8 @@ export default function PYPCSMatrixSubmission({
             setVisibleModules(nextModules);
             setRole(nextRole);
             setSubmissionStatus(sub.status || 'final');
+            setSubmissionPermissions(detail.permissions || null);
+            originalMECells.current = (detail.cells || []).filter((cell) => cell.role === 'ME');
             setVersions(sub.versions || {});
             setCells(nextCells);
             baseline.current = formSnapshot(nextModules, nextRole, nextCells);
@@ -1111,7 +1157,11 @@ export default function PYPCSMatrixSubmission({
     }
 
     async function handleSaveDraft() {
-        await saveMatrix('draft');
+        await saveMatrix(isME ? submissionStatus : 'draft');
+    }
+
+    async function handleSubmitTI() {
+        await saveMatrix('waiting_me');
     }
 
     async function handleSubmitFinal() {
@@ -1144,7 +1194,7 @@ export default function PYPCSMatrixSubmission({
         if (question.question_id === 'operation' || question.field_type === 'multiselect') {
             return <OperationInput key={inputKey} options={options} value={value} onChange={onChange}
             label={label} errorId={errorId} invalid={invalid} disabled={disabled}
-            multiselect={question.question_id !== 'operation'} inputId={inputId || inputKey} />;
+            multiselect operation={question.question_id === 'operation'} inputId={inputId || inputKey} />;
         }
 
         if (question.field_type === 'select') {
@@ -1230,8 +1280,8 @@ export default function PYPCSMatrixSubmission({
         const moduleKey = module.module_key;
         const selected = selectedModules.includes(moduleKey);
         const applicable = isQuestionApplicableToModule(question, moduleKey);
-        const editable =
-            selected && applicable && (role === 'ALL' || question.role === role);
+        const editable = selected && applicable && (role === 'ALL' || question.role === role)
+            && canEditCell(question, moduleKey);
         const cellKey = getCellKey(question.question_id, moduleKey);
         const value = cells[cellKey] || '';
         const error = errors[cellKey];
@@ -1250,15 +1300,13 @@ export default function PYPCSMatrixSubmission({
             );
         }
 
-        if (!editable && !locked) {
+        if (!editable) {
             return (
                 <td
                     key={moduleKey}
                     className="min-w-32 border-b border-r border-table-border bg-muted p-2 text-xs text-muted-foreground"
                 >
-                    {EMAIL_QUESTION_IDS.has(question.question_id) && value
-                        ? <output aria-label={label} className="block select-text break-all">{value}</output>
-                        : 'Read only'}
+                    <output aria-label={label} className="block select-text break-all">{value || 'Read only'}</output>
                 </td>
             );
         }
@@ -1320,7 +1368,7 @@ export default function PYPCSMatrixSubmission({
                 {renderFieldInput(
                     question, value,
                     (nextValue) => handleSharedFieldChange(question, nextValue),
-                    label, errorId, undefined, locked || !applicableModules.length, inputId,
+                    label, errorId, undefined, !applicableModules.length || !applicableModules.every((key) => canEditCell(question, key)) || (role !== 'ALL' && question.role !== role), inputId,
                 )}
                 {error ? (
                     <div id={errorId} className="mt-1 text-xs text-destructive">{error}</div>
@@ -1396,7 +1444,7 @@ export default function PYPCSMatrixSubmission({
                     className="h-9 rounded-md border bg-background px-2 text-sm"
                     value={role}
                     onChange={(event) => handleRoleChange(event.target.value)}
-                    disabled={loading || locked}
+                    disabled={loading || locked || isME}
                 >
                     <option value="TI">TI</option>
                     <option value="ME">ME</option>
@@ -1439,12 +1487,15 @@ export default function PYPCSMatrixSubmission({
                 </Button>
                 <div className="ml-auto flex items-center gap-2">
                     {!isAuthenticated && <Link className="text-sm underline" to={loginPath(location.pathname + location.search)}>Log in to edit</Link>}
-                    <Button type="button" size="sm" variant="outline" onClick={handleSaveDraft} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>
-                        {loading ? 'Working...' : 'Save Draft'}
-                    </Button>
-                    <Button type="button" size="sm" onClick={handleSubmitFinal} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>
-                        {loading ? 'Working...' : 'Submit Final'}
-                    </Button>
+                    {(isME || permissions.can_create_product) && <Button type="button" size="sm" variant="outline" onClick={handleSaveDraft} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>
+                        {loading ? 'Working...' : isME ? 'Save' : 'Save draft'}
+                    </Button>}
+                    {!isME && (submissionId ? submissionPermissions?.can_submit_ti : permissions.can_create_product) && !submissionStatus?.includes('final') && submissionStatus !== 'waiting_me' &&
+                        <Button type="button" size="sm" variant="outline" onClick={handleSubmitTI} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>Submit TI part</Button>}
+                    {!isME && (submissionId ? submissionPermissions?.can_final : permissions.can_create_product) &&
+                        <Button type="button" size="sm" onClick={handleSubmitFinal} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>
+                            {loading ? 'Working...' : 'Final submit'}
+                        </Button>}
                 </div>
             </div>
 
@@ -1469,7 +1520,7 @@ export default function PYPCSMatrixSubmission({
             {(statusMessage || loading || moduleLoadError) ? (
                 <div className="shrink-0 text-sm" role={statusKind === 'error' ? 'alert' : 'status'} aria-live="polite">
                     {statusKind === 'error' && typeof statusMessage !== 'string' ? (
-                        <details className="rounded border border-destructive/30 px-2 py-1 text-destructive">
+                        <details open className="rounded border border-destructive/30 px-2 py-1 text-destructive">
                             <summary className="cursor-pointer">Submit failed. Show details</summary>
                             <div className="mt-1">{statusMessage}</div>
                         </details>
@@ -1488,13 +1539,14 @@ export default function PYPCSMatrixSubmission({
                         <span>Editing submission ID: {submissionId}</span>
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${submissionStatus === 'draft'
                             ? 'bg-status-warning text-status-warning-foreground'
-                            : 'bg-status-success text-status-success-foreground'}`}>
-                            {submissionStatus === 'draft' ? 'Draft' : 'Final'}
+                            : submissionStatus === 'waiting_me' ? 'bg-status-info text-status-info-foreground'
+                                : 'bg-status-success text-status-success-foreground'}`}>
+                            {submissionStatus === 'draft' ? 'Draft' : submissionStatus === 'waiting_me' ? 'Waiting for ME' : 'Final'}
                         </span>
                     </div>
-                    <button type="button" className="rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:ring-ring" onClick={resetForm}>
+                    {permissions.can_create_product && <button type="button" className="rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:ring-ring" onClick={resetForm}>
                         New Submission
-                    </button>
+                    </button>}
                 </div>
             ) : null}
 
@@ -1574,9 +1626,13 @@ export default function PYPCSMatrixSubmission({
                                 <th
                                     key={module.module_key}
                                     scope="col"
+                                    tabIndex={-1}
+                                    data-module-key={module.module_key}
                                     className="sticky top-0 z-20 w-40 border-b border-r border-white/20 bg-table-header p-2"
                                 >
                                     {module.module_label || module.module_key}
+                                    {!isME && role === 'TI' && selectedModules.includes(module.module_key) &&
+                                        <span className="mt-1 block rounded bg-status-info px-1 text-xs text-status-info-foreground">ME: {meMissingByModule[module.module_key]} required missing</span>}
                                     {selectedModules.includes(module.module_key) ? (() => {
                                         const required = questions.filter((question) => isRequired(question, module.module_key));
                                         const filled = required.filter((question) => String(expanded[getCellKey(question.question_id, module.module_key)] || '').trim()).length;

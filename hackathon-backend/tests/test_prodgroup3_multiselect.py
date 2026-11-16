@@ -37,7 +37,7 @@ def matrix_client(tmp_path, monkeypatch):
     import app.io.generic_csv as generic_csv
     import app.services.product_action_matrix_service as matrix_service
     import app.services.pypcs_service as pypcs_service
-    from app.auth import require_writer
+    from app.auth import get_current_user
     from app.main import app
 
     monkeypatch.setattr(config, "DATA_DIR", data_dir)
@@ -54,14 +54,14 @@ def matrix_client(tmp_path, monkeypatch):
             question["field_type"] = "multiselect"
     _write_csv(questions_path, question_rows, question_headers)
 
-    app.dependency_overrides[require_writer] = lambda: {
+    app.dependency_overrides[get_current_user] = lambda: {
         "username": "multiselect-test",
         "role": "admin",
     }
     client = TestClient(app)
     yield client, data_dir
     client.close()
-    app.dependency_overrides.pop(require_writer, None)
+    app.dependency_overrides.pop(get_current_user, None)
     pypcs_service._canonical_module_keys.cache_clear()
 
 

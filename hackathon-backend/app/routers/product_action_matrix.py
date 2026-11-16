@@ -5,10 +5,18 @@ from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 
-from app.auth import require_writer
+from app.auth import ROLE_ME, get_optional_user, require_product_info_editor
 from app.io.csv_excel import value_to_str
 from app.io.concurrency import locked_files, record_version
-from app.io.generic_csv import safe_int
+from app.io.generic_csv import safe_int, split_pipe_value
+from app.services.change_log import matrix_decision_changes, new_request_id, record_changes
+from app.services.permissions import (
+    build_owner_index,
+    can_edit_matrix_row,
+    owned_modules,
+    user_email,
+    user_role,
+)
 from app.services.product_action_matrix_service import (
     PRODUCT_ACTION_DECISIONS_FILE,
     _decision_values,
@@ -34,13 +42,20 @@ def _field_error(status_code: int, field: str, message: str) -> HTTPException:
 def get_pypcs_product_action_matrix(
     module_group: str | None = Query(default=None),
     prodgroup3: str | None = Query(default=None),
+    user: dict | None = Depends(get_optional_user),
 ):
-    return get_product_action_matrix(module_group, prodgroup3=prodgroup3)
+    result = get_product_action_matrix(module_group, prodgroup3=prodgroup3)
+    owner_index = build_owner_index() if user_role(user) == ROLE_ME else {}
+    email = user_email(user)
+    for row in result["rows"]:
+        owned = owned_modules(owner_index, value_to_str(row.get("submission_id", "")), email)
+        row["can_edit"] = can_edit_matrix_row(user, row.get("module_keys", []), owned)
+    return result
 
 
 @router.put("/pypcs/product-action-matrix/rows")
 def update_pypcs_product_action_matrix_row(
-    payload: Any = Body(...), user: dict = Depends(require_writer)
+    payload: Any = Body(...), user: dict = Depends(require_product_info_editor)
 ):
     if not isinstance(payload, dict):
         raise _field_error(422, "body", "Request body must be an object.")
@@ -87,10 +102,12 @@ def update_pypcs_product_action_matrix_row(
             }
         )
 
-    return _update_matrix_row(product_key, module_group, user["username"], mode, cells)
+    return _update_matrix_row(
+        product_key, module_group, user["username"], mode, cells, user=user
+    )
 
 
-def _update_matrix_row(product_key, module_group, updated_by, mode, cells):
+def _update_matrix_row(product_key, module_group, updated_by, mode, cells, user=None):
     with locked_files(PRODUCT_ACTION_DECISIONS_FILE):
         built = build_product_action_matrix()
         target_rows = [
@@ -101,6 +118,26 @@ def _update_matrix_row(product_key, module_group, updated_by, mode, cells):
         ]
         if not target_rows:
             raise _field_error(404, "product_key", "Product/module group not found.")
+
+        if user_role(user) == ROLE_ME:
+            owned = owned_modules(
+                build_owner_index(),
+                value_to_str(target_rows[0].get("submission_id", "")),
+                user_email(user),
+            )
+            if not all(
+                can_edit_matrix_row(
+                    user, split_pipe_value(value_to_str(row.get("module_keys", ""))), owned
+                )
+                for row in target_rows
+            ):
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "code": "forbidden_rows",
+                        "message": "ME users may only edit matrix rows for modules they own.",
+                    },
+                )
 
         valid_actions = {safe_int(row["action_nbr"]) for row in target_rows}
         decision_updates = {}
@@ -191,7 +228,27 @@ def _update_matrix_row(product_key, module_group, updated_by, mode, cells):
                     "updated_at": timestamp,
                 }
 
+        before_by_action = {
+            str(row["action_nbr"]): dict(_decision_values(row)) for row in target_rows
+        }
         rebuild_product_action_matrix(decision_updates, built)
+        request_id = new_request_id()
+        current_by_action = {str(row["action_nbr"]): row for row in target_rows}
+        for (row_product_key, row_module_group, row_action_nbr), new_decision in decision_updates.items():
+            current = current_by_action[row_action_nbr]
+            record_changes(
+                username=updated_by,
+                role=user_role(user) or "",
+                entity_type="matrix_decision",
+                entity_id=f"{row_product_key}|{row_module_group}|{row_action_nbr}",
+                ticket_label=(
+                    f"{value_to_str(current.get('product_name', ''))} / "
+                    f"{row_module_group} / {value_to_str(current.get('event_id', ''))}"
+                ),
+                action="update",
+                request_id=request_id,
+                changes=matrix_decision_changes(before_by_action[row_action_nbr], new_decision),
+            )
         updated = get_product_action_matrix(module_group, built)
         return next(row for row in updated["rows"] if row["product_key"] == product_key)
 

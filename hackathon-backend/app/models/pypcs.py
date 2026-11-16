@@ -26,7 +26,7 @@ class PYPCSMatrixSubmissionRequest(BaseModel):
     cells: list[PYPCSMatrixCellPayload] = Field(default_factory=list)
     # If set, updates the existing submission in place instead of creating a new one.
     submission_id: str | None = None
-    status: Literal["draft", "final"] = "final"
+    status: Literal["draft", "waiting_me", "final"] = "draft"
     expected_version: str | None = None
     edit_reason: str | None = None
 

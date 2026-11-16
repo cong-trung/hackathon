@@ -11,6 +11,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.config import QUALITY_MATRIX_TRUSTED_PROXIES
 from app.auth import (
+    ROLE_ADMIN,
+    ROLE_ME,
+    ROLE_TI,
+    GUEST_USERNAME,
+    ROLE_VIEWER,
     USER_FILE,
     USER_HEADERS,
     _DUMMY_HASH,
@@ -21,6 +26,7 @@ from app.auth import (
     get_current_user,
     hash_password,
     issue_token,
+    normalize_role,
     normalize_username,
     public_user,
     record_audit,
@@ -32,6 +38,13 @@ from app.auth import (
     verify_password,
 )
 from app.io.concurrency import locked_files
+from app.io.csv_excel import value_to_str
+from app.services.change_log import (
+    FieldChange,
+    field_changes,
+    new_request_id,
+    record_changes,
+)
 
 router = APIRouter()
 _LOGIN_WINDOW_SECONDS = 300
@@ -56,6 +69,17 @@ class LoginRequest(BaseModel):
 
 class ApproveRequest(BaseModel):
     role: str
+
+
+class RoleChangeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    role: str
+
+
+# Roles accepted on approval. Legacy "editor" is stored as ti.
+_APPROVABLE_ROLES = {ROLE_ADMIN, ROLE_TI, ROLE_ME, ROLE_VIEWER, "editor"}
+_ASSIGNABLE_ROLES = {ROLE_ADMIN, ROLE_TI, ROLE_ME, ROLE_VIEWER}
 
 
 class ChangePasswordRequest(BaseModel):
@@ -143,12 +167,16 @@ def request_account(payload: AccountRequest):
         rows = _read_csv(USER_FILE, USER_HEADERS)
         if _find_user(rows, username):
             raise HTTPException(status_code=409, detail={"code": "username_taken"})
+        if email and any(
+            value_to_str(item.get("email", "")).strip().casefold() == email.casefold() for item in rows
+        ):
+            raise HTTPException(status_code=409, detail={"code": "email_in_use"})
         row = {
             "username": username,
             "display_name": display_name,
             "email": email,
             "password_hash": password_hash,
-            "role": "editor",
+            "role": ROLE_VIEWER,
             "status": "pending",
             "created_at": timestamp_now(),
             "decided_by": "",
@@ -197,7 +225,7 @@ def change_password(
     request: Request,
     user: dict[str, str] = Depends(get_current_user),
 ):
-    if user.get("role") == "guest":
+    if normalize_role(user.get("role")) == ROLE_VIEWER:
         raise HTTPException(status_code=403, detail={"code": "guest_not_allowed"})
     username = normalize_username(user["username"])
     client_ip = _client_ip(request)
@@ -205,7 +233,7 @@ def change_password(
     with locked_files(USER_FILE):
         rows = _read_csv(USER_FILE, USER_HEADERS)
         row = _find_user(rows, username)
-        if not row or row.get("status") != "active" or row.get("role") == "guest":
+        if not row or row.get("status") != "active" or normalize_role(row.get("role")) == ROLE_VIEWER:
             raise HTTPException(status_code=401, detail={"code": "unauthenticated"})
         if not verify_password(payload.current_password, row.get("password_hash", "")):
             _record_login_failure(username, client_ip)
@@ -220,6 +248,16 @@ def change_password(
             )
         row["password_hash"] = hash_password(payload.new_password)
         _write_users(rows)
+        record_changes(
+            username=username,
+            role=normalize_role(user.get("role")),
+            entity_type="user",
+            entity_id=username,
+            ticket_label=username,
+            action="password_change",
+            request_id=new_request_id(),
+            changes=[FieldChange("password", action="password_change")],
+        )
     record_audit(username, "POST", "/auth/change-password", 200)
     return {"ok": True}
 
@@ -234,7 +272,15 @@ def guest_login():
 
 @router.get("/auth/me")
 def auth_me(user: dict[str, str] = Depends(get_current_user)):
-    return {"user": user}
+    role = user.get("role")
+    return {
+        "user": user,
+        "permissions": {
+            "can_create_product": role in {ROLE_ADMIN, ROLE_TI},
+            "can_edit_action_items": role in {ROLE_ADMIN, ROLE_TI},
+            "is_admin": role == ROLE_ADMIN,
+        },
+    }
 
 
 @router.get("/auth/users")
@@ -257,28 +303,104 @@ def approve_user(
     payload: ApproveRequest,
     admin: dict[str, str] = Depends(require_admin),
 ):
-    if payload.role not in {"editor", "admin"}:
+    raw_role = value_to_str(payload.role).strip().lower()
+    if raw_role not in _APPROVABLE_ROLES:
         raise HTTPException(status_code=422, detail={"code": "invalid_role"})
+    role = normalize_role(raw_role)
     with locked_files(USER_FILE):
         rows = _read_csv(USER_FILE, USER_HEADERS)
         row = _find_user(rows, normalize_username(username))
         if not row:
             raise HTTPException(status_code=404, detail={"code": "user_not_found"})
-        if row.get("role") == "admin" and payload.role != "admin" and row.get("status") == "active":
-            active_admins = [item for item in rows if item.get("role") == "admin" and item.get("status") == "active"]
+        if row.get("username", "").lower() == GUEST_USERNAME:
+            raise HTTPException(status_code=409, detail={"code": "guest_account_locked"})
+        if normalize_username(row.get("username", "")) == normalize_username(admin["username"]):
+            raise HTTPException(status_code=409, detail={"code": "cannot_change_own_role"})
+        if row.get("status") not in {"pending", "rejected"}:
+            raise HTTPException(status_code=409, detail={"code": "not_approvable"})
+        if role == ROLE_ME and not value_to_str(row.get("email", "")).strip():
+            raise HTTPException(status_code=422, detail={"code": "email_required_for_me"})
+        if normalize_role(row.get("role")) == ROLE_ADMIN and role != ROLE_ADMIN and row.get("status") == "active":
+            active_admins = [item for item in rows if normalize_role(item.get("role")) == ROLE_ADMIN and item.get("status") == "active"]
             if len(active_admins) <= 1:
                 raise HTTPException(status_code=409, detail={"code": "last_admin"})
+        before = {"status": row.get("status", ""), "role": normalize_role(row.get("role"))}
         row.update(
-            role=payload.role,
+            role=role,
             status="active",
             decided_by=admin["username"],
             decided_at=timestamp_now(),
         )
         _write_users(rows)
+        record_changes(
+            username=admin["username"],
+            role=normalize_role(admin.get("role")),
+            entity_type="user",
+            entity_id=row["username"],
+            ticket_label=row["username"],
+            action="approve",
+            request_id=new_request_id(),
+            changes=field_changes(
+                before, {"status": "active", "role": role}, ("status", "role"), action="approve"
+            ),
+        )
     return {"user": public_user(row)}
 
 
-def _decide_user(username: str, admin: dict[str, str], status: str):
+@router.patch("/auth/users/{username}/role")
+def change_user_role(
+    username: str,
+    payload: RoleChangeRequest,
+    admin: dict[str, str] = Depends(require_admin),
+):
+    role = value_to_str(payload.role).strip().lower()
+    if role not in _ASSIGNABLE_ROLES:
+        raise HTTPException(status_code=422, detail={"code": "invalid_role"})
+    target = normalize_username(username)
+    if target == normalize_username(admin["username"]):
+        raise HTTPException(status_code=409, detail={"code": "cannot_change_own_role"})
+    if target == GUEST_USERNAME:
+        raise HTTPException(status_code=409, detail={"code": "guest_account_locked"})
+    with locked_files(USER_FILE):
+        rows = _read_csv(USER_FILE, USER_HEADERS)
+        row = _find_user(rows, target)
+        if not row:
+            raise HTTPException(status_code=404, detail={"code": "user_not_found"})
+        if row.get("status") == "pending":
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "account_pending",
+                    "message": "Approve the account before changing its role.",
+                },
+            )
+        if row.get("status") != "active":
+            raise HTTPException(status_code=409, detail={"code": "user_not_active"})
+        if role == ROLE_ME and not value_to_str(row.get("email", "")).strip():
+            raise HTTPException(status_code=422, detail={"code": "email_required_for_me"})
+        if normalize_role(row.get("role")) == ROLE_ADMIN and role != ROLE_ADMIN:
+            active_admins = [item for item in rows if normalize_role(item.get("role")) == ROLE_ADMIN and item.get("status") == "active"]
+            if len(active_admins) <= 1:
+                raise HTTPException(status_code=409, detail={"code": "last_admin"})
+        before_role = normalize_role(row.get("role"))
+        row["role"] = role
+        _write_users(rows)
+        record_changes(
+            username=admin["username"],
+            role=normalize_role(admin.get("role")),
+            entity_type="user",
+            entity_id=row["username"],
+            ticket_label=row["username"],
+            action="role_change",
+            request_id=new_request_id(),
+            changes=field_changes(
+                {"role": before_role}, {"role": role}, ("role",), action="role_change"
+            ),
+        )
+    return {"user": public_user(row)}
+
+
+def _decide_user(username: str, admin: dict[str, str], status: str, action: str):
     target = normalize_username(username)
     with locked_files(USER_FILE):
         rows = _read_csv(USER_FILE, USER_HEADERS)
@@ -286,32 +408,47 @@ def _decide_user(username: str, admin: dict[str, str], status: str):
         if (
             not acting_admin
             or acting_admin.get("status") != "active"
-            or acting_admin.get("role") != "admin"
+            or normalize_role(acting_admin.get("role")) != ROLE_ADMIN
         ):
             raise HTTPException(status_code=403, detail={"code": "admin_required"})
         row = _find_user(rows, target)
         if not row:
             raise HTTPException(status_code=404, detail={"code": "user_not_found"})
+        if target == GUEST_USERNAME:
+            raise HTTPException(status_code=409, detail={"code": "guest_account_locked"})
         if (
             status != "active"
             and row.get("status") == "active"
-            and row.get("role") == "admin"
+            and normalize_role(row.get("role")) == ROLE_ADMIN
         ):
-            active_admins = [item for item in rows if item.get("role") == "admin" and item.get("status") == "active"]
+            active_admins = [item for item in rows if normalize_role(item.get("role")) == ROLE_ADMIN and item.get("status") == "active"]
             if len(active_admins) <= 1:
                 raise HTTPException(status_code=409, detail={"code": "last_admin"})
         if target == acting_admin.get("username"):
             raise HTTPException(status_code=403, detail={"code": "cannot_change_self"})
+        before_status = row.get("status", "")
         row.update(status=status, decided_by=acting_admin["username"], decided_at=timestamp_now())
         _write_users(rows)
+        record_changes(
+            username=admin["username"],
+            role=normalize_role(admin.get("role")),
+            entity_type="user",
+            entity_id=row["username"],
+            ticket_label=row["username"],
+            action=action,
+            request_id=new_request_id(),
+            changes=field_changes(
+                {"status": before_status}, {"status": status}, ("status",), action=action
+            ),
+        )
     return {"user": public_user(row)}
 
 
 @router.post("/auth/users/{username}/reject")
 def reject_user(username: str, admin: dict[str, str] = Depends(require_admin)):
-    return _decide_user(username, admin, "rejected")
+    return _decide_user(username, admin, "rejected", "reject")
 
 
 @router.post("/auth/users/{username}/disable")
 def disable_user(username: str, admin: dict[str, str] = Depends(require_admin)):
-    return _decide_user(username, admin, "disabled")
+    return _decide_user(username, admin, "disabled", "disable")

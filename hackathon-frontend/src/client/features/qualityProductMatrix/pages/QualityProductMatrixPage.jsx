@@ -92,7 +92,7 @@ function ProductCell({ row, table }) {
                 <span className="min-w-0 break-words font-semibold">{row.original.product_name || 'Unnamed product'}</span>
                 {row.original.submission_status === 'draft' && <Badge variant="outline" className="shrink-0 text-[10px]">Draft</Badge>}
             </div>
-            {table.options.meta.canEdit && applicableActions(row.original, table.options.meta.actions).length > 0 && <Button variant="outline" size="sm" type="button" className="mt-1 h-7 gap-1 px-2 text-xs"
+            {table.options.meta.canEdit && row.original.can_edit && applicableActions(row.original, table.options.meta.actions).length > 0 && <Button variant="outline" size="sm" type="button" className="mt-1 h-7 gap-1 px-2 text-xs"
                 onClick={() => table.options.meta.onEdit(row.original, null)}
                 aria-label={`Edit ${row.original.product_name} ${row.original.module_group}`}>
                 <PencilIcon className="size-3" /> Edit
@@ -129,31 +129,35 @@ function StatusCell({ row, column, table }) {
     const cell = row.original.cells?.[action.nbr];
     const status = cell?.status;
     const draft = cell?.decision_state === 'draft';
+    const editable = table.options.meta.canEdit && row.original.can_edit;
         const label = draft ? `${status || 'N (default)'} draft` : status || 'N (default), not reviewed';
         const style = draft ? `${status === 'Y' ? 'bg-status-success text-status-success-foreground'
             : status === 'N' ? 'bg-destructive/20 text-destructive'
                     : status === 'NA' ? 'bg-muted text-foreground'
                         : 'bg-muted text-muted-foreground'} border border-dashed border-border`
-                : status === 'Y' ? 'bg-green-700 text-white hover:bg-green-800'
-                : status === 'N' ? 'bg-red-600 text-white hover:bg-red-700'
-                    : status === 'NA' ? 'bg-muted text-foreground hover:bg-accent'
-                        : 'text-muted-foreground hover:bg-muted';
+                : status === 'Y' ? 'bg-green-700 text-white'
+                : status === 'N' ? 'bg-red-600 text-white'
+                    : status === 'NA' ? 'bg-muted text-foreground'
+                        : 'text-muted-foreground';
         const description = draft
                 ? `Draft · ${cell.comment || '—'} · ${cell.updated_by || '—'} · ${cell.updated_at || '—'}`
                 : status
         ? `${cell.comment || ''}${cell.updated_by ? `\nUpdated by: ${cell.updated_by}` : ''}${cell.updated_at ? `\nUpdated at: ${cell.updated_at}` : ''}`
         : '';
 
+    const content = draft ? <span className="flex items-center gap-1 truncate">
+        <span className="truncate">{status || 'N (default)'}</span><span className="shrink-0 text-[9px]">draft</span>
+    </span> : status ? `${status}${cell.comment ? ` (${cell.comment})` : ''}` : 'N (default)';
+    if (!editable) return <span className={`block h-10 w-full truncate rounded-sm px-2 py-3 text-left text-xs ${style}`}
+        aria-label={`${row.original.product_name} ${action.event_id || `#${action.nbr}`}: ${label}`}
+        title={description || undefined}>{content}</span>;
+
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <button type="button" disabled={!table.options.meta.canEdit} className={`h-10 w-full truncate rounded-sm px-2 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${style}`}
+                <button type="button" className={`h-10 w-full truncate rounded-sm px-2 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${style} ${status === 'Y' ? 'hover:bg-green-800' : status === 'N' ? 'hover:bg-red-700' : status === 'NA' ? 'hover:bg-accent' : 'hover:bg-muted'}`}
                     aria-label={`${row.original.product_name} ${action.event_id || `#${action.nbr}`}: ${label}`}
-                    onClick={() => table.options.meta.onEdit(row.original, action.nbr)}>
-                    {draft ? <span className="flex items-center gap-1 truncate">
-                        <span className="truncate">{status || 'N (default)'}</span><span className="shrink-0 text-[9px]">draft</span>
-                    </span> : status ? `${status}${cell.comment ? ` (${cell.comment})` : ''}` : 'N (default)'}
-                </button>
+                    onClick={() => table.options.meta.onEdit(row.original, action.nbr)}>{content}</button>
             </TooltipTrigger>
             {description && <TooltipContent className="max-w-xs whitespace-pre-line break-words">{description}</TooltipContent>}
         </Tooltip>
@@ -180,7 +184,8 @@ function columnsFor(actions) {
 }
 
 export default function QualityProductMatrixPage() {
-    const { isAuthenticated, isGuest } = useAuth();
+    const { isAuthenticated, isViewer } = useAuth();
+    const canEdit = isAuthenticated && !isViewer;
     const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const [search, setSearch] = useState('');
@@ -230,9 +235,9 @@ export default function QualityProductMatrixPage() {
         );
     const columns = useMemo(() => columnsFor(actions), [actions]);
     const onEdit = useCallback((row, actionNbr) => {
-        if (isAuthenticated && !isGuest) setEditor({ row, actionNbr });
-    }, [isAuthenticated, isGuest]);
-    const tableMeta = useMemo(() => ({ onEdit, canEdit: isAuthenticated && !isGuest, actions }), [onEdit, isAuthenticated, isGuest, actions]);
+        if (canEdit && row.can_edit) setEditor({ row, actionNbr });
+    }, [canEdit]);
+    const tableMeta = useMemo(() => ({ onEdit, actions, canEdit }), [onEdit, actions, canEdit]);
     const table = useReactTable({
         data: pagedRows,
         columns,
@@ -404,7 +409,11 @@ export default function QualityProductMatrixPage() {
                                 )) : (
                                     <TableRow><TableCell colSpan={leafColumns.length} className="h-32 text-center text-muted-foreground">
                                         {rows.length ? <>No matching products.{' '}
-                                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setNeedsReview(false); setModuleGroup(''); setPage(1); }}>Clear filters</Button>
+                                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setNeedsReview(false); setSearchParams((previous) => {
+                                                const next = new URLSearchParams(previous);
+                                                next.delete('module');
+                                                return next;
+                                            }); setPage(1); }}>Clear filters</Button>
                                         </> : 'No Product Info submissions yet'}
                                     </TableCell></TableRow>
                                 )}
@@ -415,7 +424,7 @@ export default function QualityProductMatrixPage() {
                 {!query.isLoading && !query.isError && <ClientPagination label="Products" total={sortedRows.length}
                     page={currentPage} pageSize={pageSize} onPageChange={setPage}
                     onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
-                {isAuthenticated && !isGuest && editor && <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
+                {canEdit && editor?.row.can_edit && <RowEditor key={`${editor.row.product_key}::${editor.row.module_group}`}
                     row={editor.row} actions={actions} focusedAction={editor.actionNbr}
                     onReload={async () => {
                         const latest = await query.refetch().unwrap();
