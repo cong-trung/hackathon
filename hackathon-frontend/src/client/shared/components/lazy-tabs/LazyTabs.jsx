@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { scrollbarClassName } from '@/shared/utils/scrollbar';
 
 export default function LazyTabs({ tabs, activeKey, onChange, renderPanel, loading, urlParam = 'tab' }) {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -34,7 +33,7 @@ export default function LazyTabs({ tabs, activeKey, onChange, renderPanel, loadi
     if (loading || !firstKey) return null;
     return (
         <Tabs value={selectedKey} onValueChange={select} className="flex min-w-0 flex-col md:min-h-0 md:flex-1">
-            <div className={`overflow-x-auto ${scrollbarClassName}`}>
+            <div className="shrink-0 overflow-x-auto overflow-y-hidden pb-1 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
                 <TabsList className="h-auto w-max justify-start gap-1">
                     {visibleTabs.map((tab) => (
                         <TabsTrigger key={tab.key} value={tab.key}>
