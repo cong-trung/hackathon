@@ -49,6 +49,7 @@ No test suite or lint config exists yet.
   (modules, solutions, PdO, View 2, submissions, XRB) injected into the chat system prompt;
   XRB is summarized on a background thread from `<DATA_DIR>/XRB.csv` because the
   export is large. Frontend chat UI uses `@ant-design/x`.
+- [app/services/chat_retrieval.py](app/services/chat_retrieval.py) — per-question keyword retrieval over the data files (submissions + cells, View 2 action items, solutions, PdO, Product Basis, module questions, View 3, XRB) cached by file mtime; [app/routers/chat.py](app/routers/chat.py) injects the result as a `RELEVANT DATA` prompt block. Module tokens only boost already-matched rows, never create matches.
 - [app/routers/](app/routers) — one FastAPI `APIRouter` per feature area (`health`,
   `auth`, `product_basis`, `solutions`, `pdsolutions`, `pypcs`, `chat`), wired up in
   [app/main.py](app/main.py).

@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.models.chat import AIChatRequest, AIChatResponse
 from app.services.chat_context import get_data_snapshot
+from app.services.chat_retrieval import get_relevant_data
 from app.services.chat_service import (
     CHAT_SYSTEM_PROMPT,
     NYRA_CHAT_MODEL,
@@ -43,6 +44,15 @@ def chat_with_ai(req: AIChatRequest):
             f"{CHAT_SYSTEM_PROMPT}"
             "\n\nLIVE DATA SNAPSHOT (read from the app's current data files):\n"
             f"{snapshot}"
+        )
+
+    relevant = get_relevant_data(req.message)
+    if relevant:
+        system_content = (
+            f"{system_content}"
+            "\n\nRELEVANT DATA (rows retrieved from the app's current data "
+            "files for this question; quote these values):\n"
+            f"{relevant}"
         )
 
     messages = [{"role": "system", "content": system_content}]
