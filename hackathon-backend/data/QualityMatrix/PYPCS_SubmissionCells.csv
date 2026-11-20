@@ -7066,3 +7066,69 @@ a0317059-302f-45dc-8706-43732d49a0d7,product_name,LCBI,TI,aaaa,2026-11-13T08:43:
 a0317059-302f-45dc-8706-43732d49a0d7,product_name,HDMx_AHMT,TI,aaaa,2026-11-13T08:43:12Z,admin
 a0317059-302f-45dc-8706-43732d49a0d7,product_name,HDMx_Class,TI,aaaa,2026-11-13T08:43:12Z,admin
 a0317059-302f-45dc-8706-43732d49a0d7,product_name,STHI,TI,aaaa,2026-11-13T08:43:12Z,admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,product_name,LCBI,TI,AAA,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,product_group_email,LCBI,TI,anh.minh.phan@intel.com,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,product_remark,LCBI,TI,AAA,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,pdo_owner,LCBI,TI,anh.minh.phan@intel.com,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,prodgroup3,LCBI,TI,ADLG601,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,operation,LCBI,TI,7460,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,tp_name,LCBI,ME,anh.minh.phan@intel.com,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,nsb,LCBI,TI,N,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,mcp,LCBI,TI,Y,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,package,LCBI,TI,LGA,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,bare_die_lid,LCBI,TI,Bare die,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,foveros,LCBI,TI,Foveros,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,implementation_stage,LCBI,TI,AAA,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,segment,LCBI,TI,Client Desktop,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,xvi_tool_type,LCBI,TI,DVI,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,fab_technology,LCBI,TI,AAA,"",admin
+c12e144f-c17f-40bb-82fe-30ff9a3bbf6c,lts_ball,LCBI,TI,N,"",admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,product_name,LCBI,TI,DG2-512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,product_name,HDMx_Class,TI,DG2-512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,product_name,HDMx_Cfuse,TI,DG2-512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,product_name,HDMx_EQA,TI,DG2-512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,product_name,STHI,TI,DG2-512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,prodgroup3,LCBI,TI,DG512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,prodgroup3,HDMx_Class,TI,DG512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,prodgroup3,HDMx_Cfuse,TI,DG512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,prodgroup3,HDMx_EQA,TI,DG512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,prodgroup3,STHI,TI,DG512,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,operation,LCBI,TI,7460|7462|7463|7465,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,operation,HDMx_Class,TI,6261|6262|6212|6215,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,operation,HDMx_Cfuse,TI,6197,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,operation,HDMx_EQA,TI,6242|6260|6208|6243|6258,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,operation,STHI,TI,7295|7980|7297,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,tp_name,LCBI,ME,"LCBI: DG2512%
+Class: DG2%
+PPV: DG2CB%",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,tp_name,HDMx_Class,ME,"LCBI: DG2512%
+Class: DG2%
+PPV: DG2CB%",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,tp_name,HDMx_Cfuse,ME,"LCBI: DG2512%
+Class: DG2%
+PPV: DG2CB%",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,tp_name,HDMx_EQA,ME,"LCBI: DG2512%
+Class: DG2%
+PPV: DG2CB%",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,tp_name,STHI,ME,"LCBI: DG2512%
+Class: DG2%
+PPV: DG2CB%",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,process_step,HDMx_Class,TI,Class hot|Class cold,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,process_step,HDMx_Cfuse,TI,Fuse,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,process_step,HDMx_EQA,TI,EQA hot|EQA cold,2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,backend_test_process_flow,HDMx_Class,TI,"c. CFUSE before PPV/ EQA
+FACT: not yet finalize -> trending is no -> TBD",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,backend_test_process_flow,HDMx_Cfuse,TI,"c. CFUSE before PPV/ EQA
+FACT: not yet finalize -> trending is no -> TBD",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,backend_test_process_flow,HDMx_EQA,TI,"c. CFUSE before PPV/ EQA
+FACT: not yet finalize -> trending is no -> TBD",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,implementation_stage,LCBI,TI,"QS-ww41
+PRQ-ww49",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,implementation_stage,HDMx_Class,TI,"QS-ww41
+PRQ-ww49",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,implementation_stage,HDMx_Cfuse,TI,"QS-ww41
+PRQ-ww49",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,implementation_stage,HDMx_EQA,TI,"QS-ww41
+PRQ-ww49",2026-11-20T07:38:53Z,admin
+1be7b0bf-995a-4248-b9a0-d49986fca61c,implementation_stage,STHI,TI,"QS-ww41
+PRQ-ww49",2026-11-20T07:38:53Z,admin
