@@ -446,3 +446,135 @@ def test_role_change_unknown_user(env):
     )
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "user_not_found"
+
+
+# --- Duplicate ticket --------------------------------------------------------
+
+
+def _set_submission_status(data_dir, submission_id, status):
+    path = data_dir / "QualityMatrix" / "PYPCS_Submissions.csv"
+    rows = _read_csv(path)
+    for row in rows:
+        if row["submission_id"] == submission_id:
+            row["status"] = status
+    _write_csv(path, rows, list(rows[0]))
+
+
+def _duplicate(client, headers, submission_id):
+    return client.post(
+        f"/pypcs/submissions/{submission_id}/duplicate", headers=headers
+    )
+
+
+def _cells_by_question(data_dir, submission_id):
+    return {
+        row["question_id"]: row["answer"] for row in _cells(data_dir, submission_id)
+    }
+
+
+def test_ti_can_duplicate_saved_draft_into_new_draft(env):
+    client, data_dir, auth = env
+    source_id = _owned_submission(client, _headers(auth, "admin1"))
+
+    response = _duplicate(client, _headers(auth, "ti1"), source_id)
+    assert response.status_code == 201, response.text
+    result = response.json()
+    new_id = result["submission_id"]
+
+    assert new_id != source_id
+    assert result["duplicated_from"] == source_id
+    assert result["status"] == "draft"
+    assert result["selected_modules"] == ["STHI"]
+    assert result["versions"], "versions must be returned for conflict checks"
+
+    # The copy carries every cell of the source draft.
+    assert _cells_by_question(data_dir, new_id) == _cells_by_question(
+        data_dir, source_id
+    )
+
+    # The source ticket is untouched.
+    source_detail = client.get(
+        f"/pypcs/submissions/{source_id}", headers=_headers(auth, "admin1")
+    ).json()
+    assert source_detail["submission"]["status"] == "draft"
+    assert source_detail["submission"]["product_name"] == "Owned Product"
+
+    # The change log records the new ticket and where it came from.
+    created = [
+        row
+        for row in _read_csv(data_dir / "Auth" / "ChangeLog.csv")
+        if row["entity_id"] == new_id
+    ]
+    assert created and all(row["action"] == "create" for row in created)
+    assert any(
+        row["field"] == "duplicated_from" and row["new_value"] == source_id
+        for row in created
+    )
+
+
+def test_admin_can_duplicate_saved_draft(env):
+    client, _data_dir, auth = env
+    source_id = _owned_submission(client, _headers(auth, "admin1"))
+
+    response = _duplicate(client, _headers(auth, "admin1"), source_id)
+    assert response.status_code == 201, response.text
+    assert response.json()["submission_id"] != source_id
+
+
+def test_duplicate_rejects_non_draft_submissions(env):
+    client, data_dir, auth = env
+    source_id = _owned_submission(client, _headers(auth, "admin1"))
+
+    for status in ("waiting_me", "final"):
+        _set_submission_status(data_dir, source_id, status)
+        response = _duplicate(client, _headers(auth, "ti1"), source_id)
+        assert response.status_code == 409, response.text
+        assert response.json()["detail"]["code"] == "not_draft"
+
+
+def test_duplicate_unknown_submission_returns_404(env):
+    client, _data_dir, auth = env
+    response = _duplicate(client, _headers(auth, "ti1"), "missing-ticket")
+    assert response.status_code == 404
+
+
+def test_me_and_viewer_cannot_duplicate(env):
+    client, _data_dir, auth = env
+    source_id = _owned_submission(client, _headers(auth, "admin1"))
+
+    for username in ("me1", "viewer1"):
+        response = _duplicate(client, _headers(auth, username), source_id)
+        assert response.status_code == 403
+        assert response.json()["detail"]["code"] == "role_forbidden"
+
+
+def test_editing_after_duplicate_updates_only_the_new_ticket(env):
+    client, data_dir, auth = env
+    source_id = _owned_submission(client, _headers(auth, "admin1"))
+    new_id = _duplicate(
+        client, _headers(auth, "ti1"), source_id
+    ).json()["submission_id"]
+
+    response = _save(
+        client,
+        _headers(auth, "ti1"),
+        submission_id=new_id,
+        role="TI",
+        selected_modules=["STHI"],
+        product_name="Renamed After Duplicate",
+        cells=[
+            {
+                "question_id": "product_name",
+                "module_key": "STHI",
+                "answer": "Renamed After Duplicate",
+            },
+            {"question_id": "pdo_owner", "module_key": "STHI", "answer": OWNER_EMAIL},
+        ],
+    )
+    assert response.status_code == 200, response.text
+
+    assert (
+        _cells_by_question(data_dir, new_id)["product_name"]
+        == "Renamed After Duplicate"
+    )
+    assert _cells_by_question(data_dir, source_id)["product_name"] == "Owned Product"

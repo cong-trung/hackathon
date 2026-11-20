@@ -144,6 +144,15 @@ export async function deletePypcsSubmission(req, res) {
     );
 }
 
+export async function duplicatePypcsSubmission(req, res) {
+    const submissionId = encodeURIComponent(String(req.params.submissionId));
+    return proxyRequest(
+        res,
+        `${BACKEND_BASE_URL}/pypcs/submissions/${submissionId}/duplicate`,
+        { method: 'POST', headers: requestHeaders(req) },
+    );
+}
+
 export async function submitPypcsMatrixSubmission(req, res) {
     return proxyRequest(res, `${BACKEND_BASE_URL}/pypcs/matrix-submission`, {
         method: 'POST',

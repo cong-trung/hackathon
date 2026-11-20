@@ -1027,7 +1027,7 @@ export default function PYPCSMatrixSubmission({
     }
 
     async function saveMatrix(nextStatus) {
-        if (locked) return;
+        if (locked) return null;
         const tpNameErrors = validateTpNameLength();
         const requiredErrors =
             nextStatus === 'final' ? validateMatrix() : {};
@@ -1044,7 +1044,7 @@ export default function PYPCSMatrixSubmission({
                     : 'Please complete required matrix cells.',
             );
             focusCellError(Object.keys(nextErrors)[0]);
-            return;
+            return null;
         }
 
         const expandedCells = expandMatrixCells(questions, selectedModules, cells);
@@ -1059,7 +1059,7 @@ export default function PYPCSMatrixSubmission({
                 'Product Name is required, even for drafts (switch to TI '
                     + 'or View All role to enter it).',
             );
-            return;
+            return null;
         }
 
         const submittedCells = collectSubmittedCells();
@@ -1108,6 +1108,7 @@ export default function PYPCSMatrixSubmission({
                     : nextStatus === 'draft' ? `Saved as draft. ID: ${result.submission_id || 'N/A'}`
                         : `Matrix submitted successfully. ID: ${result.submission_id || 'N/A'}`,
             );
+            return result.submission_id || null;
         } catch (error) {
             setStatusKind('error');
             if (error.status === 401 || error.status === 403) {
@@ -1118,6 +1119,7 @@ export default function PYPCSMatrixSubmission({
             } else {
                 showSaveError(error);
             }
+            return null;
         } finally {
             setLoading(false);
         }
@@ -1159,6 +1161,48 @@ export default function PYPCSMatrixSubmission({
 
     async function handleSaveDraft() {
         await saveMatrix(isME ? submissionStatus : 'draft');
+    }
+
+    async function handleDuplicateTicket() {
+        if (isME || !submissionId || submissionStatus !== 'draft' || locked || loading) return;
+
+        const savedId = currentSnapshot !== baseline.current
+            ? await saveMatrix('draft')
+            : submissionId;
+
+        if (!savedId) return;
+
+        setLoading(true);
+        setStatusMessage('');
+
+        try {
+            const result = await requestJson(
+                `/pypcs/submissions/${encodeURIComponent(savedId)}/duplicate`,
+                { method: 'POST' },
+            );
+            store.dispatch(apiSlice.util.invalidateTags(['PYPCSSubmissions', 'ProductActionMatrix']));
+
+            setSubmissionId(result.submission_id || null);
+            setSubmissionStatus(result.status || 'draft');
+            setVersions(result.versions || {});
+            baseline.current = currentSnapshot;
+            onDirtyChange(false);
+            setConflict(null);
+            setEditReason('');
+            setStatusKind('success');
+            setStatusMessage(`Duplicated. You are now editing the new draft. ID: ${result.submission_id || 'N/A'}`);
+        } catch (error) {
+            setStatusKind('error');
+            if (error.status === 401 || error.status === 403) {
+                setStatusMessage(authErrorMessage(error));
+            } else if (error.status === 409 && error.detail?.code === 'not_draft') {
+                setStatusMessage(error.detail?.message || 'Only saved draft tickets can be duplicated.');
+            } else {
+                setStatusMessage(`Failed to duplicate ticket: ${error.message}`);
+            }
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function handleSubmitTI() {
@@ -1491,6 +1535,17 @@ export default function PYPCSMatrixSubmission({
                     {(isME || permissions.can_create_product) && <Button type="button" size="sm" variant="outline" onClick={handleSaveDraft} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>
                         {loading ? 'Working...' : isME ? 'Save' : 'Save draft'}
                     </Button>}
+                    {!isME && (submissionId ? submissionPermissions?.can_edit : permissions.can_create_product) && (
+                        <Button type="button" size="sm" variant="outline" onClick={handleDuplicateTicket}
+                            disabled={loading || locked || Boolean(conflict) || !submissionId || submissionStatus !== 'draft'}
+                            title={!submissionId
+                                ? 'Save draft first, only saved draft tickets can be duplicated'
+                                : submissionStatus !== 'draft'
+                                    ? 'Only saved draft tickets can be duplicated'
+                                    : 'Create a new draft ticket from the current data'}>
+                            {loading ? 'Working...' : 'Duplicate ticket'}
+                        </Button>
+                    )}
                     {!isME && (submissionId ? submissionPermissions?.can_submit_ti : permissions.can_create_product) && !submissionStatus?.includes('final') && submissionStatus !== 'waiting_me' &&
                         <Button type="button" size="sm" variant="outline" onClick={handleSubmitTI} disabled={loading || locked || Boolean(conflict) || !selectedModules.length}>Submit TI part</Button>}
                     {!isME && (submissionId ? submissionPermissions?.can_final : permissions.can_create_product) &&

@@ -19,6 +19,7 @@ import {
     getPypcsSubmissionDetail,
     getPypcsSubmissionHistory,
     deletePypcsSubmission,
+    duplicatePypcsSubmission,
     submitPypcsMatrixSubmission,
     getPypcsActionItems,
     getPypcsActionItemsMeta,
@@ -60,6 +61,7 @@ router.get('/pypcs/submissions/meta', getPypcsSubmissionsMeta);
 router.get('/pypcs/submissions/:submissionId/history', getPypcsSubmissionHistory);
 router.get('/pypcs/submissions/:submissionId', getPypcsSubmissionDetail);
 router.delete('/pypcs/submissions/:submissionId', deletePypcsSubmission);
+router.post('/pypcs/submissions/:submissionId/duplicate', duplicatePypcsSubmission);
 router.post('/pypcs/matrix-submission', submitPypcsMatrixSubmission);
 router.get('/pypcs/option-review/meta', getPypcsOptionReviewMeta);
 router.get('/pypcs/option-review', getPypcsOptionReview);

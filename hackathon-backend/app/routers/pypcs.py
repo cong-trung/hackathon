@@ -68,6 +68,7 @@ from app.services.pypcs_service import (
 )
 from app.services.change_log import (
     ACTION_ITEM_LOG_FIELDS,
+    FieldChange,
     field_changes,
     has_status_entry,
     new_request_id,
@@ -1431,6 +1432,141 @@ def delete_pypcs_submission(
         invalidate_product_action_matrix_cache()
 
     return {"message": "deleted", "submission_id": target_id}
+
+
+@router.post("/pypcs/submissions/{submission_id}/duplicate", status_code=201)
+def duplicate_pypcs_submission(
+    submission_id: str,
+    user: dict = Depends(require_ti_or_admin),
+):
+    """Copy a saved draft ticket into a brand-new draft owned by the caller."""
+    source_id = value_to_str(submission_id)
+
+    with locked_files(
+        PYPCS_SUBMISSIONS_FILE,
+        PYPCS_SUBMISSION_CELLS_FILE,
+        PYPCS_SUBMISSION_HISTORY_FILE,
+    ):
+        source_submission = next(
+            (
+                row
+                for row in read_optional_csv(PYPCS_SUBMISSIONS_FILE)
+                if value_to_str(row.get("submission_id", "")) == source_id
+            ),
+            None,
+        )
+
+        if not source_submission:
+            raise HTTPException(status_code=404, detail="PYPCS submission not found.")
+
+        if normalize_status(source_submission.get("status", "")) != "draft":
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "not_draft",
+                    "message": "Only saved draft tickets can be duplicated. "
+                    "Save the ticket as draft and retry.",
+                },
+            )
+
+        source_cells = [
+            row
+            for row in read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE)
+            if value_to_str(row.get("submission_id", "")) == source_id
+        ]
+
+        now = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+        new_submission_id = str(uuid.uuid4())
+        selected_modules_ordered = [
+            canonical_module_key(module)
+            for module in split_pipe_value(
+                source_submission.get("selected_modules", "")
+            )
+        ]
+        product_name = value_to_str(source_submission.get("product_name", ""))
+        prodgroup3 = value_to_str(source_submission.get("prodgroup3", ""))
+
+        new_submission = {
+            "submission_id": new_submission_id,
+            "created_at": now,
+            "updated_at": "",
+            "submitted_by": user["username"],
+            "role": value_to_str(source_submission.get("role", "")),
+            "selected_modules": "|".join(selected_modules_ordered),
+            "product_name": product_name,
+            "prodgroup3": prodgroup3,
+            "operation": value_to_str(source_submission.get("operation", "")),
+            "answer_count": "",
+            "status": "draft",
+        }
+        new_cells = [
+            {
+                "submission_id": new_submission_id,
+                "question_id": value_to_str(row.get("question_id", "")),
+                "module_key": canonical_module_key(row.get("module_key", "")),
+                "role": value_to_str(row.get("role", "")),
+                "answer": value_to_str(row.get("answer", "")),
+                "updated_at": now,
+                "updated_by": user["username"],
+            }
+            for row in source_cells
+        ]
+        new_submission["answer_count"] = str(len(new_cells))
+
+        submission_headers = [
+            "submission_id", "created_at", "updated_at", "submitted_by", "role",
+            "selected_modules", "product_name", "prodgroup3", "operation",
+            "answer_count", "status",
+        ]
+        upsert_rows_to_csv(
+            PYPCS_SUBMISSIONS_FILE,
+            "submission_id",
+            new_submission_id,
+            [new_submission],
+            submission_headers,
+        )
+        write_rows_to_csv(
+            PYPCS_SUBMISSION_CELLS_FILE,
+            read_optional_csv(PYPCS_SUBMISSION_CELLS_FILE) + new_cells,
+            PYPCS_SUBMISSION_CELL_HEADERS,
+        )
+        question_rows = read_optional_csv(PYPCS_QUESTIONS_FILE)
+
+        record_changes(
+            username=user["username"],
+            role=value_to_str(user.get("role", "")),
+            entity_type="product_info",
+            entity_id=new_submission_id,
+            ticket_label=f"{product_name} ({prodgroup3})",
+            action="create",
+            request_id=new_request_id(),
+            changes=[
+                FieldChange("duplicated_from", "", source_id, action="create"),
+                *product_info_changes(
+                    {},
+                    new_submission,
+                    [],
+                    new_cells,
+                    creating=True,
+                ),
+            ],
+        )
+        invalidate_product_action_matrix_cache()
+
+    return {
+        "message": "duplicated",
+        "submission_id": new_submission_id,
+        "duplicated_from": source_id,
+        "created_at": now,
+        "updated_at": "",
+        "status": "draft",
+        "selected_modules": selected_modules_ordered,
+        "role": value_to_str(source_submission.get("role", "")),
+        "cell_count": len(new_cells),
+        "versions": matrix_submission_versions(
+            new_submission, new_cells, question_rows
+        ),
+    }
 
 
 @router.post("/pypcs/matrix-submission")
