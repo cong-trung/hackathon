@@ -505,7 +505,7 @@ def test_final_after_waiting_me_notifies_owners(env):
     assert len(env.smtp.sent) == 3
     final_recipients = sorted(message["To"] for message in env.smtp.sent[1:])
     assert final_recipients == sorted([OWNER_EMAIL, GROUP_EMAIL])
-    assert all(message["Subject"].endswith("for review") for message in env.smtp.sent[1:])
+    assert all(message["Subject"].endswith("Quality Matrix review") for message in env.smtp.sent[1:])
 
 
 def test_admin_edit_of_final_is_admin_only_and_sends_no_mail(env):

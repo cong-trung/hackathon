@@ -104,10 +104,6 @@ def collect_notification_recipients(
     return recipients
 
 
-def _review_url(group: str) -> str:
-    return f"{QUALITY_MATRIX_PUBLIC_URL}/quality-product-matrix?module={quote(group, safe='')}"
-
-
 def _resolve_sender(submitter_email: str) -> tuple[str, str]:
     """Return (From, Reply-To). From is always the configured sender; the submitter is only Reply-To."""
     if submitter_email and ("\r" in submitter_email or "\n" in submitter_email):
@@ -128,54 +124,41 @@ def build_final_submission_messages(
     submitter_email: str,
 ) -> list[tuple[str, EmailMessage]]:
     sender, submitter_email = _resolve_sender(submitter_email)
-    submitter = submitter_username.strip() or submitter_display_name.strip() or "A user"
     subject = " ".join(
-        f"[Quality Matrix] {submitter} submitted {product_name} ({prodgroup3}) for review".split()
+        f"New Product Final Submission \u2013 {product_name} ({prodgroup3}) for ICMPCS Set up and Quality Matrix review".split()
     )
-    open_url = f"{QUALITY_MATRIX_PUBLIC_URL}/quality-product-matrix"
-    intro = (
-        f"{submitter} has submitted Product Info for product {product_name} "
-        f"(ProdGroup3: {prodgroup3})."
+    submitted_url = f"{QUALITY_MATRIX_PUBLIC_URL}/"
+    matrix_url = f"{QUALITY_MATRIX_PUBLIC_URL}/quality-product-matrix"
+    text_body = "\n".join(
+        [
+            "Hi Team,",
+            "",
+            f"The Product Info for {product_name} (ProdGroup3: {prodgroup3}) has been finalized "
+            f"and submitted at: {submitted_url}",
+            "",
+            "Please:",
+            "",
+            "1. Go to ICMPCS app for NPI setup : goto/icmpcsapp.",
+            f"2. Review quality matrix at: Quality matrix ({matrix_url})",
+            "",
+            "Thank you.",
+        ]
+    ) + "\n"
+    html_body = (
+        "<p>Hi Team,</p>"
+        f"<p>The Product Info for {html.escape(product_name)} "
+        f"(ProdGroup3: {html.escape(prodgroup3)}) has been finalized and submitted at: "
+        f'<a href="{html.escape(submitted_url, quote=True)}">{html.escape(submitted_url)}</a></p>'
+        "<p>Please:</p>"
+        "<ol>"
+        "<li>Go to ICMPCS app for NPI setup : goto/icmpcsapp.</li>"
+        f'<li>Review quality matrix at: <a href="{html.escape(matrix_url, quote=True)}">'
+        f"Quality matrix</a> ({html.escape(matrix_url)})</li>"
+        "</ol>"
+        "<p>Thank you.</p>"
     )
-    footer = "This is an automated message from Quality Matrix."
-    if submitter_email:
-        footer += f" Reply to contact {submitter}."
-
     messages = []
-    for email_address, module_groups in recipients.values():
-        links = [(group, _review_url(group)) for group in module_groups]
-        text_body = "\n".join(
-            [
-                "Hello,",
-                "",
-                intro,
-                "Please review it in the Quality Product Matrix:",
-                "",
-                *(f"- {group}: {url}" for group, url in links),
-                "",
-                f"Open Quality Matrix: {open_url}",
-                "",
-                footer,
-            ]
-        ) + "\n"
-        html_items = "".join(
-            f'<li><a href="{html.escape(url, quote=True)}">'
-            f"Quality Product Matrix \u2013 {html.escape(group)}</a></li>"
-            for group, url in links
-        )
-        html_footer = "This is an automated message from Quality Matrix."
-        if submitter_email:
-            html_footer += f" Reply to contact <strong>{html.escape(submitter)}</strong>."
-        html_body = (
-            "<p>Hello,</p>"
-            f"<p><strong>{html.escape(submitter)}</strong> has submitted Product Info "
-            f"for product {html.escape(product_name)} "
-            f"(ProdGroup3: {html.escape(prodgroup3)}).</p>"
-            "<p>Please review it in the Quality Product Matrix:</p>"
-            f"<ul>{html_items}</ul>"
-            f'<p><a href="{html.escape(open_url, quote=True)}">Open Quality Matrix</a></p>'
-            f"<p>{html_footer}</p>"
-        )
+    for email_address, _module_groups in recipients.values():
         message = EmailMessage()
         message["Subject"] = subject
         message["From"] = sender

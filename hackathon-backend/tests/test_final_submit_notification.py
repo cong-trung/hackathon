@@ -175,18 +175,23 @@ def test_new_final_submit_emails_each_unique_owner_once(matrix, mail):
 
     owner_a = next(message for message in mail.sent if message["To"] == OWNER_A)
     assert owner_a["Subject"] == (
-        f"[Quality Matrix] notify-test submitted Notify Product ({PRODGROUP3}) for review"
+        f"New Product Final Submission \u2013 Notify Product ({PRODGROUP3}) for ICMPCS Set up and Quality Matrix review"
     )
-    from app.services.notification_service import QUALITY_MATRIX_MAIL_FROM
+    from app.services.notification_service import QUALITY_MATRIX_MAIL_FROM, QUALITY_MATRIX_PUBLIC_URL
 
     assert owner_a["From"] == QUALITY_MATRIX_MAIL_FROM
     assert owner_a["Reply-To"] == "submitter@example.com"
     plain = owner_a.get_body(preferencelist=("plain",)).get_content()
-    assert "notify-test has submitted Product Info for product Notify Product" in plain
+    assert "Hi Team," in plain
+    assert f"The Product Info for Notify Product (ProdGroup3: {PRODGROUP3}) has been finalized" in plain
+    assert f"and submitted at: {QUALITY_MATRIX_PUBLIC_URL}/" in plain
+    assert "1. Go to ICMPCS app for NPI setup : goto/icmpcsapp." in plain
+    assert f"2. Review quality matrix at: Quality matrix ({QUALITY_MATRIX_PUBLIC_URL}/quality-product-matrix)" in plain
+    assert "Thank you." in plain
     assert "Submitter Name" not in plain
-    assert "/quality-product-matrix?module=" in plain
-    assert "Open Quality Matrix: " in plain
-    assert "Reply to contact notify-test." in plain
+    html_part = owner_a.get_body(preferencelist=("html",)).get_content()
+    assert f'href="{QUALITY_MATRIX_PUBLIC_URL}/quality-product-matrix"' in html_part
+    assert ">Quality matrix</a>" in html_part
 
 
 def test_smtp_sends_to_recipient_explicitly(matrix, mail):
@@ -293,7 +298,7 @@ def _build(**overrides):
     from app.services.notification_service import build_final_submission_messages
 
     kwargs = {
-        "recipients": {"a@example.com": ("a@example.com", ["Group <b>"])},
+        "recipients": {"a@example.com": ("a@example.com", ["HDMx"])},
         "product_name": "<script>x</script>",
         "prodgroup3": PRODGROUP3,
         "submitter_username": "Tester",
@@ -305,34 +310,12 @@ def _build(**overrides):
     return message
 
 
-def test_html_body_escapes_product_and_owner_text():
-    message = _build()
+def test_html_body_escapes_product_and_prodgroup3_text():
+    message = _build(prodgroup3="A<b>&C")
     html_part = message.get_body(preferencelist=("html",)).get_content()
     assert "<script>" not in html_part
-    assert "Group &lt;b&gt;" in html_part
-
-
-def test_html_body_escapes_submitter_username():
-    message = _build(submitter_username="<img src=x>", submitter_email="a@example.com")
-    html_part = message.get_body(preferencelist=("html",)).get_content()
-    assert "<img" not in html_part
-    assert "&lt;img src=x&gt;" in html_part
-
-
-def test_username_is_used_not_display_name_when_both_exist():
-    message = _build(submitter_username="anhminhp", submitter_display_name="Anh Minh Phan")
-    plain = message.get_body(preferencelist=("plain",)).get_content()
-    html_part = message.get_body(preferencelist=("html",)).get_content()
-    assert message["Subject"].startswith("[Quality Matrix] anhminhp submitted ")
-    assert "anhminhp" in plain and "Anh Minh Phan" not in plain
-    assert "Anh Minh Phan" not in html_part
-
-
-def test_submitter_label_falls_back_to_display_name_then_generic():
-    message = _build(submitter_username="  ", submitter_display_name="Anh Minh Phan")
-    assert message["Subject"].startswith("[Quality Matrix] Anh Minh Phan submitted ")
-    message = _build(submitter_username="", submitter_display_name="")
-    assert message["Subject"].startswith("[Quality Matrix] A user submitted ")
+    assert "&lt;script&gt;" in html_part
+    assert "A&lt;b&gt;&amp;C" in html_part
 
 
 def test_no_submitter_email_uses_default_sender_and_no_reply_to(monkeypatch):
@@ -398,8 +381,9 @@ def test_outlook_transport_sends_via_com_and_uninitializes(matrix, mail, monkeyp
     assert len(items) == 1
     item = items[0]
     assert item.To == OWNER_B
-    assert item.Subject == f"[Quality Matrix] notify-test submitted Notify Product ({PRODGROUP3}) for review"
-    assert "notify-test</strong> has submitted" in item.HTMLBody
+    assert item.Subject == f"New Product Final Submission \u2013 Notify Product ({PRODGROUP3}) for ICMPCS Set up and Quality Matrix review"
+    assert "Hi Team," in item.HTMLBody
+    assert "Quality matrix</a>" in item.HTMLBody
     assert item.reply_recipients == ["submitter@example.com"]
     assert item.sent is True
     assert com_calls == ["init", "uninit"]
@@ -443,7 +427,7 @@ def test_invalid_group_email_is_422(matrix, mail):
     assert detail["message"] == "Invalid email: not-an-email"
 
 
-def test_group_email_receives_links_for_all_module_groups(matrix, mail):
+def test_group_email_receives_final_submission_email(matrix, mail):
     client, _ = matrix
     response = client.post(
         "/pypcs/matrix-submission",
@@ -452,8 +436,8 @@ def test_group_email_receives_links_for_all_module_groups(matrix, mail):
     assert response.status_code == 200
     assert [message["To"] for message in mail.sent] == [GROUP_EMAIL]
     plain = mail.sent[0].get_body(preferencelist=("plain",)).get_content()
-    assert "- HDMx: " in plain
-    assert "- STHI: " in plain
+    assert "Hi Team," in plain
+    assert "2. Review quality matrix at: Quality matrix (" in plain
 
 
 def test_group_email_and_owner_same_address_sends_one_email(matrix, mail):
@@ -466,8 +450,8 @@ def test_group_email_and_owner_same_address_sends_one_email(matrix, mail):
     assert len(mail.sent) == 1
     assert mail.sent[0]["To"].casefold() == GROUP_EMAIL
     plain = mail.sent[0].get_body(preferencelist=("plain",)).get_content()
-    assert "- HDMx: " in plain
-    assert "- STHI: " in plain
+    assert "Hi Team," in plain
+    assert "Thank you." in plain
 
 
 def test_group_email_with_owner_sends_to_both(matrix, mail):
@@ -528,8 +512,8 @@ def test_group_email_list_is_stored_normalized_and_emails_each_address(matrix, m
     assert sorted(message["To"] for message in mail.sent) == sorted([GROUP_EMAIL, GROUP_EMAIL_2])
     for message in mail.sent:
         plain = message.get_body(preferencelist=("plain",)).get_content()
-        assert "- HDMx: " in plain
-        assert "- STHI: " in plain
+        assert "Hi Team," in plain
+        assert "Thank you." in plain
 
 
 def test_invalid_address_in_group_list_is_422_naming_it(matrix, mail):
